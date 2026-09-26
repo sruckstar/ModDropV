@@ -52,7 +52,7 @@ public sealed partial class InstalledModViewModel : ObservableObject
         ? Mod.Kind == ModKind.Merged
             ? $"Remove from the game: its models, metas and texts are taken out of {Mod.Pack}"
             : $"Remove from the game: the whole «{Mod.Pack}» dlcpack is deleted"
-        : "Remove from the game: what it changed is put back";
+        : "Remove from the game: the game's own files (or the mod installed before it) come back";
 
     /// <summary>Other installed mods that change the same game files.</summary>
     public IReadOnlyList<string> Conflicts { get; }
@@ -71,7 +71,11 @@ public sealed partial class InstalledModViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsChanged), nameof(Status), nameof(HasStatus), nameof(CanToggle))]
     public partial bool PendingRemove { get; set; }
 
-    public bool CanToggle => !PendingRemove;
+    public bool CanToggle => !PendingRemove && Mod.CanSwitch;
+
+    public string ToggleTip => Mod.CanSwitch
+        ? "Load this mod in the game"
+        : "It copied files into the game folder — it can be removed, but not switched off";
     public bool IsChanged => PendingRemove || Enabled != Mod.Enabled;
 
     /// <summary>What applying will do to this mod, or its current state if nothing.</summary>

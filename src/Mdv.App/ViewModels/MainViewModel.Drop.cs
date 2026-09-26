@@ -124,6 +124,8 @@ public sealed partial class MainViewModel
         HasDetected = false;
         SelectedPanel = null;
         _ = Weapon.UseIntakeAsync(null);
+        Oiv.Use(null);
+        _ = Replace.UseAsync(null);
     }
 
     /// <summary>
@@ -246,11 +248,11 @@ public sealed partial class MainViewModel
     private static string NothingToInstall(DropAnalysis a)
     {
         if (a.Report.Primary is not { } p)
-            return "Nothing ModDrop V recognises was found in what was dropped — no weapon models (.ydr / .ytd), " +
-                   "configs, scripts or add-on packs.";
+            return "Nothing ModDrop V recognises was found in what was dropped — no weapon models, OIV package, " +
+                   "game files to replace (.ytd / .yft / .awc / .meta …), scripts or add-on packs.";
         if (a.Problems.TryGetValue(p.Category, out var why)) return why;
         return $"This looks like a {p.Category.DisplayName().ToLowerInvariant()} mod ({string.Join(", ", p.Evidence.Take(2))}). " +
-               "ModDrop V installs add-on weapons for now — other mod types are on the way.";
+               "ModDrop V installs weapons, OIV packages and file replacements for now — other mod types are on the way.";
     }
 
     /// <summary>A mod of the drop was picked: the others are unpicked and its panel takes over.</summary>
@@ -272,6 +274,14 @@ public sealed partial class MainViewModel
             case WeaponPackage w:
                 SelectedPanel = Weapon;
                 _panelLoad = Weapon.UseIntakeAsync(w.Intake);
+                break;
+            case OivPackage o:
+                Oiv.Use(o);
+                SelectedPanel = Oiv;
+                break;
+            case ReplacementPackage r:
+                SelectedPanel = Replace;
+                _panelLoad = Replace.UseAsync(r);
                 break;
             default:
                 SelectedPanel = null;

@@ -1,0 +1,45 @@
+<!-- OIV panel, side slot: every step of the package and where it lands. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.OivSideView"
+             x:DataType="vm:OivViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+      <TextBlock Classes="h" Text="WHAT IT DOES" />
+      <TextBlock Grid.Row="1" Classes="desc" Text="{Binding Summary}" Margin="0,0,10,0" />
+      <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <ItemsControl ItemsSource="{Binding Steps}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:OivStepRow">
+                <Grid ColumnDefinitions="72,*" Margin="0,3" ColumnSpacing="8">
+                  <TextBlock Classes="kv-key" Text="{Binding Kind}" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="11.5"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Where}" FontSize="10.5" Foreground="{DynamicResource Text3Brush}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Text1Brush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

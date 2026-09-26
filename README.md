@@ -31,12 +31,13 @@ stay untouched and every install can be switched off or removed again.
 | Mod type | Status |
 |---|---|
 | Add-on weapons (replace mods become real add-on weapons) | ✅ ready |
+| OIV packages — installed into the `mods` folder, removable | ✅ ready |
+| File replacements (textures, models, sounds, metas…) — the right place is found in the game | ✅ ready |
 | Add-on vehicles and peds | planned |
 | Vehicle liveries | planned |
 | Scripts, plugins and their dependencies | planned |
 | Clothes for the main characters, MP clothes and components | planned |
 | Objects, maps and total conversions | planned |
-| Any other file replacement through the `mods` folder, OIV packages | planned |
 
 Coming from AddonWeapons Builder? The weapons it installed show up in ModDrop V, and new weapons keep going
 into the same `AddonWeapons` pack.

@@ -24,6 +24,8 @@ public sealed record InstalledMod(string Id, string Name, ModKind Kind, string P
     public string? ImportedFrom { get; init; }
     /// <summary>The folder in the game that holds it (for "open folder"), when it has one.</summary>
     public string? Folder { get; init; }
+    /// <summary>It can be switched off and on again (false: only removed).</summary>
+    public bool CanSwitch { get; init; } = true;
 }
 
 /// <summary>A drop, analysed: what the detector saw, the installable packages, and per kind why it can't be installed.</summary>
@@ -43,7 +45,7 @@ public sealed record ModChange(string Id, bool Enable, bool Remove = false);
 /// </summary>
 public static class ModLibrary
 {
-    public static IReadOnlyList<IModHandler> Handlers { get; } = [new WeaponHandler()];
+    public static IReadOnlyList<IModHandler> Handlers { get; } = [new WeaponHandler(), new OivHandler(), new ReplacementHandler()];
 
     public static IModHandler HandlerFor(ModCategory category) =>
         Handlers.FirstOrDefault(h => h.Category == category)

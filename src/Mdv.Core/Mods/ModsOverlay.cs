@@ -50,6 +50,8 @@ public sealed class OverlayState
     [JsonPropertyName("copies")] public Dictionary<string, ModsCopy> Copies { get; set; } = [];
     /// <summary>By game path (lower case): <c>x64e.rpf/levels/gta5/vehicles.rpf/adder.yft</c>.</summary>
     [JsonPropertyName("entries")] public Dictionary<string, OwnedEntry> Entries { get; set; } = [];
+    /// <summary>Switched-off mods: mod id → game path → its version (<c>absent</c> or <c>blob:&lt;sha&gt;</c>), put back when switched on.</summary>
+    [JsonPropertyName("parked")] public Dictionary<string, Dictionary<string, string>> Parked { get; set; } = [];
 }
 
 /// <summary>A game path other mods already change.</summary>
@@ -148,7 +150,10 @@ public sealed class ModsOverlay
     public void Save()
     {
         var path = StatePath(GameDir);
-        if (State.Copies.Count == 0 && State.Entries.Count == 0)
+        // a copy someone else made that holds none of our mods' files any more: nothing to keep track of
+        foreach (var top in State.Copies.Where(kv => !kv.Value.Created).Select(kv => kv.Key).ToList())
+            if (!State.Entries.Keys.Any(k => TopOf(k) == top)) State.Copies.Remove(top);
+        if (State.Copies.Count == 0 && State.Entries.Count == 0 && State.Parked.Count == 0)
         {
             if (File.Exists(path)) File.Delete(path);
             CollectGarbage(GameDir, State);
@@ -172,6 +177,7 @@ public sealed class ModsOverlay
         state ??= ReadState(gameDir) ?? new OverlayState();
         var keep = state.Entries.Values
             .SelectMany(e => e.Layers.Select(l => l.Content).Append(e.Base))
+            .Concat(state.Parked.Values.SelectMany(p => p.Values))
             .Where(c => c.StartsWith(BlobPrefix, StringComparison.Ordinal))
             .Select(c => c[BlobPrefix.Length..])
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -236,6 +242,55 @@ public sealed class ModsOverlay
     /// <summary>Game paths a mod changes.</summary>
     public IReadOnlyList<string> PathsOf(string modId) =>
         [.. State.Entries.Where(kv => kv.Value.Layers.Any(l => l.Mod == modId)).Select(kv => kv.Key)];
+
+    /// <summary>Is there a file (or nested archive) at <paramref name="gamePath"/> — in the copy in mods if there is one, else in the game?</summary>
+    public bool Exists(string gamePath)
+    {
+        var (top, inner) = Split(gamePath);
+        if (_editors.TryGetValue(top, out var ed)) return ed.Exists(inner);
+        var file = ArchiveFile(top);
+        if (file is null) return false;
+        using var arc = RpfArchive.Open(file, crypto: Crypto());
+        return Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), (_, _) => true);
+    }
+
+    /// <summary>
+    /// The content of the file at <paramref name="gamePath"/> as the game would read it now (the copy in mods
+    /// if there is one, else the game's archive), decompressed and decrypted; null when it isn't there.
+    /// Edits not yet committed are committed first.
+    /// </summary>
+    public byte[]? Read(string gamePath)
+    {
+        var (top, inner) = Split(gamePath);
+        if (_editors.ContainsKey(top)) Commit();
+        var file = ArchiveFile(top);
+        if (file is null) return null;
+        using var arc = RpfArchive.Open(file, crypto: Crypto());
+        byte[]? content = null;
+        Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), (a, e) =>
+        {
+            content = e.IsDir ? null : a.ReadContent(e);
+            return content is not null;
+        });
+        return content;
+    }
+
+    /// <summary>A top-level archive as the game reads it: the copy in mods, else the game's own; null if neither.</summary>
+    private string? ArchiveFile(string top) =>
+        File.Exists(CopyPath(top)) ? CopyPath(top) : File.Exists(GameFile(top)) ? GameFile(top) : null;
+
+    /// <summary>Walk into nested archives to the entry at <paramref name="parts"/> and hand it to <paramref name="found"/>.</summary>
+    private static bool Locate(RpfArchive arc, string[] parts, Func<RpfArchive, RpfEntry, bool> found)
+    {
+        for (int i = 0; i < parts.Length - 1; i++)
+        {
+            if (!parts[i].EndsWith(".rpf", StringComparison.OrdinalIgnoreCase)) continue;
+            if (arc.Locate(string.Join('/', parts[..(i + 1)])) is not { StoredRaw: true } e) continue;
+            using var nested = arc.OpenNested(e);
+            return Locate(nested, parts[(i + 1)..], found);
+        }
+        return arc.Locate(string.Join('/', parts)) is { } f && found(arc, f);
+    }
 
     /// <summary>The paths among <paramref name="gamePaths"/> other mods already change — shown before an install.</summary>
     public List<OverlayConflict> Conflicts(string modId, IEnumerable<string> gamePaths)
@@ -387,6 +442,47 @@ public sealed class ModsOverlay
         }
         return n;
     }
+
+    /// <summary>
+    /// Switch a mod off: its versions are kept aside (see <see cref="OverlayState.Parked"/>) and taken
+    /// out of the archives like <see cref="RemoveMod"/> does. Returns the number of files.
+    /// </summary>
+    public int Park(string modId)
+    {
+        var parked = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var key in PathsOf(modId))
+        {
+            var layer = State.Entries[key].Layers.First(l => l.Mod == modId);
+            if (layer.Content != Live) parked[key] = layer.Content;
+            else
+            {
+                var (top, inner) = Split(key);
+                parked[key] = Save(Editor(top).Get(inner));
+            }
+        }
+        if (_pending.Count == 0) Commit();                   // only read: close the editors, so a copy left empty can go
+        RemoveMod(modId);
+        if (parked.Count > 0) State.Parked[modId] = parked;
+        return parked.Count;
+    }
+
+    /// <summary>Switch a parked mod back on: its versions go on top again. Returns the number of files.</summary>
+    public int Unpark(string modId)
+    {
+        if (!State.Parked.Remove(modId, out var parked)) return 0;
+        foreach (var (key, content) in parked.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+        {
+            if (content == Absent) Delete(modId, key);
+            else PutStored(modId, key, LoadBlob(content));
+        }
+        return parked.Count;
+    }
+
+    /// <summary>Is the mod switched off (its versions parked)?</summary>
+    public bool IsParked(string modId) => State.Parked.ContainsKey(modId);
+
+    /// <summary>Forget a parked mod's versions (it is being removed while switched off).</summary>
+    public void DropParked(string modId) => State.Parked.Remove(modId);
 
     /// <summary>
     /// Replace a stale copy with a fresh one from the (updated) game and put every mod's live

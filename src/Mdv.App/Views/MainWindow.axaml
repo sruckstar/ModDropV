@@ -341,6 +341,12 @@
               <DataTemplate DataType="vm:ComingSoonViewModel">
                 <p:ComingSoonView />
               </DataTemplate>
+              <DataTemplate DataType="vm:OivViewModel">
+                <p:OivFormView />
+              </DataTemplate>
+              <DataTemplate DataType="vm:ReplacementViewModel">
+                <p:ReplaceFormView />
+              </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
           <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
@@ -374,6 +380,12 @@
           <ContentControl.DataTemplates>
             <DataTemplate DataType="vm:WeaponViewModel">
               <p:WeaponSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:OivViewModel">
+              <p:OivSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:ReplacementViewModel">
+              <p:ReplaceSideView />
             </DataTemplate>
             <DataTemplate DataType="vm:ModPanelViewModel">
               <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />
@@ -450,7 +462,8 @@
                         </Border.Styles>
                         <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
                           <CheckBox IsChecked="{Binding Enabled}" IsEnabled="{Binding CanToggle}" VerticalAlignment="Center"
-                                    MinWidth="0" Padding="0" ToolTip.Tip="Load this mod in the game" />
+                                    MinWidth="0" Padding="0" ToolTip.Tip="{Binding ToggleTip}"
+                                    ToolTip.ShowOnDisabled="True" />
                           <Border Grid.Column="1" Classes="badge" VerticalAlignment="Center" MinWidth="64">
                             <TextBlock Text="{Binding CategoryName}" HorizontalAlignment="Center" />
                           </Border>

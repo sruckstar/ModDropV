@@ -63,6 +63,10 @@ internal static class Program
                 "overlay" => Overlay(rest),
                 "refresh" => Refresh(rest),
                 "compact" => Compact(rest),
+                "install" => Install(rest),
+                "remove" => Remove(rest),
+                "switch" => Switch(rest),
+                "cat" => Cat(rest),
                 _ => Usage($"unknown command '{args[0]}'"),
             };
         }
@@ -134,6 +138,17 @@ internal static class Program
                   with the mods' changes and added dlclist entries put back
               compact <game_dir> [archive ...]
                   rewrite archive copies in mods without the holes edits leave behind
+              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon] [--edition legacy|enhanced|auto]
+                      [--target NAME=GAME_PATH ...] [--dry-run]
+                  install a dropped mod the way the app does: analyse, print the plan, run it
+                  (--kind picks one of the mods found; --target sends a replacement file elsewhere)
+              remove <game_dir> <mod_id> [<mod_id> ...]
+                  remove installed mods (ids as `installed` prints them)
+              switch <game_dir> <mod_id> on|off
+                  switch an installed mod on / off
+              cat <game_dir> <game_path> [out_file]
+                  a file inside the game's archives as the game reads it now (the copy in mods
+                  if there is one), decompressed — to out_file, else to the console
             """);
     }
 
@@ -397,8 +412,9 @@ internal static class Program
         var mods = ModLibrary.List(target);
         Console.WriteLine($"{game} ({edition.DisplayName()}): {mods.Count} installed mod(s)");
         foreach (var m in mods)
-            Console.WriteLine($"  [{(m.Enabled ? "on " : "off")}] {m.Name,-32} {m.Category.DisplayName(),-8} {m.Kind,-6} {m.Pack}" +
-                              (m.ImportedFrom is null ? "" : $"  (from {m.ImportedFrom})"));
+            Console.WriteLine($"  [{(m.Enabled ? "on " : "off")}] {m.Name,-32} {m.Category.ShortName(),-8} {m.Pack}" +
+                              (m.ImportedFrom is null ? "" : $"  (from {m.ImportedFrom})") +
+                              (m.CanSwitch ? "" : "  (remove only)") + $"  id={m.Id}");
         return 0;
     }
 
@@ -568,6 +584,8 @@ internal static class Program
             Id = modId, Category = ModCategory.Replacement, Name = existing?.Name ?? modId,
             Edition = WeaponHandler.EditionKey(ctx.Target.Edition), Installed = DateTime.UtcNow,
             Owns = [.. (existing?.Owns ?? []).Append(key).Distinct(StringComparer.OrdinalIgnoreCase)],
+            JournalFrom = 0,                                   // archive changes only: the mods layer owns them
+            Data = new() { ["where"] = "put from the command line" },
         })));
         return plan;
     }
@@ -607,6 +625,128 @@ internal static class Program
             .Add(new OverlayRemoveOp(modId, modId))
             .Add(new ActionOp("Forget it in mods\\ModDropV.json", ctx => ctx.Unregistered.Add(modId)));
         return RunPlan(plan, TargetFor(game, null));
+    }
+
+    private static int Install(string[] argv)
+    {
+        var a = Parse(argv, ["--kind", "--edition", "--target"], ["--dry-run"]);
+        NeedPositional(a, 2, int.MaxValue, "game_dir, path");
+        var game = a.Positional[0];
+        var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
+        target = target with { IndexCacheRoot = Mdv.Core.Index.GameIndexCache.DefaultRoot };
+        var work = PathUtil.MakeTempDir();
+        try
+        {
+            var dropped = SourceIntake.Gather(a.Positional[1..], work, Console.WriteLine);
+            var analysis = ModLibrary.Analyze(dropped, new HandlerEnv(Path.Combine(AppContext.BaseDirectory, "data")));
+            Console.WriteLine($"Found: {analysis.Report.Summary()}");
+            foreach (var (cat, why) in analysis.Problems) Console.WriteLine($"  {cat.DisplayName()}: can't install — {why}");
+            foreach (var p in analysis.Packages) Console.WriteLine($"  {p.Category.ShortName(),-8} «{p.Name}»  {string.Join(" · ", p.Parts)}");
+            var kind = a.Opt("--kind");
+            var pkg = analysis.Packages.FirstOrDefault(p => kind is null || p.Category.ShortName() == kind);
+            if (pkg is null)
+            {
+                Console.Error.WriteLine("[!] Nothing to install" + (kind is null ? "." : $" of kind {kind}."));
+                return 1;
+            }
+            if (pkg is ReplacementPackage rp)
+            {
+                ReplacementHandler.Resolve(rp, Mdv.Core.Index.GameIndex.Open(game, target.IndexCacheRoot));
+                foreach (var t in a.All("--target"))
+                {
+                    var eq = t.IndexOf('=');
+                    if (eq < 0) throw new UsageException($"--target expects NAME=GAME_PATH, got '{t}'");
+                    var f = rp.Files.FirstOrDefault(x => x.Name.Equals(t[..eq], StringComparison.OrdinalIgnoreCase))
+                            ?? throw new UsageException($"--target: the mod has no file {t[..eq]}");
+                    f.Target = t[(eq + 1)..];
+                }
+                foreach (var f in rp.Files)
+                    Console.WriteLine($"    {f.Name,-28} -> {f.Target ?? "(not in the game)"}" +
+                                      (f.Candidates.Count > 1 ? $"  [{f.Candidates.Count} places]" : ""));
+            }
+            var plan = ModLibrary.HandlerFor(pkg.Category).PlanInstall(pkg, target);
+            plan.Warnings.InsertRange(0, pkg.Warnings);
+            Console.WriteLine($"{plan.Title}:");
+            int i = 0;
+            foreach (var step in plan.Describe()) Console.WriteLine($"  {++i,2}. {step}");
+            if (a.Flags.Contains("--dry-run"))
+            {
+                foreach (var w in plan.Warnings) Console.WriteLine($"[!] {w}");
+                return 0;
+            }
+            return RunPlan(plan, target);
+        }
+        catch (IntakeException ex)
+        {
+            Console.Error.WriteLine($"[!] {ex.Message}");
+            return 1;
+        }
+        finally
+        {
+            PathUtil.TryDeleteDir(work);
+        }
+    }
+
+    private static int Remove(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 2, int.MaxValue, "game_dir, mod_id");
+        var game = a.Positional[0];
+        var target = TargetFor(game, null);
+        InstallPlan plan;
+        try
+        {
+            plan = ModLibrary.PlanChanges(target, [.. a.Positional[1..].Select(id => new ModChange(id, false, Remove: true))]);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            throw new UsageException(ex.Message);
+        }
+        foreach (var step in plan.Describe()) Console.WriteLine($"  - {step}");
+        return RunPlan(plan, target);
+    }
+
+    private static int Switch(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 3, 3, "game_dir, mod_id, on|off");
+        var (game, id, state) = (a.Positional[0], a.Positional[1], a.Positional[2]);
+        if (state is not ("on" or "off")) throw new UsageException("the state is on or off");
+        var target = TargetFor(game, null);
+        InstallPlan plan;
+        try
+        {
+            plan = ModLibrary.PlanChanges(target, [new ModChange(id, state == "on")]);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            throw new UsageException(ex.Message);
+        }
+        foreach (var step in plan.Describe()) Console.WriteLine($"  - {step}");
+        return RunPlan(plan, target);
+    }
+
+    private static int Cat(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 2, 3, "game_dir, game_path");
+        byte[]? data;
+        try
+        {
+            data = ModsOverlay.Load(a.Positional[0]).Read(a.Positional[1]);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        if (data is null)
+        {
+            Console.Error.WriteLine($"[!] {a.Positional[1]} is not in the game.");
+            return 1;
+        }
+        if (a.Positional.Count == 3) File.WriteAllBytes(a.Positional[2], data);
+        else Console.Write(TextIo.DecodeUtf8Sig(data, strict: false));
+        return 0;
     }
 
     private static int Raise(string[] argv)

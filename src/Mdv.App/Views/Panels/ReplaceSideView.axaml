@@ -1,0 +1,38 @@
+<!-- Replacement panel, side slot: what was found and how it is installed. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.ReplaceSideView"
+             x:DataType="vm:ReplacementViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,*" RowSpacing="10">
+      <TextBlock Classes="h" Text="ANALYSIS" />
+      <ScrollViewer Grid.Row="1" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <StackPanel Spacing="3">
+            <TextBlock Text="File replacement" FontWeight="SemiBold" FontSize="14" FontFamily="{StaticResource DisplayFont}" />
+            <TextBlock Classes="desc" Text="{Binding Summary}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Border Classes="note">
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}"
+                       Text="Each file goes where the game actually loads it from — by the folders the mod mirrors, else by its name. The files go into copies of the archives under mods; switch the mod off or remove it in the Library and the game's own files come back." />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Text1Brush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

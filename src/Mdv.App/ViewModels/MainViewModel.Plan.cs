@@ -64,9 +64,14 @@ public sealed partial class MainViewModel
             return;
         }
         plan.Warnings.InsertRange(0, pkg.Warnings);
-        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Install", () => RunJobAsync(job),
-                 "The game's own files stay untouched — everything goes into the mods folder. " +
-                 "Switch it off or remove it any time in the Library.");
+        // files for the game folder itself (plugins, scripts, settings) can only be taken back by removing the mod
+        bool gameFolder = plan.Ops.Any(o => o is FileEditOp or DeleteFileOp ||
+                                            o is CopyFileOp c && !c.GameRel.StartsWith("mods/", StringComparison.OrdinalIgnoreCase));
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Install", () => RunJobAsync(job), gameFolder
+                     ? "The game's own archives stay untouched — changes to them go into copies under mods. Files for the " +
+                       "game folder are copied there; removing the mod in the Library takes them back."
+                     : "The game's own files stay untouched — everything goes into the mods folder. " +
+                       "Switch it off or remove it any time in the Library.");
     }
 
     internal void OpenPlan(InstallPlan plan, string target, string confirm, Func<Task> run, string note)

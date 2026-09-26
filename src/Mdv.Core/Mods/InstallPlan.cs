@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using System.Xml.XPath;
+using Mdv.Core.Index;
 using Mdv.Core.Util;
 
 namespace Mdv.Core.Mods;
@@ -20,8 +21,8 @@ public sealed class InstallPlan
         return this;
     }
 
-    /// <summary>One line per step, for the "what will be done" view and the log.</summary>
-    public IEnumerable<string> Describe() => Ops.Select(o => o.Describe());
+    /// <summary>One line per step, for the "what will be done" view and the log (bookkeeping steps left out).</summary>
+    public IEnumerable<string> Describe() => Ops.Where(o => !o.Hidden).Select(o => o.Describe());
 }
 
 /// <summary>
@@ -61,6 +62,9 @@ public abstract class PlanOp
 {
     /// <summary>What the step does, in words the player understands.</summary>
     public abstract string Describe();
+
+    /// <summary>Bookkeeping (registry records, journal marks) — not listed in the plan shown to the player.</summary>
+    public bool Hidden { get; init; }
 
     public abstract void Execute(InstallContext ctx);
 
@@ -175,6 +179,73 @@ public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
     {
         ctx.Overlay.Delete(modId, GamePath);
         ctx.Log($"    deleted mods/{ModsOverlay.KeyOf(GamePath)}");
+    }
+}
+
+/// <summary>
+/// Change a file inside the game's archives by editing its current content (the version the game
+/// reads now — a copy in mods or the game's own): <c>edit</c> gets the content (null: no such file)
+/// and returns the new one (null: leave it as it is). The result goes on top like <see cref="RpfPutOp"/>.
+/// </summary>
+public sealed class RpfEditOp(string gamePath, string modId, string description, Func<byte[]?, Action<string>, byte[]?> edit) : PlanOp
+{
+    public string GamePath { get; } = gamePath;
+
+    public override string Describe() => description;
+
+    public override void Execute(InstallContext ctx)
+    {
+        var updated = edit(ctx.Overlay.Read(GamePath), ctx.Log);
+        if (updated is null) return;
+        ctx.Overlay.Put(modId, GamePath, updated);
+        ctx.Log($"    {GamePath}: {description}.");
+    }
+}
+
+/// <summary>
+/// Change a file of the game folder by editing its content (null: no such file; the edit returns
+/// null to leave it). The old file is kept for an uninstall; a new one is recorded as created.
+/// </summary>
+public sealed class FileEditOp(string gameRel, string description, Func<byte[]?, Action<string>, byte[]?> edit) : PlanOp
+{
+    public string GameRel { get; } = gameRel.Replace('\\', '/');
+
+    public override string Describe() => description;
+
+    public override void Execute(InstallContext ctx)
+    {
+        var path = ctx.Abs(GameRel);
+        bool exists = File.Exists(path);
+        var updated = edit(exists ? File.ReadAllBytes(path) : null, ctx.Log);
+        if (updated is null) return;
+        if (exists) ctx.Journal.CopyAside(path, keep: true);
+        else
+        {
+            CopyFileOp.EnsureDir(ctx, Path.GetDirectoryName(path)!);
+            ctx.Journal.FileCreated(path);
+        }
+        File.WriteAllBytes(path, updated);
+        ctx.Log($"    {GameRel}: {description}.");
+    }
+}
+
+/// <summary>Delete a file of the game folder; it is kept for an uninstall.</summary>
+public sealed class DeleteFileOp(string gameRel) : PlanOp
+{
+    public string GameRel { get; } = gameRel.Replace('\\', '/');
+
+    public override string Describe() => $"Delete <game>/{GameRel} (kept aside, it comes back when the mod is removed)";
+
+    public override void Execute(InstallContext ctx)
+    {
+        var path = ctx.Abs(GameRel);
+        if (!File.Exists(path))
+        {
+            ctx.Log($"    <game>/{GameRel} is not there — nothing to delete.");
+            return;
+        }
+        ctx.Journal.MoveAside(path, keep: true);
+        ctx.Log($"    deleted <game>/{GameRel}");
     }
 }
 
@@ -326,7 +397,8 @@ public static class InstallExecutor
             var kept = journal.Steps.Where(s => s is not (StagingTouched or RpfEntrySet)).ToList();
             foreach (var m in ctx.Registered)
             {
-                if (m.Journal.Count == 0) m.Journal = kept;
+                if (m.JournalFrom is int from) m.Journal = OwnSteps(journal.Steps.Skip(from), ctx.LoadedOverlay);
+                else if (m.Journal.Count == 0) m.Journal = kept;
                 reg.Upsert(m);
             }
             foreach (var id in ctx.Unregistered) reg.Remove(id);
@@ -339,5 +411,25 @@ public static class InstallExecutor
             reg.Save(target.GameDir);
         }
         return ctx;
+    }
+
+    /// <summary>
+    /// The steps an uninstall takes back: not the archive edits (the mods layer owns those) and not
+    /// the archive copies in mods or the folders made for them — other mods' files live there too.
+    /// </summary>
+    internal static List<JournalStep> OwnSteps(IEnumerable<JournalStep> steps, ModsOverlay? overlay)
+    {
+        var copies = overlay?.State.Copies.Keys.Select(k => GameIndex.ModsPrefix + k).ToList() ?? [];
+        bool UnderCopy(string path) =>
+            copies.Any(c => c.Equals(path, StringComparison.OrdinalIgnoreCase) ||
+                            c.StartsWith(path.TrimEnd('/') + "/", StringComparison.OrdinalIgnoreCase));
+        return [.. steps.Where(s => s switch
+        {
+            RpfEntrySet or StagingTouched => false,
+            CreatedFile f => !UnderCopy(f.Path),
+            CreatedDir d => !UnderCopy(d.Path),
+            MovedAside m => !UnderCopy(m.Path),
+            _ => true,
+        })];
     }
 }

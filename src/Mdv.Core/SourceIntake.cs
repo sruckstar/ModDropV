@@ -272,6 +272,10 @@ public static partial class SourceIntake
 
         using (arc)
         {
+            // an OIV package is installed as a whole: every file its instructions name is needed
+            bool everything = archive.EndsWith(".oiv", StringComparison.OrdinalIgnoreCase) ||
+                              arc.Entries.Any(e => !e.IsDirectory && e.Key is { } k &&
+                                                   k.Replace('\\', '/').TrimStart('/').Equals("assembly.xml", StringComparison.OrdinalIgnoreCase));
             try
             {
                 if (arc.IsSolid || arc.Type == ArchiveType.SevenZip)
@@ -281,7 +285,7 @@ public static partial class SourceIntake
                     while (reader.MoveToNextEntry())
                     {
                         ct.ThrowIfCancellationRequested();
-                        var target = TargetFor(reader.Entry, origin, dest, g);
+                        var target = TargetFor(reader.Entry, origin, dest, g, everything);
                         if (target is null) continue;
                         using var fs = File.Create(target);
                         reader.WriteEntryTo(fs);
@@ -292,7 +296,7 @@ public static partial class SourceIntake
                     foreach (var entry in arc.Entries)
                     {
                         ct.ThrowIfCancellationRequested();
-                        var target = TargetFor(entry, origin, dest, g);
+                        var target = TargetFor(entry, origin, dest, g, everything);
                         if (target is null) continue;
                         using var es = entry.OpenEntryStream();
                         using var fs = File.Create(target);
@@ -335,7 +339,8 @@ public static partial class SourceIntake
     }
 
     /// <summary>Safe local path for an entry worth extracting; null = skip it.</summary>
-    private static string? TargetFor(IEntry entry, string origin, string dest, Gatherer g)
+    /// <param name="everything">extract every file, not just the ones that can matter to a mod type</param>
+    private static string? TargetFor(IEntry entry, string origin, string dest, Gatherer g, bool everything)
     {
         if (entry.IsDirectory || !string.IsNullOrEmpty(entry.LinkTarget) || string.IsNullOrEmpty(entry.Key)) return null;
         var parts = entry.Key.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries)
@@ -345,7 +350,8 @@ public static partial class SourceIntake
         var ext = PathUtil.SuffixLower(name);
         bool wanted = InputScanner.ResourceExt.Contains(ext) || ext == ".rpf" || ArchiveExt.Contains(ext)
                       || Mods.ModDetector.SniffedExt.Contains(ext)
-                      || ((TextExt.Contains(ext) || StoreInfoReader.TextTableExt.Contains(ext)) && entry.Size <= MaxTextBytes);
+                      || ((TextExt.Contains(ext) || StoreInfoReader.TextTableExt.Contains(ext)) && entry.Size <= MaxTextBytes)
+                      || Mods.ReplacementHandler.ReplaceableExt.Contains(ext) || everything;
         if (!wanted) return null;
         if (entry.IsEncrypted)
             throw new IntakeException($"«{origin}» is password-protected — unpack it yourself and drop the folder.");
@@ -450,7 +456,7 @@ public static partial class SourceIntake
         return InputScanner.ResourceExt.Contains(ext) || ext is ".rpf" or ".meta" or ".xml";
     }
 
-    private static bool IsDlcPack(string rpf)
+    internal static bool IsDlcPack(string rpf)
     {
         try
         {

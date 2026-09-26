@@ -1,0 +1,64 @@
+<!-- OIV panel, form slot: the package's own card — its colours, icon, name, author and description. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.OivFormView"
+             x:DataType="vm:OivViewModel">
+  <Border Classes="card" Padding="0" ClipToBounds="True">
+    <Grid RowDefinitions="Auto,*">
+      <!-- header band in the package's colour (the accent wash when it has none) -->
+      <Panel>
+        <Border Background="{DynamicResource AccentWashBrush}" CornerRadius="10,10,0,0" />
+        <Border Background="{Binding HeaderBrush}" CornerRadius="10,10,0,0" IsVisible="{Binding HasHeaderColor}" />
+        <Border CornerRadius="10,10,0,0" Padding="18,16">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border Width="56" Height="56" CornerRadius="10" ClipToBounds="True" VerticalAlignment="Center"
+                    Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1">
+              <Panel>
+                <Image Source="{Binding Icon}" Stretch="UniformToFill" IsVisible="{Binding HasIcon}" />
+                <Path Data="{StaticResource IconArchive}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.7"
+                      StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="24" Height="24"
+                      IsVisible="{Binding !HasIcon}" />
+              </Panel>
+            </Border>
+            <!-- the package's own text colour on its own header, the theme's otherwise -->
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center" IsVisible="{Binding !HasHeaderColor}">
+              <TextBlock Text="{Binding Name}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"
+                         LetterSpacing="0.4" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding Byline}" FontSize="12" Foreground="{DynamicResource Text2Brush}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center" IsVisible="{Binding HasHeaderColor}">
+              <TextBlock Text="{Binding Name}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"
+                         LetterSpacing="0.4" TextTrimming="CharacterEllipsis" Foreground="{Binding HeaderText}" />
+              <TextBlock Text="{Binding Byline}" FontSize="12" Opacity="0.8" TextTrimming="CharacterEllipsis"
+                         Foreground="{Binding HeaderText}" />
+            </StackPanel>
+            <Border Grid.Column="2" Classes="badge" VerticalAlignment="Top">
+              <TextBlock Text="oiv package" />
+            </Border>
+          </Grid>
+        </Border>
+      </Panel>
+
+      <ScrollViewer Grid.Row="1" Padding="18,14,18,16">
+        <StackPanel Spacing="12">
+          <SelectableTextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="13" LineHeight="20"
+                               Foreground="{DynamicResource Text2Brush}" IsVisible="{Binding HasDescription}" />
+          <TextBlock Classes="desc" Text="The package has no description." IsVisible="{Binding !HasDescription}" />
+          <Button Classes="ghost small" HorizontalAlignment="Left" Command="{Binding OpenLinkCommand}"
+                  IsVisible="{Binding HasLink}" ToolTip.Tip="{Binding Link}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+              <TextBlock Text="Author's page" />
+            </StackPanel>
+          </Button>
+          <Border Classes="note">
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}"
+                       Text="Installed the safe way: files inside game archives go into copies under mods, the game's own archives stay untouched. Removing the package in the Library puts everything back." />
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

@@ -159,6 +159,55 @@ public sealed class InstallJournal
     public static bool Revert(string gameDir, IReadOnlyList<JournalStep> steps, Action<string> log) =>
         Undo(Path.GetFullPath(gameDir), steps, transaction: false, log);
 
+    /// <summary>
+    /// Take back a committed install as part of this transaction (an uninstall that can itself be
+    /// rolled back): files it created are moved aside, the files it replaced come back from their
+    /// kept stash, its dlclist.xml lines go — each recorded here, newest step first.
+    /// </summary>
+    public void RevertInto(IReadOnlyList<JournalStep> steps)
+    {
+        for (int i = steps.Count - 1; i >= 0; i--)
+        {
+            switch (steps[i])
+            {
+                case CreatedFile or CreatedDir:
+                    var created = Abs(steps[i] is CreatedFile f ? f.Path : ((CreatedDir)steps[i]).Path);
+                    if (File.Exists(created) || Directory.Exists(created)) MoveAside(created, keep: false);
+                    break;
+                case MovedAside m:
+                    var stash = Abs(m.Stash);
+                    var target = Abs(m.Path);
+                    if (!File.Exists(stash) && !Directory.Exists(stash))
+                    {
+                        _log($"    [!] No saved copy of {m.Path} to restore — left as it is.");
+                        break;
+                    }
+                    if (File.Exists(target) || Directory.Exists(target)) MoveAside(target, keep: false);
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    if (Directory.Exists(stash)) Directory.Move(stash, target);
+                    else File.Move(stash, target);
+                    MovedWithin(stash, target);
+                    break;
+                case Moved mv:
+                    var to = Abs(mv.To);
+                    var from = Abs(mv.From);
+                    if (!File.Exists(to) && !Directory.Exists(to)) break;
+                    if (File.Exists(from) || Directory.Exists(from)) MoveAside(from, keep: false);
+                    Directory.CreateDirectory(Path.GetDirectoryName(from)!);
+                    if (Directory.Exists(to)) Directory.Move(to, from);
+                    else File.Move(to, from);
+                    MovedWithin(to, from);
+                    break;
+                case DlclistAdded a:
+                    GameInstaller.UnregisterFromDlclist(GameDir, a.Pack, _log, this);
+                    break;
+                case DlclistRemoved r:
+                    GameInstaller.RegisterInDlclist(GameDir, r.Pack, _log, this);
+                    break;
+            }
+        }
+    }
+
     private static bool Undo(string gameDir, IReadOnlyList<JournalStep> steps, bool transaction, Action<string> log)
     {
         bool ok = true;

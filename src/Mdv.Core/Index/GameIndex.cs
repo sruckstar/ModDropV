@@ -402,7 +402,8 @@ public sealed class GameIndex
     /// With several different files matching, the first group's winner.</summary>
     public FileHit? Resolve(string query) => Find(query).FirstOrDefault(h => h.Winner);
 
-    private static string GroupKeyOf(FileHit h) =>
+    /// <summary>Hits with the same key are copies of one file (the game loads one of them).</summary>
+    public static string GroupKeyOf(FileHit h) =>
         GroupKey(h.InnerPath.ToLowerInvariant(), h.LogicalPath, h.File.Name.ToLowerInvariant());
 
     private FileHit MakeHit(int arc, int file, Dictionary<string, (int, int)?> winners)

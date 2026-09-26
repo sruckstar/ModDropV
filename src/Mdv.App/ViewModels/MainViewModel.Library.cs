@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using Mdv.App.Services;
 using Mdv.Core;
+using Mdv.Core.Index;
 using Mdv.Core.Mods;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -41,9 +42,9 @@ public sealed partial class MainViewModel
     partial void OnLibrarySearchChanged(string value) => FilterLibrary();
 
     /// <summary>The game an installed-list read / change goes to; AddonWeapons Builder's staged packs are picked up from it.</summary>
-    private static InstallTarget TargetFor(string game, GameEdition edition) =>
+    internal static InstallTarget TargetFor(string game, GameEdition edition) =>
         new(game, edition, AppPaths.StagingFor(edition), Path.Combine(AppPaths.Data, "plugins"),
-            WeaponStaging.AwbStagingDirs(edition));
+            WeaponStaging.AwbStagingDirs(edition)) { IndexCacheRoot = GameIndexCache.DefaultRoot };
 
     /// <summary>The game folder as typed, if it can hold our mods.</summary>
     private string? InstalledGameDir()

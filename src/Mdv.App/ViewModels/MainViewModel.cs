@@ -36,6 +36,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Settings = settings;
         Weapon = new WeaponViewModel(this);
+        Oiv = new OivViewModel(this);
+        Replace = new ReplacementViewModel(this);
         InitModderTypes();
         IsPlayer = settings.Mode == "player";
         OutputFolder = settings.LastOutput ?? "";
@@ -117,6 +119,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>The add-on weapon panel (both flows).</summary>
     public WeaponViewModel Weapon { get; }
+
+    /// <summary>Player: an OIV package from the drop.</summary>
+    public OivViewModel Oiv { get; }
+
+    /// <summary>Player: loose files replacing game files.</summary>
+    public ReplacementViewModel Replace { get; }
 
     /// <summary>Player: the panel of the mod picked from the drop (null: nothing installable dropped yet).</summary>
     [ObservableProperty] public partial ModPanelViewModel? SelectedPanel { get; set; }

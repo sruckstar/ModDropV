@@ -38,6 +38,12 @@ public sealed class RegisteredMod
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ImportedFrom { get; set; }
 
+    /// <summary>
+    /// Set while installing: the mod's journal is the transaction's steps from this one on (the
+    /// shared set-up before it — the mods loader — isn't the mod's to take back).
+    /// </summary>
+    [JsonIgnore] public int? JournalFrom { get; set; }
+
     public string? Get(string key) => Data.TryGetValue(key, out var v) ? v : null;
 }
 
