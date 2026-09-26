@@ -53,6 +53,7 @@ internal static class Program
                 "verify" => Verify(rest),
                 "detect" => Detect(rest),
                 "installed" => Installed(rest),
+                "status" => Status(rest),
                 "index" => Index(rest),
                 "find" => Find(rest),
                 "put" => Put(rest),
@@ -105,6 +106,10 @@ internal static class Program
               installed <game_dir> [--edition legacy|enhanced|auto] [--staging DIR]
                   what ModDrop V installed into a game (staging: ModDrop V's own by default;
                   AddonWeapons Builder's staged packs are picked up)
+              status <game_dir> [--edition legacy|enhanced|auto] [--dlcs]
+                  how the game stands for mods: build, mods folder and its loader, ASI loader,
+                  ScriptHookV (vs the game build), ScriptHookVDotNet, DLC packs, stale copies;
+                  --dlcs counts the packs the game mounts (reads the file index)
               index <game_dir> [--rebuild] [--no-cache]
                   build / refresh the index of every file in the game's archives (cached in
                   %LOCALAPPDATA%\ModDropV\index; only changed archives are read again)
@@ -395,6 +400,33 @@ internal static class Program
             Console.WriteLine($"  [{(m.Enabled ? "on " : "off")}] {m.Name,-32} {m.Category.DisplayName(),-8} {m.Kind,-6} {m.Pack}" +
                               (m.ImportedFrom is null ? "" : $"  (from {m.ImportedFrom})"));
         return 0;
+    }
+
+    private static int Status(string[] argv)
+    {
+        var a = Parse(argv, ["--edition"], ["--dlcs"]);
+        NeedPositional(a, 1, 1, "game_dir");
+        var game = a.Positional[0];
+        GameEdition? edition;
+        try
+        {
+            edition = GameEditions.Parse(a.Opt("--edition"));
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        var dlcs = a.Flags.Contains("--dlcs") ? MountedDlcs.Of(OpenIndex(game, rebuild: false, noCache: false)) : null;
+        var r = GameStatus.Read(game, edition, dlcs);
+        Console.WriteLine(game);
+        foreach (var i in r.Items)
+        {
+            var mark = i.Level switch { StatusLevel.Ok => "ok ", StatusLevel.Warning => "[!]", _ => " - " };
+            Console.WriteLine($"  {mark} {i.Label,-18} {i.Value}");
+            if (i.Level == StatusLevel.Warning && i.Detail is { } d)
+                foreach (var line in d.Split('\n')) Console.WriteLine($"      {line}");
+        }
+        return r.Worst == StatusLevel.Warning ? 1 : 0;
     }
 
     private static GameIndex OpenIndex(string game, bool rebuild, bool noCache)

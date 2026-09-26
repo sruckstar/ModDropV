@@ -42,20 +42,13 @@ public sealed class WeaponHandler : IModHandler
 
     /// <summary>
     /// The weapon in a drop (<see cref="SourceIntake.PrepareWeapon"/>) with default settings:
-    /// the name from the archive, the shared AddonWeapons pack.
+    /// the name from the archive, the shared AddonWeapons pack. A drop the detector took for a
+    /// weapon that has no usable models throws <see cref="IntakeException"/> saying so.
     /// </summary>
     public ModPackage? Analyze(DroppedSource source, DetectionReport report, HandlerEnv env)
     {
         if (!report.Has(ModCategory.Weapon)) return null;
-        IntakeResult r;
-        try
-        {
-            r = SourceIntake.PrepareWeapon(source, env.TemplatesDir);
-        }
-        catch (IntakeException)
-        {
-            return null;
-        }
+        var r = SourceIntake.PrepareWeapon(source, env.TemplatesDir);
         var pkg = new WeaponPackage
         {
             Name = r.DisplayName, Intake = r,
@@ -225,6 +218,7 @@ public sealed class WeaponHandler : IModHandler
             list.Add(new InstalledMod(m.Id, m.Name.Length > 0 ? m.Name : folder, ModKind.Pack, folder, on)
             {
                 Installed = m.Installed, Source = m.Source?.Name, ImportedFrom = m.ImportedFrom,
+                Folder = on ? GameInstaller.PackDir(game, folder) : GameInstaller.DisabledPackDir(game, folder),
             });
         }
 
@@ -241,6 +235,7 @@ public sealed class WeaponHandler : IModHandler
                                               pack.FolderName, !w.Disabled)
                     {
                         Installed = rec?.Installed, Source = rec?.Source?.Name, ImportedFrom = rec?.ImportedFrom,
+                        Folder = GameInstaller.PackDir(game, pack.FolderName),
                     });
                 }
             }

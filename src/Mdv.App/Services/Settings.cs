@@ -12,6 +12,8 @@ public sealed class Settings
     public string? LastGame { get; set; }
     /// <summary>Game build the modder flow packs for: "legacy" / "enhanced".</summary>
     public string Edition { get; set; } = "legacy";
+    /// <summary>The add-on type the modder flow builds: "weapon", "vehicle", …</summary>
+    public string AddonType { get; set; } = "weapon";
 
     /// <summary>Where <see cref="Save"/> writes; null (a fresh instance) = in-memory only.</summary>
     [JsonIgnore] public string? FilePath { get; private set; }

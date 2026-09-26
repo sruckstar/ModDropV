@@ -22,6 +22,15 @@ public sealed record InstalledMod(string Id, string Name, ModKind Kind, string P
     public string? Source { get; init; }
     /// <summary>Set when the record came from another tool (AddonWeapons Builder).</summary>
     public string? ImportedFrom { get; init; }
+    /// <summary>The folder in the game that holds it (for "open folder"), when it has one.</summary>
+    public string? Folder { get; init; }
+}
+
+/// <summary>A drop, analysed: what the detector saw, the installable packages, and per kind why it can't be installed.</summary>
+public sealed record DropAnalysis(DetectionReport Report, List<ModPackage> Packages, Dictionary<ModCategory, string> Problems)
+{
+    public void Deconstruct(out DetectionReport report, out List<ModPackage> packages) =>
+        (report, packages) = (Report, Packages);
 }
 
 /// <summary>What to do with one installed mod: switch it on/off, or remove it (wins over the switch).</summary>
@@ -40,12 +49,26 @@ public static class ModLibrary
         Handlers.FirstOrDefault(h => h.Category == category)
         ?? throw new NotSupportedException($"{category.DisplayName()} mods can't be installed yet.");
 
-    /// <summary>What a drop holds: the detector's report and a package for every handler that found its kind.</summary>
-    public static (DetectionReport Report, List<ModPackage> Packages) Analyze(DroppedSource source, HandlerEnv env)
+    /// <summary>
+    /// What a drop holds: the detector's report, a package for every handler that found its
+    /// kind, and why a handler whose kind was detected could not use the drop.
+    /// </summary>
+    public static DropAnalysis Analyze(DroppedSource source, HandlerEnv env)
     {
         var report = ModDetector.Detect(source);
-        var packages = Handlers.Select(h => h.Analyze(source, report, env)).OfType<ModPackage>().ToList();
-        return (report, packages);
+        var result = new DropAnalysis(report, [], []);
+        foreach (var h in Handlers)
+        {
+            try
+            {
+                if (h.Analyze(source, report, env) is { } pkg) result.Packages.Add(pkg);
+            }
+            catch (IntakeException ex)
+            {
+                result.Problems[h.Category] = ex.Message;
+            }
+        }
+        return result;
     }
 
     /// <summary>Everything installed into the target game (the game is only read).</summary>

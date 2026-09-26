@@ -1,0 +1,86 @@
+<!-- Weapon panel, side slot: the analysis of the source, with the 3D preview on top. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             xmlns:c="using:Mdv.App.Controls"
+             x:Class="Mdv.App.Views.Panels.WeaponSideView"
+             x:DataType="vm:WeaponViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,0,10,0">
+        <TextBlock Classes="h" Text="ANALYSIS" />
+        <Border Grid.Column="1" Classes="badge">
+          <TextBlock Text="{Binding RouteBadge}" />
+        </Border>
+      </Grid>
+
+      <!-- 3D preview of the weapon found in the source: turn it right here, or open it large -->
+      <Border Grid.Row="1" x:Name="PreviewThumb" Height="148" Margin="0,0,10,0" CornerRadius="9" ClipToBounds="True"
+              BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1"
+              IsVisible="{Binding ShowPreviewPanel}">
+        <Panel>
+          <c:WeaponModelView Model="{Binding PreviewModel}" VisiblePieces="{Binding PreviewVisible}"
+                             Textured="{Binding PreviewTextured}" Tint="{Binding PreviewTint}"
+                             ResetCount="{Binding PreviewResetCount}"
+                             ToolTip.Tip="Drag to turn · wheel to zoom · double-click to frame" />
+          <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      IsVisible="{Binding IsLoadingPreview}">
+            <TextBlock Classes="desc" Text="Loading the model…" HorizontalAlignment="Center" />
+            <ProgressBar IsIndeterminate="True" Width="120" Height="3" MinHeight="3" MinWidth="0" />
+          </StackPanel>
+          <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                  IsVisible="{Binding HasPreview}" IsHitTestVisible="False">
+            <TextBlock Text="3D" />
+          </Border>
+          <Button Classes="ghost small" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                  Padding="8,3" MinHeight="26" Command="{Binding OpenPreviewCommand}"
+                  IsVisible="{Binding HasPreview}" ToolTip.Tip="Open the 3D preview">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+              <TextBlock Text="Inspect" />
+            </StackPanel>
+          </Button>
+        </Panel>
+      </Border>
+
+      <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <StackPanel Spacing="3">
+            <TextBlock Text="{Binding RouteTitle}" FontWeight="SemiBold" FontSize="14"
+                       FontFamily="{StaticResource DisplayFont}" />
+            <TextBlock Classes="desc" Text="{Binding RouteDetail}" />
+          </StackPanel>
+          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsScanning}" Height="3" MinHeight="3" />
+          <Border Classes="note" IsVisible="{Binding HasSourceNotice}">
+            <TextBlock Text="{Binding SourceNotice}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Analysis}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AnalysisRow">
+                <Grid ColumnDefinitions="96,*" Margin="0,3">
+                  <TextBlock Classes="kv-key" Text="{Binding Label}" />
+                  <TextBlock Grid.Column="1" Classes="kv-val" Text="{Binding Value}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="warn">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource DangerBrush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

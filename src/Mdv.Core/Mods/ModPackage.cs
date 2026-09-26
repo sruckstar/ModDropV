@@ -40,6 +40,32 @@ public static class ModCategories
         ModCategory.Package => "OIV package",
         _ => c.ToString(),
     };
+
+    /// <summary>"Weapons", "Scripts" — a list or filter of this kind.</summary>
+    public static string PluralName(this ModCategory c) => c switch
+    {
+        ModCategory.Weapon => "Weapons",
+        ModCategory.Vehicle => "Vehicles",
+        ModCategory.Ped => "Peds",
+        ModCategory.Livery => "Liveries",
+        ModCategory.Script => "Scripts",
+        ModCategory.Clothing => "Clothing",
+        ModCategory.Prop => "Props",
+        ModCategory.Map => "Maps",
+        ModCategory.Replacement => "Replacements",
+        ModCategory.Package => "OIV packages",
+        _ => c.ToString(),
+    };
+
+    /// <summary>"weapon", "oiv" — a short tag for badges.</summary>
+    public static string ShortName(this ModCategory c) => c switch
+    {
+        ModCategory.Livery => "livery",
+        ModCategory.Script => "script",
+        ModCategory.Replacement => "replace",
+        ModCategory.Package => "oiv",
+        _ => c.ToString().ToLowerInvariant(),
+    };
 }
 
 /// <summary>Where an installed mod came from: the dropped file / folder name and a content hash.</summary>
@@ -127,7 +153,10 @@ public interface IModHandler
 {
     ModCategory Category { get; }
 
-    /// <summary>This handler's package from a drop, or null when the drop holds nothing of its kind.</summary>
+    /// <summary>
+    /// This handler's package from a drop, or null when the drop holds nothing of its kind.
+    /// Throws <see cref="IntakeException"/> when its kind is there but can't be used (the message says why).
+    /// </summary>
     ModPackage? Analyze(DroppedSource source, DetectionReport report, HandlerEnv env);
 
     /// <summary>Does this handler own the installed mod with this registry id?</summary>

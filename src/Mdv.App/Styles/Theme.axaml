@@ -226,6 +226,15 @@
     <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
     <Setter Property="FontSize" Value="12.5" />
   </Style>
+  <!-- a segmented control that sits in a header row -->
+  <Style Selector="Border.seg.small">
+    <Setter Property="Padding" Value="2" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.seg.small RadioButton.seg">
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
   <Style Selector="RadioButton.seg:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource Text1Brush}" />
   </Style>
@@ -266,6 +275,215 @@
   <Style Selector="Panel.dropzone.dragover > Rectangle.dropframe">
     <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
     <Setter Property="Fill" Value="{DynamicResource AccentWashBrush}" />
+  </Style>
+
+  <!-- ============ page bar: tabs (player pages / modder add-on types) and the status pill ============ -->
+  <Style Selector="RadioButton.tab">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Foreground" Value="{DynamicResource Text2Brush}" />
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LetterSpacing" Value="0.5" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Panel Height="40" Background="Transparent">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" Padding="{TemplateBinding Padding}"
+                            VerticalAlignment="Center" />
+          <Border Name="line" Height="2" CornerRadius="1" VerticalAlignment="Bottom" Margin="8,0"
+                  Background="Transparent" />
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="RadioButton.tab:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource Text1Brush}" />
+  </Style>
+  <Style Selector="RadioButton.tab:checked">
+    <Setter Property="Foreground" Value="{DynamicResource Text1Brush}" />
+  </Style>
+  <Style Selector="RadioButton.tab:checked /template/ Border#line">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <!-- a small count / tag next to a tab label -->
+  <Style Selector="Border.count">
+    <Setter Property="Background" Value="{DynamicResource AccentWashBrush}" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="MinWidth" Value="18" />
+    <Setter Property="Height" Value="17" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.count > TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+    <Setter Property="FontSize" Value="10.5" />
+    <Setter Property="LetterSpacing" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.count.soon">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushStrong}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.count.soon > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Text3Brush}" />
+  </Style>
+  <Style Selector="Button.pill">
+    <Setter Property="Background" Value="{DynamicResource SuccessWashBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource Text1Brush}" />
+    <Setter Property="CornerRadius" Value="13" />
+    <Setter Property="Padding" Value="12,4" />
+    <Setter Property="MinHeight" Value="26" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="LetterSpacing" Value="0.2" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.pill.warn">
+    <Setter Property="Background" Value="{DynamicResource WarnWashBrush}" />
+  </Style>
+  <Style Selector="Button.pill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushStrong}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text1Brush}" />
+  </Style>
+
+  <!-- ============ a mod found in the drop (RadioButton.found): pick the one to install ============ -->
+  <Style Selector="RadioButton.found">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="bd" Background="{DynamicResource Surface2Brush}" CornerRadius="9" Padding="12,7"
+                BorderThickness="1" BorderBrush="{DynamicResource BorderBrushNormal}">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalContentAlignment="Stretch" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="RadioButton.found:pointerover /template/ Border#bd">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+  </Style>
+  <Style Selector="RadioButton.found:checked /template/ Border#bd">
+    <Setter Property="Background" Value="{DynamicResource AccentWashBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+  </Style>
+  <Style Selector="RadioButton.found:disabled">
+    <Setter Property="Opacity" Value="0.72" />
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+  <Style Selector="RadioButton.found Ellipse.radio-ring">
+    <Setter Property="Stroke" Value="{DynamicResource BorderBrushStrong}" />
+  </Style>
+  <Style Selector="RadioButton.found:checked Ellipse.radio-ring">
+    <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="RadioButton.found Ellipse.radio-dot">
+    <Setter Property="Fill" Value="Transparent" />
+  </Style>
+  <Style Selector="RadioButton.found:checked Ellipse.radio-dot">
+    <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="TextBlock.state">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource Text3Brush}" />
+  </Style>
+  <Style Selector="TextBlock.state.ready">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+  </Style>
+
+  <!-- ============ library: category chips, search ============ -->
+  <Style Selector="RadioButton.filter">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Foreground" Value="{DynamicResource Text2Brush}" />
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="bd" Background="{DynamicResource Surface2Brush}" CornerRadius="14" Padding="12,4"
+                BorderThickness="1" BorderBrush="{DynamicResource BorderBrushNormal}">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="RadioButton.filter:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource Text1Brush}" />
+  </Style>
+  <Style Selector="RadioButton.filter:checked">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrightBrush}" />
+  </Style>
+  <Style Selector="RadioButton.filter:checked /template/ Border#bd">
+    <Setter Property="Background" Value="{DynamicResource AccentWashBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+  </Style>
+  <Style Selector="RadioButton.filter TextBlock.n">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Opacity" Value="0.7" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBox.search">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="CornerRadius" Value="16" />
+  </Style>
+
+  <!-- ============ badges with a meaning ============ -->
+  <Style Selector="Border.badge.conflict">
+    <Setter Property="Background" Value="{DynamicResource WarnWashBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WarnLineBrush}" />
+  </Style>
+  <Style Selector="Border.badge.conflict > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource WarnBrush}" />
+  </Style>
+  <Style Selector="Border.badge.soon">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushStrong}" />
+  </Style>
+  <Style Selector="Border.badge.soon > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Text2Brush}" />
+  </Style>
+  <!-- "check this" note: amber, not an error -->
+  <Style Selector="Border.caution">
+    <Setter Property="Background" Value="{DynamicResource WarnWashBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WarnLineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,9" />
+  </Style>
+  <Style Selector="TextBlock.kv-val.warn">
+    <Setter Property="Foreground" Value="{DynamicResource WarnBrush}" />
+  </Style>
+
+  <!-- ============ first steps (player, before anything is dropped) ============ -->
+  <Style Selector="StackPanel.step">
+    <Setter Property="Spacing" Value="6" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="MaxWidth" Value="210" />
+  </Style>
+  <Style Selector="TextBlock.step-no">
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontSize" Value="30" />
+    <Setter Property="FontWeight" Value="Light" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.step-title">
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="1.2" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
   </Style>
 
   <!-- ============ misc ============ -->

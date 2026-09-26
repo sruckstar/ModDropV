@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:Mdv.App.ViewModels"
         xmlns:c="using:Mdv.App.Controls"
+        xmlns:p="using:Mdv.App.Views.Panels"
         mc:Ignorable="d" d:DesignWidth="1120" d:DesignHeight="780"
         x:Class="Mdv.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
@@ -13,26 +14,8 @@
         WindowStartupLocation="CenterScreen"
         DragDrop.AllowDrop="True">
 
-  <Window.Resources>
-    <StreamGeometry x:Key="IconFolder">M3 6.5C3 5.67 3.67 5 4.5 5h4.2l2 2h8.8c.83 0 1.5.67 1.5 1.5v9c0 .83-.67 1.5-1.5 1.5h-15C3.67 19 3 18.33 3 17.5z</StreamGeometry>
-    <StreamGeometry x:Key="IconSun">M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0-5 1 3h-2zm0 20-1-3h2zM2 12l3-1v2zm20 0-3 1v-2zM4.9 4.9l2.8 1.4-1.4 1.4zm14.2 14.2-2.8-1.4 1.4-1.4zM4.9 19.1l1.4-2.8 1.4 1.4zM19.1 4.9l-1.4 2.8-1.4-1.4z</StreamGeometry>
-    <StreamGeometry x:Key="IconMoon">M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z</StreamGeometry>
-    <StreamGeometry x:Key="IconCheck">M4 12.5l5 5L20 6.5</StreamGeometry>
-    <StreamGeometry x:Key="IconAlert">M12 3 2 20h20zm0 5v6m0 2.5v1</StreamGeometry>
-    <StreamGeometry x:Key="IconClose">M6 6l12 12M18 6 6 18</StreamGeometry>
-    <StreamGeometry x:Key="IconDrop">M12 3v11M7.5 9.5 12 14l4.5-4.5M4 15v3.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V15</StreamGeometry>
-    <StreamGeometry x:Key="IconArchive">M4 8h16v11.5c0 .83-.67 1.5-1.5 1.5h-13C4.67 21 4 20.33 4 19.5zM3 4h18v4H3zM10 12h4</StreamGeometry>
-    <StreamGeometry x:Key="IconTrash">M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5</StreamGeometry>
-    <StreamGeometry x:Key="IconUndo">M9 5 4 10l5 5M4 10h10a5.5 5.5 0 0 1 0 11H9</StreamGeometry>
-    <StreamGeometry x:Key="IconLog">M5 6h14M5 10.5h14M5 15h9M5 19.5h6</StreamGeometry>
-    <StreamGeometry x:Key="IconCube">M12 2.8 20 7.2v9.6L12 21.2 4 16.8V7.2zM4 7.2l8 4.4 8-4.4M12 11.6v9.6</StreamGeometry>
-    <StreamGeometry x:Key="IconExpand">M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7</StreamGeometry>
-    <StreamGeometry x:Key="IconReset">M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5</StreamGeometry>
-    <StreamGeometry x:Key="IconGame">M7.5 7.5h9a4.5 4.5 0 0 1 4.5 4.5v2.8a2.7 2.7 0 0 1-4.9 1.6L14.8 15H9.2l-1.3 1.4A2.7 2.7 0 0 1 3 14.8V12a4.5 4.5 0 0 1 4.5-4.5zM8 10v4M6 12h4M15.5 11h.01M17.5 13h.01</StreamGeometry>
-  </Window.Resources>
-
   <Grid>
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
       <!-- ================= HEADER ================= -->
       <Border Grid.Row="0" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,0,0,1">
@@ -45,10 +28,10 @@
             </StackPanel>
           </StackPanel>
 
-          <!-- player: the game weapons are installed into; opens the game dialog -->
+          <!-- player: the game mods are installed into; opens the game dialog -->
           <Button Grid.Column="2" Classes="chip" Classes.missing="{Binding !HasGame}" VerticalAlignment="Center"
                   IsVisible="{Binding IsPlayer}" Command="{Binding OpenGameDialogCommand}"
-                  ToolTip.Tip="The GTA V weapons are installed into — click to change">
+                  ToolTip.Tip="The GTA V mods are installed into — click to change">
             <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="10">
               <Path Data="{StaticResource IconGame}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.6"
                     StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="22" Height="16"
@@ -67,14 +50,14 @@
           <Border Grid.Column="3" Classes="seg" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="2">
               <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding IsModder}"
-                           ToolTip.Tip="Build the DLC into a folder">
+                           ToolTip.Tip="Build add-ons into a folder">
                 <StackPanel Spacing="0">
                   <TextBlock Text="For Modders" FontWeight="SemiBold" HorizontalAlignment="Center" />
                   <TextBlock Text="build DLC to a folder" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" />
                 </StackPanel>
               </RadioButton>
               <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding IsPlayer}"
-                           ToolTip.Tip="Install straight into GTA V">
+                           ToolTip.Tip="Install mods straight into GTA V">
                 <StackPanel Spacing="0">
                   <TextBlock Text="For Players" FontWeight="SemiBold" HorizontalAlignment="Center" />
                   <TextBlock Text="install into GTA V" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" />
@@ -84,7 +67,7 @@
           </Border>
 
           <Button Grid.Column="4" Classes="ghost small" VerticalAlignment="Center" MinHeight="34"
-                  Command="{Binding OpenLogCommand}" ToolTip.Tip="Build log">
+                  Command="{Binding OpenLogCommand}" ToolTip.Tip="Build / install log">
             <StackPanel Orientation="Horizontal" Spacing="7">
               <Path Data="{StaticResource IconLog}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                     StrokeLineCap="Round" Stretch="Uniform" Width="13" Height="12" VerticalAlignment="Center" />
@@ -106,40 +89,99 @@
         </Grid>
       </Border>
 
-      <!-- ================= BODY: everything on one screen; long lists scroll inside their cards ================= -->
-      <Grid Grid.Row="1" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,14">
+      <!-- ================= PAGE BAR: the player's pages / the modder's add-on types ================= -->
+      <Border Grid.Row="1" Padding="20,0" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,0,0,1"
+              Background="{DynamicResource Surface1Brush}">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsPlayer}">
+            <RadioButton Classes="tab" GroupName="page" IsChecked="{Binding IsInstallPage}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Path Data="{StaticResource IconDrop}" Stroke="{Binding $parent[RadioButton].Foreground}" StrokeThickness="1.8"
+                      StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="13" Height="13" />
+                <TextBlock Text="Install" />
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Classes="tab" GroupName="page" IsChecked="{Binding IsLibraryPage}"
+                         ToolTip.Tip="What ModDrop V installed into this game">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Path Data="{StaticResource IconLayers}" Stroke="{Binding $parent[RadioButton].Foreground}" StrokeThickness="1.7"
+                      StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="13" Height="13" />
+                <TextBlock Text="Library" />
+                <Border Classes="count" IsVisible="{Binding HasInstalled}">
+                  <TextBlock Text="{Binding InstalledCount}" />
+                </Border>
+                <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center"
+                         IsVisible="{Binding HasPendingChanges}" ToolTip.Tip="Changes waiting to be applied" />
+              </StackPanel>
+            </RadioButton>
+          </StackPanel>
 
-        <!-- form -->
-        <Grid Grid.Column="0" RowDefinitions="Auto,*">
-          <StackPanel Spacing="12">
+          <ItemsControl ItemsSource="{Binding ModderTypes}" IsVisible="{Binding IsModder}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AddonTypeViewModel">
+                <RadioButton Classes="tab" GroupName="addon" IsChecked="{Binding IsSelected}">
+                  <StackPanel Orientation="Horizontal" Spacing="7">
+                    <TextBlock Text="{Binding Label}" />
+                    <Border Classes="count soon" IsVisible="{Binding Soon}">
+                      <TextBlock Text="soon" />
+                    </Border>
+                  </StackPanel>
+                </RadioButton>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
 
-            <!-- 01 SOURCE -->
-            <Border Classes="card">
+          <!-- modder: the game build every add-on type is packed for -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" IsVisible="{Binding IsModder}">
+            <TextBlock Classes="desc" Text="Game version" VerticalAlignment="Center" />
+            <Border Classes="seg small">
+              <StackPanel Orientation="Horizontal" Spacing="2">
+                <RadioButton Classes="seg" GroupName="edition" IsChecked="{Binding IsLegacy}" Content="Legacy"
+                             ToolTip.Tip="GTA V Legacy (GTA5.exe)" />
+                <RadioButton Classes="seg" GroupName="edition" IsChecked="{Binding IsEnhanced}" Content="Enhanced"
+                             ToolTip.Tip="GTA V Enhanced (GTA5_Enhanced.exe): models are converted to gen9" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- player: how the game stands; opens the library, where the full status is -->
+          <Button Grid.Column="2" Classes="pill" Classes.warn="{Binding StatusHasWarnings}" VerticalAlignment="Center"
+                  IsVisible="{Binding HasStatus}" Command="{Binding ShowLibraryCommand}"
+                  ToolTip.Tip="Game status — mods folder, loaders, ScriptHookV, DLC packs">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Panel Width="8" Height="8" VerticalAlignment="Center">
+                <Ellipse Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding !StatusHasWarnings}" />
+                <Ellipse Fill="{DynamicResource WarnBrush}" IsVisible="{Binding StatusHasWarnings}" />
+              </Panel>
+              <TextBlock Text="{Binding StatusSummary}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+
+      <!-- ================= WORKSPACE: source + settings | analysis (modder, player's install page) ================= -->
+      <Grid Grid.Row="2" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowWorkspace}">
+
+        <DockPanel Grid.Column="0">
+          <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,12" IsVisible="{Binding ShowTopCards}">
+
+            <!-- player: 01 SOURCE — the drop, and what was found in it -->
+            <Border Classes="card" IsVisible="{Binding IsPlayer}">
               <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
                   <TextBlock Classes="idx" Text="01" />
                   <TextBlock Grid.Column="1" Classes="h" Text="SOURCE" />
                   <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
-                             TextTrimming="CharacterEllipsis" IsVisible="{Binding IsModder}"
-                             Text="Replace files (.ydr / .ytd), your own metas, or a finished dlc.rpf" />
-                  <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
-                             TextTrimming="CharacterEllipsis" IsVisible="{Binding IsPlayer}"
-                             Text="The weapon mod as you downloaded it — a folder or an archive" />
+                             TextTrimming="CharacterEllipsis" Text="The mod as you downloaded it — a folder or an archive" />
                 </Grid>
 
-                <!-- modder: a plain folder path -->
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding IsModder}">
-                  <TextBox Classes="path" Text="{Binding InputFolder}" PlaceholderText="No folder selected" />
-                  <Button Grid.Column="1" Classes="ghost" Command="{Binding BrowseInputCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <PathIcon Data="{StaticResource IconFolder}" Width="14" Height="14" />
-                      <TextBlock Text="Browse…" />
-                    </StackPanel>
-                  </Button>
-                </Grid>
-
-                <!-- player: drop zone (the whole window accepts the drop, this is where it shows) -->
-                <Panel x:Name="DropZone" Classes="dropzone" IsVisible="{Binding IsPlayer}" MinHeight="88">
+                <!-- the whole window accepts the drop, this is where it shows -->
+                <Panel x:Name="DropZone" Classes="dropzone" MinHeight="72">
                   <Rectangle Classes="dropframe" RadiusX="10" RadiusY="10" StrokeThickness="1.5" StrokeDashArray="5,4" />
 
                   <!-- empty -->
@@ -149,10 +191,10 @@
                           StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="28" Height="28"
                           VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                      <TextBlock Text="Drop the weapon here" FontWeight="SemiBold" FontSize="15"
+                      <TextBlock Text="Drop a mod here" FontWeight="SemiBold" FontSize="15"
                                  FontFamily="{StaticResource DisplayFont}" LetterSpacing="0.6" />
                       <TextBlock Classes="desc"
-                                 Text="Folder, .zip, .rar or .7z. Models and textures are found in any sub-folder; configs that come with the mod are installed as they are, readmes are skipped." />
+                                 Text="Folder, .zip, .rar, .7z or .oiv — ModDrop V looks inside, tells you what it is and shows every step before installing." />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
                       <Button Classes="ghost small" HorizontalAlignment="Stretch" Command="{Binding BrowseSourceFolderCommand}">
@@ -181,19 +223,18 @@
                   </StackPanel>
 
                   <!-- loaded -->
-                  <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14" Margin="18,12" IsVisible="{Binding HasIntake}"
-                        VerticalAlignment="Center">
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14" Margin="18,12" IsVisible="{Binding HasDrop}"
+                        VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="Drop something else here to replace it">
                     <Border Width="46" Height="46" CornerRadius="23" Background="{DynamicResource AccentWashBrush}"
                             BorderBrush="{DynamicResource AccentLineBrush}" BorderThickness="1">
                       <Path Data="{StaticResource IconArchive}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.6"
                             StrokeJoin="Round" Stretch="Uniform" Width="20" Height="20" />
                     </Border>
                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding IntakeTitle}" FontWeight="SemiBold" FontSize="14"
+                      <TextBlock Text="{Binding DropTitle}" FontWeight="SemiBold" FontSize="14"
                                  FontFamily="{StaticResource DisplayFont}" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Text="{Binding IntakeSummary}" FontSize="12" Foreground="{DynamicResource Text2Brush}"
+                      <TextBlock Text="{Binding DropSummary}" FontSize="12" Foreground="{DynamicResource Text2Brush}"
                                  FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" />
-                      <TextBlock Classes="desc" Text="Drop something else here to replace it." FontSize="11" />
                     </StackPanel>
                     <Button Grid.Column="2" Classes="ghost small" Content="Change…" VerticalAlignment="Center"
                             Command="{Binding BrowseSourceArchiveCommand}" ToolTip.Tip="Pick another archive" />
@@ -204,23 +245,77 @@
                     </Button>
                   </Grid>
                 </Panel>
-                <Border Classes="warn" IsVisible="{Binding HasDropError}">
+
+                <!-- what the drop holds: pick the mod to install -->
+                <StackPanel Spacing="6" IsVisible="{Binding HasDetected}">
+                  <TextBlock Classes="label" Text="FOUND IN IT" Margin="0" />
+                  <ItemsControl ItemsSource="{Binding Detected}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="6" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DetectedModViewModel">
+                        <RadioButton Classes="found" GroupName="detected" IsChecked="{Binding IsSelected}"
+                                     IsEnabled="{Binding Installable}" ToolTip.Tip="{Binding Detail}">
+                          <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="11">
+                            <Panel Width="16" Height="16" VerticalAlignment="Center">
+                              <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+                              <Ellipse Classes="radio-dot" Width="8" Height="8" />
+                            </Panel>
+                            <Border Grid.Column="1" Classes="badge" VerticalAlignment="Center" MinWidth="64">
+                              <TextBlock Text="{Binding CategoryName}" HorizontalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="2" Spacing="1" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Text="{Binding Detail}" FontSize="11" FontFamily="{StaticResource MonoFont}"
+                                         Foreground="{DynamicResource Text3Brush}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="3" Classes="state" Classes.ready="{Binding Installable}" Text="{Binding State}"
+                                       VerticalAlignment="Center" />
+                          </Grid>
+                        </RadioButton>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+
+                <Border Classes="warn" IsVisible="{Binding ShowDropProblem}">
                   <TextBlock Text="{Binding DropError}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource DangerBrush}" />
                 </Border>
-                <Border Classes="note" IsVisible="{Binding HasSourceNotice}">
-                  <TextBlock Text="{Binding SourceNotice}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" />
+                <Border Classes="caution" IsVisible="{Binding ShowDropNotice}">
+                  <TextBlock Text="{Binding DropError}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text1Brush}" />
                 </Border>
               </StackPanel>
             </Border>
 
-            <!-- 02 OUTPUT (modder; players pick the game in the header) -->
-            <Border Classes="card" IsVisible="{Binding IsModder}">
+            <!-- modder: the panel's source, then 02 OUTPUT -->
+            <ContentControl Content="{Binding ModderPanel}" IsVisible="{Binding IsModder}">
+              <ContentControl.DataTemplates>
+                <DataTemplate DataType="vm:WeaponViewModel">
+                  <p:WeaponSourceView />
+                </DataTemplate>
+                <DataTemplate DataType="vm:ModPanelViewModel">
+                  <Panel />
+                </DataTemplate>
+              </ContentControl.DataTemplates>
+            </ContentControl>
+
+            <Border Classes="card" IsVisible="{Binding ShowOutputCard}">
               <StackPanel Spacing="10">
-                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
                   <TextBlock Classes="idx" Text="02" />
                   <TextBlock Grid.Column="1" Classes="h" Text="OUTPUT" />
                   <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
                              TextTrimming="CharacterEllipsis" Text="Where to save the finished Add-On" />
+                  <Border Grid.Column="3" Classes="seg small">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding PackRpf}" Content="Pack · dlc.rpf" />
+                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding LooseFolders}" Content="Loose folders"
+                                   ToolTip.Tip="Unpacked *.rpf folders, to pack with CodeWalker yourself" />
+                    </StackPanel>
+                  </Border>
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <TextBox Classes="path" Text="{Binding OutputFolder}" PlaceholderText="Output folder" />
@@ -231,219 +326,118 @@
                     </StackPanel>
                   </Button>
                 </Grid>
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-                  <Border Classes="seg">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding PackRpf}" Content="Pack · dlc.rpf" />
-                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding LooseFolders}" Content="Loose folders"
-                                   ToolTip.Tip="Unpacked *.rpf folders, to pack with CodeWalker yourself" />
-                    </StackPanel>
-                  </Border>
-                  <!-- game edition: both read the same RPF, Enhanced needs gen9 models -->
-                  <TextBlock Grid.Column="2" Classes="desc" Text="Game version" VerticalAlignment="Center" />
-                  <Border Grid.Column="3" Classes="seg">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <RadioButton Classes="seg" GroupName="edition" IsChecked="{Binding IsLegacy}" Content="Legacy" />
-                      <RadioButton Classes="seg" GroupName="edition" IsChecked="{Binding IsEnhanced}" Content="Enhanced" />
-                    </StackPanel>
-                  </Border>
-                </Grid>
-              </StackPanel>
-            </Border>
-
-            <!-- WEAPON -->
-            <Border Classes="card">
-              <StackPanel Spacing="10">
-                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-                  <Panel>
-                    <TextBlock Classes="idx" Text="02" IsVisible="{Binding IsPlayer}" />
-                    <TextBlock Classes="idx" Text="03" IsVisible="{Binding IsModder}" />
-                  </Panel>
-                  <TextBlock Grid.Column="1" Classes="h" Text="WEAPON" />
-                  <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
-                             TextTrimming="CharacterEllipsis" Text="How it appears in the in-game store" />
-                </Grid>
-                <Grid ColumnDefinitions="*,120,120" ColumnSpacing="10">
-                  <StackPanel>
-                    <TextBlock Classes="label" Text="NAME" />
-                    <TextBox Text="{Binding Name}" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1">
-                    <TextBlock Classes="label" Text="PRICE" />
-                    <TextBox Classes="num" Text="{Binding Price}" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="2">
-                    <TextBlock Classes="label" Text="AMMO PRICE" />
-                    <TextBox Classes="num" Text="{Binding AmmoPrice}" />
-                  </StackPanel>
-                </Grid>
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel>
-                    <TextBlock Classes="label" Text="DESCRIPTION" />
-                    <TextBox Text="{Binding Description}" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Width="250" Margin="10,0,0,0" IsVisible="{Binding ModelNameVisible}"
-                              ToolTip.Tip="Renames the .ydr/.ytd assets themselves. Magazines, attachments and hi-lods are re-derived from it. Leave empty to auto-generate.">
-                    <TextBlock Classes="label" Text="MODEL NAME" />
-                    <TextBox Classes="path" Text="{Binding ModelName}" PlaceholderText="auto — e.g. w_pi_mygun"
-                             IsEnabled="{Binding ModelNameEnabled}" />
-                  </StackPanel>
-                </Grid>
               </StackPanel>
             </Border>
           </StackPanel>
 
-          <!-- COMPONENTS: takes the rest of the column, scrolls inside -->
-          <Border Grid.Row="1" Classes="card" Margin="0,12,0,0" MinHeight="110">
-            <Grid RowDefinitions="Auto,*" RowSpacing="10">
-              <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
-                <Panel>
-                  <TextBlock Classes="idx" Text="03" IsVisible="{Binding IsPlayer}" />
-                  <TextBlock Classes="idx" Text="04" IsVisible="{Binding IsModder}" />
-                </Panel>
-                <TextBlock Grid.Column="1" Classes="h" Text="COMPONENTS" />
-                <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
-                           TextTrimming="CharacterEllipsis"
-                           Text="Store price per module · empty = default (extended clip 400, attachments 500)" />
-                <Border Grid.Column="3" Classes="badge" IsVisible="{Binding HasComponents}">
-                  <TextBlock Text="{Binding Components.Count}" />
-                </Border>
-              </Grid>
-              <TextBlock Grid.Row="1" Classes="desc" IsVisible="{Binding !HasComponents}"
-                         Text="Extended clips, scopes, suppressors and other attachments found in the source get their own price here." />
-              <ScrollViewer Grid.Row="1" IsVisible="{Binding HasComponents}" Padding="0,0,10,0">
-                <ItemsControl ItemsSource="{Binding Components}" Margin="-3" VerticalAlignment="Top">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <UniformGrid Columns="2" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ComponentPriceViewModel">
-                      <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="10,5" Margin="3"
-                              BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1">
-                        <Grid ColumnDefinitions="Auto,*,100" ColumnSpacing="10">
-                          <Border Classes="badge" VerticalAlignment="Center" MinWidth="56">
-                            <TextBlock Text="{Binding Kind}" HorizontalAlignment="Center" />
-                          </Border>
-                          <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center"
-                                     TextTrimming="CharacterEllipsis" FontSize="12.5" ToolTip.Tip="{Binding Label}" />
-                          <TextBox Grid.Column="2" Classes="num" Text="{Binding Price}" PlaceholderText="—"
-                                   MinHeight="30" Padding="8,4" />
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </ScrollViewer>
+          <!-- the active panel's settings; the player's first steps until a mod is picked -->
+          <Panel>
+          <ContentControl Content="{Binding ActivePanel}" VerticalContentAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+            <ContentControl.DataTemplates>
+              <DataTemplate DataType="vm:WeaponViewModel">
+                <p:WeaponFormView />
+              </DataTemplate>
+              <DataTemplate DataType="vm:ComingSoonViewModel">
+                <p:ComingSoonView />
+              </DataTemplate>
+            </ContentControl.DataTemplates>
+          </ContentControl>
+          <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14" VerticalAlignment="Center" Margin="4,0">
+              <StackPanel Classes="step">
+                <TextBlock Classes="step-no" Text="1" />
+                <TextBlock Classes="step-title" Text="Drop" />
+                <TextBlock Classes="desc" TextAlignment="Center"
+                           Text="The mod exactly as you downloaded it. Nested archives are unpacked, readmes skipped." />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Classes="step">
+                <TextBlock Classes="step-no" Text="2" />
+                <TextBlock Classes="step-title" Text="Check" />
+                <TextBlock Classes="desc" TextAlignment="Center"
+                           Text="See what was found, adjust the settings, then read every step the install will take." />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Classes="step">
+                <TextBlock Classes="step-no" Text="3" />
+                <TextBlock Classes="step-title" Text="Play" />
+                <TextBlock Classes="desc" TextAlignment="Center"
+                           Text="Installed through the mods folder — switch it off or remove it any time in the Library." />
+              </StackPanel>
             </Grid>
           </Border>
-        </Grid>
+          </Panel>
+        </DockPanel>
 
-        <!-- side panel: analysis (+ installed weapons for players). Row heights and the analysis
-             cap are set in code-behind: players keep room for the installed list. -->
-        <Grid Grid.Column="1" x:Name="SidePanel" RowDefinitions="Auto,*" RowSpacing="12">
-          <Border Classes="card" x:Name="AnalysisCard" Padding="16,13,6,13">
-            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-              <Grid ColumnDefinitions="*,Auto" Margin="0,0,10,0">
-                <TextBlock Classes="h" Text="ANALYSIS" />
-                <Border Grid.Column="1" Classes="badge">
-                  <TextBlock Text="{Binding RouteBadge}" />
-                </Border>
-              </Grid>
+        <!-- side: the active panel's analysis, or what ModDrop V handles -->
+        <ContentControl Grid.Column="1" Content="{Binding ActivePanel}" VerticalContentAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch">
+          <ContentControl.DataTemplates>
+            <DataTemplate DataType="vm:WeaponViewModel">
+              <p:WeaponSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:ModPanelViewModel">
+              <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />
+            </DataTemplate>
+          </ContentControl.DataTemplates>
+        </ContentControl>
+        <p:SupportedView Grid.Column="1" VerticalAlignment="Top" IsVisible="{Binding ShowSupportedCard}" />
+      </Grid>
 
-              <!-- 3D preview of the weapon found in the source: turn it right here, or open it large -->
-              <Border Grid.Row="1" x:Name="PreviewThumb" Height="148" Margin="0,0,10,0" CornerRadius="9" ClipToBounds="True"
-                      BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1"
-                      IsVisible="{Binding ShowPreviewPanel}">
-                <Panel>
-                  <c:WeaponModelView Model="{Binding PreviewModel}" VisiblePieces="{Binding PreviewVisible}"
-                                     Textured="{Binding PreviewTextured}" Tint="{Binding PreviewTint}"
-                                     ResetCount="{Binding PreviewResetCount}"
-                                     ToolTip.Tip="Drag to turn · wheel to zoom · double-click to frame" />
-                  <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center"
-                              IsVisible="{Binding IsLoadingPreview}">
-                    <TextBlock Classes="desc" Text="Loading the model…" HorizontalAlignment="Center" />
-                    <ProgressBar IsIndeterminate="True" Width="120" Height="3" MinHeight="3" MinWidth="0" />
-                  </StackPanel>
-                  <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
-                          IsVisible="{Binding HasPreview}" IsHitTestVisible="False">
-                    <TextBlock Text="3D" />
-                  </Border>
-                  <Button Classes="ghost small" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
-                          Padding="8,3" MinHeight="26" Command="{Binding OpenPreviewCommand}"
-                          IsVisible="{Binding HasPreview}" ToolTip.Tip="Open the 3D preview">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                      <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
-                            StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
-                      <TextBlock Text="Inspect" />
-                    </StackPanel>
-                  </Button>
-                </Panel>
+      <!-- ================= LIBRARY (player): what is installed | game status ================= -->
+      <Grid Grid.Row="2" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowLibraryPage}">
+        <Border Classes="card" Padding="16,13,6,13">
+          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,10,0">
+              <TextBlock Classes="h" Text="INSTALLED MODS" />
+              <Border Grid.Column="1" Classes="badge" IsVisible="{Binding HasInstalled}" VerticalAlignment="Center">
+                <TextBlock Text="{Binding InstalledCount}" />
               </Border>
-
-              <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
-                <StackPanel Spacing="10">
-                  <StackPanel Spacing="3">
-                    <TextBlock Text="{Binding RouteTitle}" FontWeight="SemiBold" FontSize="14"
-                               FontFamily="{StaticResource DisplayFont}" />
-                    <TextBlock Classes="desc" Text="{Binding RouteDetail}" />
-                  </StackPanel>
-                  <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsScanning}" Height="3" MinHeight="3" />
-                  <ItemsControl ItemsSource="{Binding Analysis}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:AnalysisRow">
-                        <Grid ColumnDefinitions="96,*" Margin="0,3">
-                          <TextBlock Classes="kv-key" Text="{Binding Label}" />
-                          <TextBlock Grid.Column="1" Classes="kv-val" Text="{Binding Value}" />
-                        </Grid>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                  <ItemsControl ItemsSource="{Binding Warnings}">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <StackPanel Spacing="6" />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="x:String">
-                        <Border Classes="warn">
-                          <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource DangerBrush}" />
-                        </Border>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </ScrollViewer>
+              <TextBox Grid.Column="3" Classes="search" Width="230" Text="{Binding LibrarySearch}" PlaceholderText="Search"
+                       IsVisible="{Binding HasInstalled}">
+                <TextBox.InnerLeftContent>
+                  <Path Data="{StaticResource IconSearch}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.7"
+                        StrokeLineCap="Round" Stretch="Uniform" Width="12" Height="12" Margin="10,0,0,0" />
+                </TextBox.InnerLeftContent>
+              </TextBox>
+              <Button Grid.Column="4" Classes="icon" Command="{Binding RefreshLibraryCommand}" VerticalAlignment="Center"
+                      ToolTip.Tip="Read the game folder again">
+                <Path Data="{StaticResource IconRefresh}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
+                      StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
+              </Button>
             </Grid>
-          </Border>
 
-          <!-- INSTALLED (player): switch installed weapons on/off or remove them -->
-          <Border Grid.Row="1" Classes="card" x:Name="InstalledCard" MinHeight="210" Padding="16,13,6,13"
-                  IsVisible="{Binding IsPlayer}">
-            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
-              <Grid ColumnDefinitions="*,Auto" Margin="0,0,10,0">
-                <TextBlock Classes="h" Text="INSTALLED WEAPONS" />
-                <Border Grid.Column="1" Classes="badge" IsVisible="{Binding HasInstalled}">
-                  <TextBlock Text="{Binding InstalledCount}" />
-                </Border>
-              </Grid>
-              <TextBlock Grid.Row="1" Classes="desc" Margin="0,0,10,0" IsVisible="{Binding HasInstalled}"
-                         Text="Untick to switch a weapon off, the bin removes it. Nothing changes until you apply." />
-              <TextBlock Grid.Row="1" Classes="desc" Margin="0,0,10,0" IsVisible="{Binding !HasInstalled}"
-                         Text="{Binding InstalledEmptyText}" />
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding LibraryFilters}" IsVisible="{Binding HasInstalled}" Margin="0,0,10,0">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel ItemSpacing="6" LineSpacing="6" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:LibraryFilterViewModel">
+                  <RadioButton Classes="filter" GroupName="libfilter" IsChecked="{Binding IsOn}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock Text="{Binding Label}" />
+                      <TextBlock Classes="n" Text="{Binding Count}" />
+                    </StackPanel>
+                  </RadioButton>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Grid.Row="1" Classes="desc" Margin="0,0,10,0" IsVisible="{Binding !HasInstalled}"
+                       Text="{Binding InstalledEmptyText}" />
 
-              <ScrollViewer Grid.Row="2" IsVisible="{Binding HasInstalled}" Padding="0,0,10,0">
-                <ItemsControl ItemsSource="{Binding Installed}">
+            <ScrollViewer Grid.Row="2" IsVisible="{Binding HasInstalled}" Padding="0,0,10,0">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="desc" IsVisible="{Binding LibraryNoMatch}" Text="Nothing installed matches this filter." />
+                <ItemsControl ItemsSource="{Binding InstalledView}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                       <StackPanel Spacing="6" />
                     </ItemsPanelTemplate>
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:InstalledWeaponViewModel">
-                      <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="10,6,6,6"
+                    <DataTemplate x:DataType="vm:InstalledModViewModel">
+                      <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,7,6,7"
                               BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1"
                               Classes.removing="{Binding PendingRemove}">
                         <Border.Styles>
@@ -454,19 +448,32 @@
                             <Setter Property="TextDecorations" Value="Strikethrough" />
                           </Style>
                         </Border.Styles>
-                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
                           <CheckBox IsChecked="{Binding Enabled}" IsEnabled="{Binding CanToggle}" VerticalAlignment="Center"
-                                    MinWidth="0" Padding="0" ToolTip.Tip="Load this weapon in the game" />
-                          <StackPanel Grid.Column="1" Classes="info" Spacing="1" VerticalAlignment="Center">
+                                    MinWidth="0" Padding="0" ToolTip.Tip="Load this mod in the game" />
+                          <Border Grid.Column="1" Classes="badge" VerticalAlignment="Center" MinWidth="64">
+                            <TextBlock Text="{Binding CategoryName}" HorizontalAlignment="Center" />
+                          </Border>
+                          <StackPanel Grid.Column="2" Classes="info" Spacing="1" VerticalAlignment="Center">
                             <TextBlock Classes="wname" Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
                                        TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding Where}" FontSize="11" Foreground="{DynamicResource Text3Brush}"
-                                       FontFamily="{StaticResource MonoFont}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock FontSize="11" Foreground="{DynamicResource Text3Brush}" TextTrimming="CharacterEllipsis"
+                                       ToolTip.Tip="{Binding Subline}">
+                              <Run Text="{Binding Where}" FontFamily="{StaticResource MonoFont}" /><Run Text="{Binding OriginSuffix}" />
+                            </TextBlock>
                           </StackPanel>
-                          <Border Grid.Column="2" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
+                          <Border Grid.Column="3" Classes="badge conflict" VerticalAlignment="Center" IsVisible="{Binding HasConflicts}"
+                                  ToolTip.Tip="{Binding ConflictsTip}">
+                            <TextBlock Text="conflict" />
+                          </Border>
+                          <Border Grid.Column="4" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
                             <TextBlock Text="{Binding Status}" />
                           </Border>
-                          <Button Grid.Column="3" Classes="icon" VerticalAlignment="Center" Command="{Binding ToggleRemoveCommand}"
+                          <Button Grid.Column="5" Classes="icon" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}"
+                                  IsVisible="{Binding CanOpenFolder}" ToolTip.Tip="Open its folder">
+                            <PathIcon Data="{StaticResource IconFolder}" Width="15" Height="15" />
+                          </Button>
+                          <Button Grid.Column="6" Classes="icon" VerticalAlignment="Center" Command="{Binding ToggleRemoveCommand}"
                                   ToolTip.Tip="{Binding RemoveTip}">
                             <Panel Width="16" Height="16">
                               <Path Data="{StaticResource IconTrash}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6"
@@ -480,27 +487,92 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-              </ScrollViewer>
-
-              <StackPanel Grid.Row="3" Spacing="6" Margin="0,2,10,0" IsVisible="{Binding HasPendingChanges}">
-                <TextBlock Classes="hint" Margin="0" Text="{Binding PendingSummary}" />
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <Button Classes="ghost small" Content="Revert" Command="{Binding RevertInstalledCommand}" />
-                  <Button Grid.Column="1" Classes="primary" Padding="16,7" FontSize="12.5" Command="{Binding ApplyInstalledCommand}"
-                          ToolTip.Tip="Rebuild the shared pack / update dlclist.xml and the dlcpacks folder">
-                    <TextBlock Text="Apply changes" />
-                  </Button>
-                </Grid>
               </StackPanel>
+            </ScrollViewer>
+
+            <!-- marked changes: nothing is touched until they are reviewed and applied -->
+            <Border Grid.Row="3" Classes="note" Margin="0,2,10,0" IsVisible="{Binding HasPendingChanges}">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <StackPanel VerticalAlignment="Center" Spacing="1">
+                  <TextBlock Text="{Binding PendingSummary}" FontWeight="SemiBold" FontSize="12.5" />
+                  <TextBlock Classes="desc" FontSize="11" Text="Nothing changes in the game until you apply." />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="ghost small" Content="Revert" VerticalAlignment="Center"
+                        Command="{Binding RevertInstalledCommand}" />
+                <Button Grid.Column="2" Classes="primary" Padding="16,7" FontSize="12.5" VerticalAlignment="Center"
+                        Command="{Binding ReviewChangesCommand}" ToolTip.Tip="See the steps, then apply them">
+                  <TextBlock Text="Apply changes…" />
+                </Button>
+              </Grid>
+            </Border>
+            <TextBlock Grid.Row="3" Classes="desc" Margin="0,2,10,0" IsVisible="{Binding !HasPendingChanges}"
+                       Text="Untick to switch a mod off, the bin removes it — the changes are applied together after a look at the plan."
+                       />
+          </Grid>
+        </Border>
+
+        <!-- GAME STATUS -->
+        <Border Grid.Column="1" Classes="card" Padding="16,13,6,13">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,10,0">
+              <TextBlock Classes="h" Text="GAME STATUS" />
+              <Button Grid.Column="1" Classes="icon" Command="{Binding RefreshStatusCommand}" VerticalAlignment="Center"
+                      ToolTip.Tip="Check again">
+                <Path Data="{StaticResource IconRefresh}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
+                      StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
+              </Button>
             </Grid>
-          </Border>
-        </Grid>
+            <ScrollViewer Grid.Row="1" Padding="0,0,10,0">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="desc" IsVisible="{Binding !HasStatus}"
+                           Text="Choose the GTA V folder (the chip at the top) to see how it stands." />
+                <ItemsControl ItemsSource="{Binding StatusRows}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="2" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:StatusRow">
+                      <Grid ColumnDefinitions="Auto,112,*" ColumnSpacing="9" Margin="0,4" Background="Transparent"
+                            ToolTip.Tip="{Binding Detail}">
+                        <Panel Width="8" Height="8" VerticalAlignment="Center">
+                          <Ellipse Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsOk}" />
+                          <Ellipse Fill="{DynamicResource WarnBrush}" IsVisible="{Binding IsWarning}" />
+                          <Ellipse Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.3" IsVisible="{Binding IsInfo}" />
+                        </Panel>
+                        <TextBlock Grid.Column="1" Classes="kv-key" Text="{Binding Label}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Classes="kv-val" Classes.warn="{Binding IsWarning}" Text="{Binding Value}"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Classes="caution" IsVisible="{Binding HasStaleCopies}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding StaleCopiesText}" TextWrapping="Wrap" FontSize="12"
+                               Foreground="{DynamicResource Text1Brush}" />
+                    <Button Classes="ghost small" HorizontalAlignment="Left" Command="{Binding UpdateCopiesCommand}"
+                            ToolTip.Tip="Fresh copies from the updated game, with every mod's changes put back">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Path Data="{StaticResource IconRefresh}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+                        <TextBlock Text="Update copies…" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+            <TextBlock Grid.Row="2" Classes="hint" Margin="0,0,10,0" Text="Hover a line for details." IsVisible="{Binding HasStatus}" />
+          </Grid>
+        </Border>
       </Grid>
 
       <!-- ================= FOOTER ================= -->
-      <Border Grid.Row="2" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,1,0,0"
-              Background="{DynamicResource Surface1Brush}">
-        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="18">
+      <Border Grid.Row="3" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,1,0,0"
+              Background="{DynamicResource Surface1Brush}" IsVisible="{Binding ShowFooter}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18" MinHeight="44">
           <!-- result banner -->
           <Border x:Name="ResultBanner" IsVisible="{Binding ResultVisible}" CornerRadius="9" Padding="12,7"
                   BorderThickness="1" Classes.ok="{Binding ResultOk}" Classes.err="{Binding !ResultOk}">
@@ -537,16 +609,8 @@
             </Grid>
           </Border>
 
-          <CheckBox Grid.Column="1" IsChecked="{Binding MergePack}" IsVisible="{Binding IsPlayer}" VerticalAlignment="Center"
-                    ToolTip.Tip="Combine all guns into one DLC (otherwise a separate pack per gun). Spills into AddonWeapons2… past 3 GB.">
-            <StackPanel Spacing="0">
-              <TextBlock Text="Single «AddonWeapons» pack" FontWeight="SemiBold" FontSize="12.5" />
-              <TextBlock Classes="desc" FontSize="11" Text="all guns in one DLC" />
-            </StackPanel>
-          </CheckBox>
-
-          <Button Grid.Column="2" Classes="primary" Command="{Binding BuildCommand}" VerticalAlignment="Center"
-                  MinWidth="220" HotKey="Ctrl+Enter">
+          <Button Grid.Column="1" Classes="primary" Command="{Binding PrimaryCommand}" VerticalAlignment="Center"
+                  MinWidth="220" HotKey="Ctrl+Enter" IsVisible="{Binding ShowWorkspace}" IsEnabled="{Binding CanStart}">
             <TextBlock Text="{Binding BuildButtonText}" HorizontalAlignment="Center" />
           </Button>
         </Grid>
@@ -565,7 +629,7 @@
             </Border>
             <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
               <TextBlock Classes="h" Text="YOUR GTA V" />
-              <TextBlock Classes="desc" Text="Weapons are installed straight into this game. Choose the folder with GTA5.exe or GTA5_Enhanced.exe." />
+              <TextBlock Classes="desc" Text="Mods are installed straight into this game. Choose the folder with GTA5.exe or GTA5_Enhanced.exe." />
             </StackPanel>
             <Button Grid.Column="2" Classes="icon" VerticalAlignment="Top" Command="{Binding CloseGameDialogCommand}"
                     ToolTip.Tip="Close">
@@ -632,8 +696,8 @@
           </StackPanel>
 
           <TextBlock Classes="hint" Margin="0">
-            <Run Text="Installs into " /><Run Text="mods/update/x64/dlcpacks" FontWeight="SemiBold" />
-            <Run Text=" and registers the pack in dlclist.xml. A game without mod support gets it set up: " />
+            <Run Text="Everything goes into the game's " /><Run Text="mods" FontWeight="SemiBold" />
+            <Run Text=" folder — the original files stay untouched. A game without mod support gets it set up: " />
             <Run Text="OpenIV.asi" FontWeight="SemiBold" /><Run Text=" + ASI loader (Legacy) or " />
             <Run Text="DSOUND.dll" FontWeight="SemiBold" /><Run Text=" (Enhanced), the " />
             <Run Text="mods" FontWeight="SemiBold" /><Run Text=" folder and a copy of update.rpf." />
@@ -647,9 +711,92 @@
       </Border>
     </Border>
 
-    <!-- ================= 3D PREVIEW ================= -->
-    <Border x:Name="PreviewScrim" Background="{DynamicResource ScrimBrush}" IsVisible="{Binding IsPreviewOpen}">
-      <Border Classes="card dialog" Padding="0" Margin="40,30" MaxWidth="1280">
+    <!-- ================= PLAN: what will be done ================= -->
+    <Border x:Name="PlanScrim" Background="{DynamicResource ScrimBrush}" IsVisible="{Binding IsPlanOpen}">
+      <Border Classes="card dialog" Width="660" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource AccentWashBrush}"
+                    BorderBrush="{DynamicResource AccentLineBrush}" BorderThickness="1">
+              <Path Data="{StaticResource IconSteps}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.7"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="20" Height="18" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="h" Text="WHAT WILL BE DONE" />
+              <TextBlock Text="{Binding PlanTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="icon" VerticalAlignment="Top" Command="{Binding ClosePlanCommand}"
+                    ToolTip.Tip="Close">
+              <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
+                    Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
+            </Button>
+          </Grid>
+
+          <Border Background="{DynamicResource InputBrush}" CornerRadius="8" Padding="12,8"
+                  BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <Path Data="{StaticResource IconGame}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.6"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="20" Height="14" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding PlanTarget}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                         VerticalAlignment="Center" TextTrimming="LeadingCharacterEllipsis" />
+            </Grid>
+          </Border>
+
+          <ScrollViewer MaxHeight="300" Padding="0,0,8,0">
+            <ItemsControl ItemsSource="{Binding PlanSteps}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PlanStepRow">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Border Width="24" Height="24" CornerRadius="12" VerticalAlignment="Top"
+                            Background="{DynamicResource AccentWashBrush}" BorderBrush="{DynamicResource AccentLineBrush}" BorderThickness="1">
+                      <TextBlock Text="{Binding Number}" FontFamily="{StaticResource MonoFont}" FontSize="11.5"
+                                 Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" FontSize="13" VerticalAlignment="Center"
+                               LineHeight="19" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <ItemsControl ItemsSource="{Binding PlanWarnings}" IsVisible="{Binding HasPlanWarnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <TextBlock Classes="hint" Margin="0" Text="{Binding PlanNote}" />
+
+          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+            <Button Classes="ghost" Content="Cancel" MinWidth="110" Command="{Binding ClosePlanCommand}" />
+            <Button Classes="primary" MinWidth="160" Padding="22,9" Command="{Binding ConfirmPlanCommand}">
+              <TextBlock Text="{Binding PlanConfirmText}" HorizontalAlignment="Center" />
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- ================= 3D PREVIEW (the weapon panel's) ================= -->
+    <Border x:Name="PreviewScrim" Background="{DynamicResource ScrimBrush}" IsVisible="{Binding Weapon.IsPreviewOpen}">
+      <Border Classes="card dialog" Padding="0" Margin="40,30" MaxWidth="1280" DataContext="{Binding Weapon}"
+              x:DataType="vm:WeaponViewModel">
         <Grid RowDefinitions="Auto,*">
           <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" Margin="20,14,12,12" ColumnSpacing="12">
             <Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource AccentWashBrush}"
@@ -787,7 +934,7 @@
               <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}" IsVisible="{Binding !LogIsError}" />
               <Ellipse Width="7" Height="7" Fill="{DynamicResource DangerBrush}" IsVisible="{Binding LogIsError}" />
             </Panel>
-            <TextBlock Grid.Column="1" Classes="h" Text="BUILD LOG" Margin="4,0,0,0" />
+            <TextBlock Grid.Column="1" Classes="h" Text="LOG" Margin="4,0,0,0" />
             <Button Grid.Column="2" Classes="ghost small" Content="Log file" Command="{Binding OpenLogFolderCommand}"
                     ToolTip.Tip="Open the folder with moddropv.log" />
             <Button Grid.Column="3" Classes="ghost small" Content="{Binding CopyLogLabel}" Command="{Binding CopyLogCommand}"
@@ -801,7 +948,7 @@
           <ScrollViewer Grid.Row="1" x:Name="LogScroll" Padding="20,0,16,16">
             <Panel>
               <TextBlock Classes="desc" IsVisible="{Binding !HasLog}"
-                         Text="Nothing built yet — the log of the next build or install appears here." />
+                         Text="Nothing built or installed yet — the log of the next build or install appears here." />
               <SelectableTextBlock Classes="log" Text="{Binding LogText}" IsVisible="{Binding HasLog}" />
             </Panel>
           </ScrollViewer>
@@ -809,10 +956,10 @@
       </Border>
     </Border>
 
-    <!-- ================= BUILD STAGE (revolver) ================= -->
+    <!-- ================= WORK STAGE (a drop falling into the pool) ================= -->
     <Border Background="{DynamicResource StageBrush}" IsVisible="{Binding IsBuilding}">
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
-        <c:RevolverView Width="440" Height="285" Running="{Binding IsBuilding}" FireCount="{Binding FireCount}" />
+        <c:DropStageView Width="420" Height="292" Running="{Binding IsBuilding}" PulseCount="{Binding FireCount}" />
         <TextBlock Text="{Binding StageStatus}" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold"
                    FontFamily="{StaticResource DisplayFont}" LetterSpacing="1" />
         <TextBlock Text="{Binding StageHint}" HorizontalAlignment="Center" FontSize="13"

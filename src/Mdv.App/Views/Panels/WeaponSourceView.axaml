@@ -1,0 +1,27 @@
+<!-- Weapon panel, modder source slot: the folder with the Replace files. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.WeaponSourceView"
+             x:DataType="vm:WeaponViewModel">
+  <Border Classes="card">
+    <StackPanel Spacing="10">
+      <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+        <TextBlock Classes="idx" Text="01" />
+        <TextBlock Grid.Column="1" Classes="h" Text="SOURCE" />
+        <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                   TextTrimming="CharacterEllipsis"
+                   Text="Replace files (.ydr / .ytd), your own metas, or a finished dlc.rpf" />
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox Classes="path" Text="{Binding InputFolder}" PlaceholderText="No folder selected" />
+        <Button Grid.Column="1" Classes="ghost" Command="{Binding BrowseInputCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <PathIcon Data="{StaticResource IconFolder}" Width="14" Height="14" />
+            <TextBlock Text="Browse…" />
+          </StackPanel>
+        </Button>
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

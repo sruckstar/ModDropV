@@ -45,7 +45,7 @@ public static partial class GameInstaller
     public static string BundledAsiLoader(GameEdition e) => e == GameEdition.Enhanced ? "xinput1_4.dll" : "dinput8.dll";
 
     /// <summary>Plugins that can't serve an edition's mods folder (OpenIV.asi predates Enhanced).</summary>
-    private static bool Serves(string plugin, GameEdition e) =>
+    internal static bool Serves(string plugin, GameEdition e) =>
         !(e == GameEdition.Enhanced && plugin.Equals("OpenIV.asi", StringComparison.OrdinalIgnoreCase));
 
     [GeneratedRegex(@"([ \t]*)</Paths>")] private static partial Regex PathsCloseRe();

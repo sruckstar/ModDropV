@@ -1,0 +1,27 @@
+<!-- Form slot of a mod type that isn't built / installed yet: what it will do. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.ComingSoonView"
+             x:DataType="vm:ComingSoonViewModel">
+  <Border Classes="card">
+    <StackPanel Spacing="14" MaxWidth="520" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center"
+              Background="{DynamicResource AccentWashBrush}" BorderBrush="{DynamicResource AccentLineBrush}" BorderThickness="1">
+        <Path Data="{StaticResource IconSpark}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.8"
+              StrokeLineCap="Round" Stretch="Uniform" Width="26" Height="26" />
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+        <TextBlock Text="{Binding What}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"
+                   LetterSpacing="0.6" VerticalAlignment="Center" />
+        <Border Classes="badge soon" VerticalAlignment="Center">
+          <TextBlock Text="coming soon" />
+        </Border>
+      </StackPanel>
+      <TextBlock Text="{Binding Blurb}" TextWrapping="Wrap" TextAlignment="Center" FontSize="13"
+                 Foreground="{DynamicResource Text2Brush}" LineHeight="20" />
+      <TextBlock Classes="desc" TextAlignment="Center" HorizontalAlignment="Center"
+                 Text="It's planned for a later version. Weapons are ready today — pick «Weapon» above." />
+    </StackPanel>
+  </Border>
+</UserControl>

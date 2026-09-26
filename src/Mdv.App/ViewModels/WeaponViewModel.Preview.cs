@@ -65,7 +65,7 @@ public sealed partial class PreviewTintViewModel : ObservableObject
 }
 
 /// <summary>The 3D preview of the weapon found in the source.</summary>
-public sealed partial class MainViewModel
+public sealed partial class WeaponViewModel
 {
     private int _previewGeneration;
     private CancellationTokenSource? _previewCts;

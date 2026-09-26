@@ -5,10 +5,13 @@
              RequestedThemeVariant="Dark">
 
   <!-- ModDrop V: cool graphite + electric azure. Graphite builds structure, azure means
-       "act / active"; success stays green and danger red, so the three never blur.
+       "act / active"; success stays green, "check this" amber and danger red, so they never blur.
        Bahnschrift for display, Segoe UI for body. -->
   <Application.Resources>
     <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://ModDropV/Styles/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
           <Color x:Key="BgColor">#0F1319</Color>
@@ -32,6 +35,9 @@
           <SolidColorBrush x:Key="DangerWashBrush" Color="#21EF6B6B" />
           <SolidColorBrush x:Key="SuccessBrush" Color="#5CC98A" />
           <SolidColorBrush x:Key="SuccessWashBrush" Color="#1F5CC98A" />
+          <SolidColorBrush x:Key="WarnBrush" Color="#E9B24E" />
+          <SolidColorBrush x:Key="WarnWashBrush" Color="#1CE9B24E" />
+          <SolidColorBrush x:Key="WarnLineBrush" Color="#59E9B24E" />
           <SolidColorBrush x:Key="StageBrush" Color="#F40A0D12" />
           <SolidColorBrush x:Key="ScrimBrush" Color="#B806080B" />
           <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,100%">
@@ -85,6 +91,9 @@
           <SolidColorBrush x:Key="DangerWashBrush" Color="#1AC93F3F" />
           <SolidColorBrush x:Key="SuccessBrush" Color="#2F8A57" />
           <SolidColorBrush x:Key="SuccessWashBrush" Color="#1A2F8A57" />
+          <SolidColorBrush x:Key="WarnBrush" Color="#B0730F" />
+          <SolidColorBrush x:Key="WarnWashBrush" Color="#1FD98E14" />
+          <SolidColorBrush x:Key="WarnLineBrush" Color="#66B0730F" />
           <SolidColorBrush x:Key="StageBrush" Color="#F4E7ECF2" />
           <SolidColorBrush x:Key="ScrimBrush" Color="#80101A2A" />
           <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,100%">

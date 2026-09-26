@@ -74,9 +74,5 @@ public abstract class SkiaControl : Control
         public static SKColor AccentDeep(bool dark) => dark ? new SKColor(0x2f, 0x78, 0xd8) : new SKColor(0x17, 0x52, 0x9e);
         public static SKColor AccentLine(bool dark) => dark ? new SKColor(0x4d, 0xa3, 0xff, 92) : new SKColor(0x1f, 0x6f, 0xd6, 102);
         public static SKColor OnAccent(bool dark) => dark ? new SKColor(0x06, 0x12, 0x1f) : SKColors.White;
-        public static readonly SKColor SteelTop = new(0x38, 0x41, 0x50);
-        public static readonly SKColor SteelBottom = new(0x19, 0x1e, 0x27);
-        public static readonly SKColor Chamber = new(0x0c, 0x10, 0x16);
-        public static readonly SKColor Flash = new(0xff, 0xb8, 0x4a);
     }
 }

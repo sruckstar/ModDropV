@@ -14,12 +14,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        // Player mode takes a drop anywhere in the window; the source card shows it.
+        // Player mode takes a drop anywhere in the window; the source card shows it (and the install page opens).
         AddHandler(DragDrop.DragEnterEvent, OnDragOver);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DragLeaveEvent, (_, _) => DropZone.Classes.Set("dragover", false));
         AddHandler(DragDrop.DropEvent, OnDrop);
-        SidePanel.SizeChanged += (_, _) => LayoutSidePanel();
         // dialogs close on Esc or a click on the dimmed backdrop
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble, handledEventsToo: true);
         GameScrim.PointerPressed += (_, e) =>
@@ -32,31 +31,20 @@ public partial class MainWindow : Window
         };
         PreviewScrim.PointerPressed += (_, e) =>
         {
-            if (ReferenceEquals(e.Source, PreviewScrim)) Vm?.ClosePreviewCommand.Execute(null);
+            if (ReferenceEquals(e.Source, PreviewScrim)) Vm?.Weapon.ClosePreviewCommand.Execute(null);
         };
-    }
-
-    /// <summary>
-    /// Modders: the analysis fills the side panel. Players: it takes what it needs, up to a bit
-    /// over half the panel so the installed list keeps room; past that it scrolls inside.
-    /// </summary>
-    private void LayoutSidePanel()
-    {
-        bool player = Vm?.IsPlayer == true;
-        double h = SidePanel.Bounds.Height;
-        SidePanel.RowDefinitions[0].Height = player ? GridLength.Auto : GridLength.Star;
-        // the hidden installed list would still claim its star share
-        SidePanel.RowDefinitions[1].Height = player ? GridLength.Star : new GridLength(0);
-        AnalysisCard.MaxHeight = player
-            ? Math.Max(0, Math.Min(h * 0.56, h - SidePanel.RowSpacing - InstalledCard.MinHeight))
-            : double.PositiveInfinity;
+        PlanScrim.PointerPressed += (_, e) =>
+        {
+            if (ReferenceEquals(e.Source, PlanScrim)) Vm?.ClosePlanCommand.Execute(null);
+        };
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Escape || Vm is not { } vm) return;
         if (vm.IsLogOpen) vm.IsLogOpen = false;
-        else if (vm.IsPreviewOpen) vm.IsPreviewOpen = false;
+        else if (vm.Weapon.IsPreviewOpen) vm.Weapon.IsPreviewOpen = false;
+        else if (vm.IsPlanOpen) vm.ClosePlanCommand.Execute(null);
         else if (vm.IsGameDialogOpen) vm.IsGameDialogOpen = false;
         else return;
         e.Handled = true;
@@ -82,7 +70,9 @@ public partial class MainWindow : Window
         e.Handled = true;
         var paths = (e.DataTransfer.TryGetFiles() ?? [])
                     .Select(f => f.TryGetLocalPath()).OfType<string>().ToList();
-        if (paths.Count > 0) await vm.DropSourceAsync(paths);
+        if (paths.Count == 0) return;
+        vm.IsLibraryPage = false;
+        await vm.DropSourceAsync(paths);
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -96,15 +86,12 @@ public partial class MainWindow : Window
             if (Clipboard is { } cb) await cb.SetTextAsync(text);
         };
         vm.PropertyChanged += OnViewModelPropertyChanged;
-        LayoutSidePanel();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(MainViewModel.LogText) or nameof(MainViewModel.IsLogOpen))
             Dispatcher.UIThread.Post(() => LogScroll.ScrollToEnd(), DispatcherPriority.Background);
-        else if (e.PropertyName == nameof(MainViewModel.IsPlayer))
-            LayoutSidePanel();
     }
 
     private async Task<string?> PickFolderAsync(string title)
@@ -125,7 +112,7 @@ public partial class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("Weapon archives") { Patterns = ["*.zip", "*.rar", "*.7z", "*.oiv", "*.rpf"] },
+                new FilePickerFileType("Mod archives") { Patterns = ["*.zip", "*.rar", "*.7z", "*.oiv", "*.rpf"] },
                 new FilePickerFileType("All files") { Patterns = ["*"] },
             ],
         });

@@ -1,4 +1,4 @@
-using System.ComponentModel;
+using Avalonia.Threading;
 using Mdv.App.ViewModels;
 using Mdv.Core;
 using Mdv.Core.Index;
@@ -10,36 +10,46 @@ namespace Mdv.App.Services;
 /// Builds / refreshes the file index of the selected game in the background, so the first
 /// real use (finding the files a replace mod swaps) doesn't wait for it. Only the cache is
 /// kept — the index itself is dropped once written. A new game folder cancels the previous run.
-/// Archive copies in mods that went stale with a game update are reported to the log.
+/// Archive copies in mods that went stale with a game update are reported to the log; the
+/// number of DLC packs the game mounts goes to the game status. After an install the index
+/// is brought up to date again (only the changed archives are re-read).
 /// </summary>
 public static class GameIndexWarmup
 {
     private static readonly Lock Gate = new();
     private static CancellationTokenSource? _cts;
     private static string _current = "";
+    private static MainViewModel? _vm;
 
     public static void Attach(MainViewModel vm)
     {
+        _vm = vm;
+        static bool IsGame(string game) =>
+            game.Length > 0 && (GameEditions.Detect(game) is not null || GameEditions.IsAmbiguous(game));
+
         void Check()
         {
             var game = vm.IsPlayer ? vm.GameFolder.Trim() : "";
-            bool isGame = game.Length > 0 && (GameEditions.Detect(game) is not null || GameEditions.IsAmbiguous(game));
-            Start(isGame ? game : "");
+            Start(IsGame(game) ? game : "");
         }
 
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(MainViewModel.GameFolder) or nameof(MainViewModel.IsPlayer)) Check();
         };
+        vm.GameFilesChanged += game =>
+        {
+            if (IsGame(game)) Start(game, again: true);
+        };
         Check();
     }
 
-    private static void Start(string game)
+    private static void Start(string game, bool again = false)
     {
         CancellationTokenSource cts;
         lock (Gate)
         {
-            if (string.Equals(game, _current, StringComparison.OrdinalIgnoreCase)) return;
+            if (!again && string.Equals(game, _current, StringComparison.OrdinalIgnoreCase)) return;
             _cts?.Cancel();
             _current = game;
             _cts = null;
@@ -61,6 +71,8 @@ public static class GameIndexWarmup
                 AppLog.Info($"game index ready: {game} — {index.ExeVersion}, {index.Archives.Count} archives, " +
                             $"{index.FileCount} files ({index.Scanned} read, {index.Reused} cached) in " +
                             $"{index.Elapsed.TotalSeconds:0.0}s; {index.LoadedDlcs.Count} DLC packs mounted");
+                var dlcs = MountedDlcs.Of(index);
+                Dispatcher.UIThread.Post(() => _vm?.OnGameIndexReady(game, dlcs));
                 foreach (var s in ModsOverlay.Load(game).Status().Where(s => s.Stale is not null))
                     AppLog.Info($"mods/{s.Archive} is stale: {s.Stale} ({s.Owned} changed file(s) to carry over)");
             }
