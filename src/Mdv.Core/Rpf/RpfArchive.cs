@@ -162,6 +162,13 @@ public sealed class RpfArchive : IDisposable
     public static RpfArchive Open(byte[] data, string name, GameCrypto? crypto = null) =>
         new(new MemoryStream(data, writable: false), true, 0, data.Length, name, crypto);
 
+    /// <summary>An archive at <paramref name="offset"/> of a stream the caller keeps (and disposes).</summary>
+    internal static RpfArchive OnStream(Stream stream, long offset, long length, string name, GameCrypto? crypto) =>
+        new(stream, false, offset, length, name, crypto);
+
+    /// <summary>Length of the (padded) name table as the header states it.</summary>
+    internal int NamesLength => _names.Length;
+
     /// <summary>Open a nested archive entry: in place when stored raw, otherwise inflated to memory.</summary>
     public RpfArchive OpenNested(RpfEntry e)
     {
@@ -206,7 +213,11 @@ public sealed class RpfArchive : IDisposable
         if (e.IsDir) throw new InvalidOperationException($"{e.Name} is a directory");
         if (e.IsResource)
         {
+            // Rockstar's own archives don't keep an RSC7 header in front of the body (the 16 bytes are
+            // filler; CodeWalker skips them too) — rebuild it from the TOC flags then
             var hdr = e.TocSize == Rpf7.BigSize ? Rpf7.Rsc7Header(e.X8, e.XC) : ReadAt(e.Offset, 16);
+            if (hdr.Length < 4 || BinaryPrimitives.ReadUInt32LittleEndian(hdr) != Rpf7.Rsc7Magic)
+                hdr = Rpf7.Rsc7Header(e.X8, e.XC);
             var body = ReadAt(e.Offset + 16, (int)Math.Max(0, e.Size - 16));
             var inflated = Rpf7.Inflate(body, 0, body.Length);
             var outBuf = new byte[hdr.Length + inflated.Length];
@@ -290,6 +301,24 @@ public sealed class RpfArchive : IDisposable
         WriteAt(BaseOffset + 16, _toc);
         WriteAt(BaseOffset + 16 + _toc.Length, _names);
         Encryption = Rpf7.EncOpen;
+    }
+
+    /// <summary>Copy <paramref name="count"/> bytes at <paramref name="offset"/> of the underlying stream to <paramref name="dst"/>.</summary>
+    internal void CopyTo(Stream dst, long offset, long count)
+    {
+        var buf = new byte[1 << 20];
+        while (count > 0)
+        {
+            int n = (int)Math.Min(count, buf.Length);
+            lock (_stream)
+            {
+                _stream.Position = offset;
+                _stream.ReadExactly(buf, 0, n);
+            }
+            dst.Write(buf, 0, n);
+            offset += n;
+            count -= n;
+        }
     }
 
     /// <summary>Current length of the underlying stream.</summary>

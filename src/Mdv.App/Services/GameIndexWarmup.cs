@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Mdv.App.ViewModels;
 using Mdv.Core;
 using Mdv.Core.Index;
+using Mdv.Core.Mods;
 
 namespace Mdv.App.Services;
 
@@ -9,6 +10,7 @@ namespace Mdv.App.Services;
 /// Builds / refreshes the file index of the selected game in the background, so the first
 /// real use (finding the files a replace mod swaps) doesn't wait for it. Only the cache is
 /// kept — the index itself is dropped once written. A new game folder cancels the previous run.
+/// Archive copies in mods that went stale with a game update are reported to the log.
 /// </summary>
 public static class GameIndexWarmup
 {
@@ -59,6 +61,8 @@ public static class GameIndexWarmup
                 AppLog.Info($"game index ready: {game} — {index.ExeVersion}, {index.Archives.Count} archives, " +
                             $"{index.FileCount} files ({index.Scanned} read, {index.Reused} cached) in " +
                             $"{index.Elapsed.TotalSeconds:0.0}s; {index.LoadedDlcs.Count} DLC packs mounted");
+                foreach (var s in ModsOverlay.Load(game).Status().Where(s => s.Stale is not null))
+                    AppLog.Info($"mods/{s.Archive} is stale: {s.Stale} ({s.Owned} changed file(s) to carry over)");
             }
             catch (OperationCanceledException)
             {

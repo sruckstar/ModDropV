@@ -47,6 +47,13 @@ public sealed class InstallContext(InstallTarget target, InstallJournal journal,
     public Dictionary<string, bool> Switched { get; } = [];
 
     public string Abs(string gameRel) => InstallJournal.Abs(GameDir, gameRel);
+
+    private ModsOverlay? _overlay;
+
+    /// <summary>The mods layer (archive copies in mods), loaded on first use and saved when the plan went through.</summary>
+    public ModsOverlay Overlay => _overlay ??= ModsOverlay.Load(GameDir, Log).Begin(Journal, Target.Edition);
+
+    internal ModsOverlay? LoadedOverlay => _overlay;
 }
 
 /// <summary>One step of an <see cref="InstallPlan"/>. It records what it changes in the context's journal.</summary>
@@ -140,20 +147,71 @@ public sealed class DlclistRemoveOp(string pack) : PlanOp
     public override void Execute(InstallContext ctx) => GameInstaller.UnregisterFromDlclist(ctx.GameDir, pack, ctx.Log, ctx.Journal);
 }
 
-/// <summary>Put a file at a path inside the game's archives (through a copy in mods). Arrives with the mods layer.</summary>
-public sealed class RpfPutOp(string gamePath, string source) : PlanOp
+/// <summary>
+/// Put a file at a path inside the game's archives (<c>x64e.rpf/levels/gta5/vehicles.rpf/adder.yft</c>),
+/// in a copy of the archive under mods — the mod's version goes on top of any other mod's.
+/// </summary>
+public sealed class RpfPutOp(string gamePath, string source, string modId) : PlanOp
 {
-    public override string Describe() => $"Replace {gamePath} with {Path.GetFileName(source)} (in a copy of its archive under mods)";
-    public override void Execute(InstallContext ctx) =>
-        throw new NotSupportedException($"Replacing files inside game archives is not available yet ({gamePath}).");
+    public string GamePath { get; } = gamePath;
+
+    public override string Describe() => $"Replace {GamePath} with {Path.GetFileName(source)} (in a copy of its archive under mods)";
+
+    public override void Execute(InstallContext ctx)
+    {
+        ctx.Overlay.Put(modId, GamePath, File.ReadAllBytes(source));
+        ctx.Log($"    {Path.GetFileName(source)} -> mods/{ModsOverlay.KeyOf(GamePath)}");
+    }
 }
 
-/// <summary>Delete a file inside the game's archives (through a copy in mods). Arrives with the mods layer.</summary>
-public sealed class RpfDeleteOp(string gamePath) : PlanOp
+/// <summary>Delete a file inside the game's archives (in a copy of the archive under mods).</summary>
+public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
 {
-    public override string Describe() => $"Delete {gamePath} (in a copy of its archive under mods)";
-    public override void Execute(InstallContext ctx) =>
-        throw new NotSupportedException($"Deleting files inside game archives is not available yet ({gamePath}).");
+    public string GamePath { get; } = gamePath;
+
+    public override string Describe() => $"Delete {GamePath} (in a copy of its archive under mods)";
+
+    public override void Execute(InstallContext ctx)
+    {
+        ctx.Overlay.Delete(modId, GamePath);
+        ctx.Log($"    deleted mods/{ModsOverlay.KeyOf(GamePath)}");
+    }
+}
+
+/// <summary>Take a mod's files out of the game's archives: the version below it (another mod's, or the game's) comes back.</summary>
+public sealed class OverlayRemoveOp(string modId, string name) : PlanOp
+{
+    public override string Describe() => $"Take «{name}»'s files out of the game archives (what was there before comes back)";
+
+    public override void Execute(InstallContext ctx)
+    {
+        int n = ctx.Overlay.RemoveMod(modId);
+        ctx.Log($"    «{name}»: {n} file(s) taken out of the archive copies in mods.");
+    }
+}
+
+/// <summary>Put a mod's files on top of other mods' versions of the same files.</summary>
+public sealed class OverlayRaiseOp(string modId, string name) : PlanOp
+{
+    public override string Describe() => $"Give «{name}» priority over other mods changing the same files";
+
+    public override void Execute(InstallContext ctx)
+    {
+        int n = ctx.Overlay.Raise(modId);
+        ctx.Log($"    «{name}» is now on top in {n} file(s).");
+    }
+}
+
+/// <summary>After a game update: fresh copies of the stale archives in mods, with the mods' changes put back.</summary>
+public sealed class RefreshCopiesOp(IReadOnlyList<string> archives) : PlanOp
+{
+    public override string Describe() =>
+        $"Refresh {string.Join(", ", archives.Select(a => "mods/" + a))} from the updated game and put the mods' changes back";
+
+    public override void Execute(InstallContext ctx)
+    {
+        foreach (var a in archives) ctx.Overlay.Refresh(a);
+    }
 }
 
 public enum XmlPatchMode { Add, Replace, Remove }
@@ -240,20 +298,32 @@ public static class InstallExecutor
         var ctx = new InstallContext(target, journal, log);
         try
         {
-            foreach (var op in plan.Ops) op.Execute(ctx);
+            foreach (var op in plan.Ops)
+            {
+                op.Execute(ctx);
+                ctx.LoadedOverlay?.Commit();                 // each step's archive edits land together
+            }
         }
         catch (Exception ex)
         {
             log($"[!] {plan.Title} failed: {ex.Message}");
+            ctx.LoadedOverlay?.Discard();
             journal.Rollback();
+            if (ctx.LoadedOverlay is not null) ModsOverlay.CollectGarbage(target.GameDir);
             throw;
         }
         journal.Commit();
+        if (ctx.LoadedOverlay is { } overlay)
+        {
+            overlay.Save();
+            overlay.CompactWasteful();
+            overlay.Save();
+        }
 
         if (ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0)
         {
             var reg = ModRegistry.Load(target.GameDir);
-            var kept = journal.Steps.Where(s => s is not StagingTouched).ToList();
+            var kept = journal.Steps.Where(s => s is not (StagingTouched or RpfEntrySet)).ToList();
             foreach (var m in ctx.Registered)
             {
                 if (m.Journal.Count == 0) m.Journal = kept;

@@ -20,6 +20,13 @@ namespace Mdv.Cli;
 /// mdvctl installed &lt;game_dir&gt; [--edition legacy|enhanced|auto] [--staging DIR]
 /// mdvctl index &lt;game_dir&gt; [--rebuild] [--no-cache]
 /// mdvctl find  &lt;game_dir&gt; &lt;query&gt;... [--limit N]
+/// mdvctl put   &lt;game_dir&gt; &lt;game_path&gt; &lt;file&gt; [--mod ID] [--edition …]
+/// mdvctl delete &lt;game_dir&gt; &lt;game_path&gt; [--mod ID]
+/// mdvctl unmod &lt;game_dir&gt; &lt;mod_id&gt;
+/// mdvctl raise &lt;game_dir&gt; &lt;mod_id&gt;
+/// mdvctl overlay &lt;game_dir&gt;
+/// mdvctl refresh &lt;game_dir&gt; [archive...]
+/// mdvctl compact &lt;game_dir&gt; [archive...]
 /// </code>
 /// </summary>
 internal static class Program
@@ -48,6 +55,13 @@ internal static class Program
                 "installed" => Installed(rest),
                 "index" => Index(rest),
                 "find" => Find(rest),
+                "put" => Put(rest),
+                "delete" => Delete(rest),
+                "unmod" => Unmod(rest),
+                "raise" => Raise(rest),
+                "overlay" => Overlay(rest),
+                "refresh" => Refresh(rest),
+                "compact" => Compact(rest),
                 _ => Usage($"unknown command '{args[0]}'"),
             };
         }
@@ -97,6 +111,24 @@ internal static class Program
               find <game_dir> <query> [<query> ...] [--limit N]
                   where a file lives in the game and which copy the game loads (*):
                   adder.yft, adder, w_pi_*.ydr, player_zero/uppr_000_u.ydd, common/data/dlclist.xml
+              put <game_dir> <game_path> <file> [--mod ID] [--edition legacy|enhanced|auto]
+                  replace / add a file inside the game's archives, in a copy under mods
+                  (game_path as `find` prints it: x64e.rpf/levels/gta5/vehicles.rpf/adder.ytd);
+                  the copy is made on first use; the mod id defaults to replace:<file name>
+              delete <game_dir> <game_path> [--mod ID]
+                  delete a file inside the game's archives (in the copy under mods)
+              unmod <game_dir> <mod_id>
+                  take a mod's files out of the archives: the version below comes back
+                  (another mod's, or the game's own); a copy left with nothing is removed
+              raise <game_dir> <mod_id>
+                  put a mod's files on top of other mods changing the same files
+              overlay <game_dir>
+                  archive copies in mods (stale after a game update?) and the files mods changed
+              refresh <game_dir> [archive ...]
+                  after a game update: fresh copies of the stale archives (or the ones named),
+                  with the mods' changes and added dlclist entries put back
+              compact <game_dir> [archive ...]
+                  rewrite archive copies in mods without the holes edits leave behind
             """);
     }
 
@@ -453,6 +485,157 @@ internal static class Program
             }
         }
         return any ? 0 : 1;
+    }
+
+    // ------------------------------------------------------------ mods layer
+
+    private static InstallTarget TargetFor(string game, string? editionOpt)
+    {
+        GameEdition edition;
+        try
+        {
+            edition = GameEditions.Parse(editionOpt) ?? GameEditions.Detect(game) ?? GameEdition.Legacy;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        var staging = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ModDropV",
+                                   edition == GameEdition.Enhanced ? "staging-enhanced" : "staging");
+        return new InstallTarget(game, edition, staging);
+    }
+
+    /// <summary>Run a plan, printing its warnings and log; 1 when it failed (and was rolled back).</summary>
+    private static int RunPlan(InstallPlan plan, InstallTarget target)
+    {
+        foreach (var w in plan.Warnings) Console.WriteLine($"[!] {w}");
+        try
+        {
+            InstallExecutor.Run(plan, target, Console.WriteLine);
+            return 0;
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or InvalidDataException or
+                                         NotSupportedException or ArgumentException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"[!] {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>One file changed by a (command-line) replacement mod, recorded in the registry.</summary>
+    private static InstallPlan ReplacementPlan(string game, string modId, string gamePath, PlanOp op, string title)
+    {
+        var plan = new InstallPlan { Title = title };
+        foreach (var c in ModsOverlay.Load(game).Conflicts(modId, [gamePath]))
+            plan.Warnings.Add($"{c.GamePath} is already changed by {string.Join(", ", c.Owners)} — this mod goes on top.");
+        var existing = ModRegistry.Load(game).Find(modId);
+        var key = ModsOverlay.KeyOf(gamePath);
+        plan.Add(op);
+        plan.Add(new ActionOp($"Record «{modId}» in mods\\ModDropV.json", ctx => ctx.Registered.Add(new RegisteredMod
+        {
+            Id = modId, Category = ModCategory.Replacement, Name = existing?.Name ?? modId,
+            Edition = WeaponHandler.EditionKey(ctx.Target.Edition), Installed = DateTime.UtcNow,
+            Owns = [.. (existing?.Owns ?? []).Append(key).Distinct(StringComparer.OrdinalIgnoreCase)],
+        })));
+        return plan;
+    }
+
+    private static int Put(string[] argv)
+    {
+        var a = Parse(argv, ["--mod", "--edition"], []);
+        NeedPositional(a, 3, 3, "game_dir, game_path, file");
+        var (game, gamePath, file) = (a.Positional[0], a.Positional[1], a.Positional[2]);
+        if (!File.Exists(file)) throw new UsageException($"no such file: {file}");
+        var modId = a.Opt("--mod") ?? "replace:" + Path.GetFileName(file).ToLowerInvariant();
+        return RunPlan(ReplacementPlan(game, modId, gamePath, new RpfPutOp(gamePath, file, modId), $"Put {Path.GetFileName(file)}"),
+                       TargetFor(game, a.Opt("--edition")));
+    }
+
+    private static int Delete(string[] argv)
+    {
+        var a = Parse(argv, ["--mod"], []);
+        NeedPositional(a, 2, 2, "game_dir, game_path");
+        var (game, gamePath) = (a.Positional[0], a.Positional[1]);
+        var modId = a.Opt("--mod") ?? "delete:" + Path.GetFileName(gamePath).ToLowerInvariant();
+        return RunPlan(ReplacementPlan(game, modId, gamePath, new RpfDeleteOp(gamePath, modId), $"Delete {gamePath}"),
+                       TargetFor(game, null));
+    }
+
+    private static int Unmod(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 2, 2, "game_dir, mod_id");
+        var (game, modId) = (a.Positional[0], a.Positional[1]);
+        if (ModsOverlay.Load(game).PathsOf(modId).Count == 0)
+        {
+            Console.Error.WriteLine($"[!] {modId} changes no file in the game's archives.");
+            return 1;
+        }
+        var plan = new InstallPlan { Title = $"Remove {modId}" }
+            .Add(new OverlayRemoveOp(modId, modId))
+            .Add(new ActionOp("Forget it in mods\\ModDropV.json", ctx => ctx.Unregistered.Add(modId)));
+        return RunPlan(plan, TargetFor(game, null));
+    }
+
+    private static int Raise(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 2, 2, "game_dir, mod_id");
+        var (game, modId) = (a.Positional[0], a.Positional[1]);
+        return RunPlan(new InstallPlan { Title = $"Raise {modId}" }.Add(new OverlayRaiseOp(modId, modId)), TargetFor(game, null));
+    }
+
+    private static int Overlay(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 1, "game_dir");
+        var ov = ModsOverlay.Load(a.Positional[0]);
+        var status = ov.Status();
+        Console.WriteLine($"{ov.GameDir}: {status.Count} archive cop{(status.Count == 1 ? "y" : "ies")} in mods");
+        foreach (var s in status)
+        {
+            var who = s.Tracked ? (s.Created ? "made by ModDrop V" : "found in mods") : "not changed by ModDrop V";
+            Console.WriteLine($"  mods/{s.Archive}  {FormatSize(s.Length)}, {who}, {s.Owned} changed file(s)");
+            if (s.Stale is not null) Console.WriteLine($"      [!] stale: {s.Stale} — run `mdvctl refresh`");
+        }
+        if (ov.State.Entries.Count > 0) Console.WriteLine("changed files (the version the game sees first):");
+        foreach (var (key, e) in ov.State.Entries.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+        {
+            var below = e.Base == ModsOverlay.Game ? "game" : e.Base == ModsOverlay.Absent ? "(no file)" : "earlier content (kept)";
+            Console.WriteLine($"  {key}");
+            Console.WriteLine($"      {string.Join(" > ", e.Layers.Select(l => l.Mod).Reverse())} > {below}");
+        }
+        return 0;
+    }
+
+    private static List<string> ArchiveArgs(Args a) =>
+        [.. a.Positional.Skip(1).Select(x => x.Replace('\\', '/').ToLowerInvariant())];
+
+    private static int Refresh(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, int.MaxValue, "game_dir");
+        var game = a.Positional[0];
+        var archives = a.Positional.Count > 1
+            ? ArchiveArgs(a)
+            : ModsOverlay.Load(game).Status().Where(s => s.Stale is not null).Select(s => s.Archive).ToList();
+        if (archives.Count == 0)
+        {
+            Console.WriteLine("Every archive copy in mods is up to date.");
+            return 0;
+        }
+        return RunPlan(new InstallPlan { Title = "Refresh archive copies" }.Add(new RefreshCopiesOp(archives)), TargetFor(game, null));
+    }
+
+    private static int Compact(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, int.MaxValue, "game_dir");
+        var ov = ModsOverlay.Load(a.Positional[0], Console.WriteLine);
+        var archives = a.Positional.Count > 1 ? ArchiveArgs(a) : ov.Status().Select(s => s.Archive).ToList();
+        foreach (var top in archives) ov.Compact(top);
+        ov.Save();
+        return 0;
     }
 
     private static string FormatSize(long n) =>

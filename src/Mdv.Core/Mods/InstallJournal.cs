@@ -15,6 +15,7 @@ namespace Mdv.Core.Mods;
 [JsonDerivedType(typeof(DlclistAdded), "dlclistAdd")]
 [JsonDerivedType(typeof(DlclistRemoved), "dlclistRemove")]
 [JsonDerivedType(typeof(StagingTouched), "staging")]
+[JsonDerivedType(typeof(RpfEntrySet), "rpfEntry")]
 public abstract record JournalStep;
 
 /// <summary>A file that did not exist before. Undo: delete it.</summary>
@@ -50,6 +51,17 @@ public sealed record DlclistRemoved([property: JsonPropertyName("pack")] string 
 /// </summary>
 public sealed record StagingTouched([property: JsonPropertyName("stagingRoot")] string StagingRoot,
                                     [property: JsonPropertyName("gamePack")] string GamePack) : JournalStep;
+
+/// <summary>
+/// A file inside an archive copy in mods (<paramref name="Archive"/>, e.g. <c>mods/x64e.rpf</c>) was
+/// replaced, added or deleted. Undo: give it back its <paramref name="Prior"/> content — <c>game</c>
+/// (the game's own file), <c>absent</c> (no file) or <c>blob:&lt;sha&gt;</c> (a version kept in
+/// mods/.moddropv/blobs). Transaction-only: an uninstall goes through <see cref="ModsOverlay.RemoveMod"/>,
+/// which knows about the mods installed on top since.
+/// </summary>
+public sealed record RpfEntrySet([property: JsonPropertyName("archive")] string Archive,
+                                 [property: JsonPropertyName("inner")] string Inner,
+                                 [property: JsonPropertyName("prior")] string Prior) : JournalStep;
 
 /// <summary>
 /// What one install / change transaction did to a game folder, step by step, and how to take
@@ -125,6 +137,7 @@ public sealed class InstallJournal
         foreach (var s in Steps.OfType<MovedAside>().Where(s => !s.Keep))
             DeletePath(Abs(s.Stash));
         TryDeleteEmpty(StashRoot);
+        TryDeleteEmpty(Path.GetDirectoryName(StashRoot)!);
     }
 
     /// <summary>Undo every recorded step, newest first. Failures are logged, not thrown.</summary>
@@ -134,6 +147,7 @@ public sealed class InstallJournal
         _log("Rolling back the changes made so far…");
         bool ok = Undo(GameDir, Steps, transaction: true, _log);
         TryDeleteEmpty(StashRoot);
+        TryDeleteEmpty(Path.GetDirectoryName(StashRoot)!);
         _log(ok ? "    Rolled back — the game folder is as it was." : "    [!] Rollback was incomplete — see above.");
         return ok;
     }
@@ -202,6 +216,9 @@ public sealed class InstallJournal
                 break;
             case DlclistRemoved r:
                 GameInstaller.RegisterInDlclist(gameDir, r.Pack, log);
+                break;
+            case RpfEntrySet e when transaction:
+                ModsOverlay.Undo(gameDir, e, log);
                 break;
             case StagingTouched s when transaction:
                 PathUtil.TryDeleteDir(s.StagingRoot);

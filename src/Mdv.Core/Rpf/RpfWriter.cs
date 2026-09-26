@@ -28,18 +28,27 @@ internal sealed class RpfStreamBuilder
         public RpfEntryKind Kind;
         public byte[]? Blob;                    // in-memory blob
         public string? RawFile;                 // or: stream this file verbatim (Kind = Raw)
+        public RpfArchive? Range;               // or: copy Length bytes at RangeOffset of this archive's stream
+        public long RangeOffset;
         public long Length;
         public uint A, B;
     }
 
-    public static long Write(string outPath, IReadOnlyList<Node> nodes)
+    /// <param name="dedupeNames">store each distinct name once (as CodeWalker does) — keeps big archives under the 64 KiB name limit</param>
+    public static long Write(string outPath, IReadOnlyList<Node> nodes, bool dedupeNames = false)
     {
         // name table: root uses offset 0 (the leading NUL)
         var names = new MemoryStream();
         names.WriteByte(0);
+        var seen = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int i = 1; i < nodes.Count; i++)
         {
-            nodes[i].NameOffset = (int)names.Length;
+            if (dedupeNames && seen.TryGetValue(nodes[i].Name, out var at))
+            {
+                nodes[i].NameOffset = at;
+                continue;
+            }
+            nodes[i].NameOffset = seen[nodes[i].Name] = (int)names.Length;
             names.Write(Rpf7.EncodeName(nodes[i].Name));
             names.WriteByte(0);
         }
@@ -75,6 +84,11 @@ internal sealed class RpfStreamBuilder
                         using var src = File.OpenRead(p.RawFile);
                         src.CopyTo(fs, 1 << 20);
                         len = src.Length;
+                    }
+                    else if (p.Range is not null)
+                    {
+                        p.Range.CopyTo(fs, p.RangeOffset, p.Length);
+                        len = p.Length;
                     }
                     else
                     {

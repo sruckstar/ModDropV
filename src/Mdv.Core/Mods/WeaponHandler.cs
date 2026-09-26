@@ -198,7 +198,7 @@ public sealed class WeaponHandler : IModHandler
         ctx.Registered.Add(record);
     }
 
-    internal static string EditionKey(GameEdition e) => e == GameEdition.Enhanced ? "enhanced" : "legacy";
+    public static string EditionKey(GameEdition e) => e == GameEdition.Enhanced ? "enhanced" : "legacy";
 
     // ================================================================ installed
 
