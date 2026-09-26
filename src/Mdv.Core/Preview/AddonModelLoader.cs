@@ -44,6 +44,34 @@ public static partial class AddonModelLoader
         return rp.Kind == ModCategory.Ped ? Ped(files, stems, ct) : Vehicle(files, stems, ct);
     }
 
+    /// <summary>
+    /// A game vehicle / installed add-on wearing a livery: its model from the game, its dictionaries with the livery's
+    /// pictures put in (see <see cref="LiveryResolution.Painted"/>). Null when the livery isn't looked up in a game yet.
+    /// </summary>
+    public static WeaponModel? Load(LiveryPackage pkg, CancellationToken ct = default)
+    {
+        if (pkg.Resolved is not { } r || r.ModelPaths.Count == 0) return null;
+        var overlay = ModsOverlay.Load(r.GameDir);
+        var files = new Dictionary<string, Func<byte[]>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in r.ModelPaths)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (overlay.Read(path) is { } bytes) files[Path.GetFileName(path)] = () => bytes;
+        }
+        foreach (var (name, bytes) in r.Painted(pkg)) files[name] = () => bytes;
+        ct.ThrowIfCancellationRequested();
+        // the livery the mod paints is shown: the model names its first one (…_sign_1), the mod may bring …_sign_3
+        var painted = pkg.Textures.Select(t => t.Slot).OfType<string>().Where(LiveryHandler.IsLiveryLike).ToList();
+        return Vehicle(files, [r.Vehicle], ct, layer: name =>
+        {
+            if (!LiveryHandler.IsLiveryLike(name)) return null;
+            if (painted.Count == 0 || painted.Contains(name, StringComparer.OrdinalIgnoreCase)) return name;
+            var stem = Regex.Replace(name, @"\d+$", "");
+            return painted.FirstOrDefault(p => stem.Length < name.Length && p.StartsWith(stem, StringComparison.OrdinalIgnoreCase) &&
+                                               Regex.IsMatch(p[stem.Length..], @"^\d+$")) ?? name;
+        });
+    }
+
     // ------------------------------------------------------------------ files
 
     private static readonly HashSet<string> ModelExt = new(StringComparer.OrdinalIgnoreCase) { ".yft", ".ydd", ".ytd", ".ydr" };
@@ -122,7 +150,9 @@ public static partial class AddonModelLoader
     private static readonly HashSet<ushort> FrontWheels = [27922, 26418];
     private static readonly HashSet<ushort> Wheels = [27922, 26418, 29921, 29922, 29923, 27902, 5857, 5858, 5859, 26398];
 
-    private static WeaponModel? Vehicle(Dictionary<string, Func<byte[]>> files, List<string> names, CancellationToken ct)
+    /// <param name="layer">second-layer textures (liveries) to show instead of the paint under them (see <see cref="WeaponModelLoader.TextureLibrary.Layer"/>)</param>
+    private static WeaponModel? Vehicle(Dictionary<string, Func<byte[]>> files, List<string> names, CancellationToken ct,
+                                        Func<string, string?>? layer = null)
     {
         string? pick = null;
         foreach (var n in names.Concat(files.Keys.Where(k => PathUtil.SuffixLower(k) == ".yft").Select(Path.GetFileNameWithoutExtension)).OfType<string>())
@@ -142,7 +172,7 @@ public static partial class AddonModelLoader
         if (yft?.Fragment is not { Drawable: { } body } frag) return model.Warnings.Count > 0 ? model : null;
         ct.ThrowIfCancellationRequested();
 
-        var textures = new WeaponModelLoader.TextureLibrary(files) { Fallback = SharedTexture };
+        var textures = new WeaponModelLoader.TextureLibrary(files) { Fallback = SharedTexture, Layer = layer };
         var bodyPiece = WeaponModelLoader.MakePiece(body, "body", $"Body ({name})", "body", null, true, true, Matrix4x4.Identity, textures);
 
         // the physics children: breakable parts drawn on their own, and the wheels

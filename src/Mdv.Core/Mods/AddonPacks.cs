@@ -261,17 +261,21 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         var reg = ModRegistry.Load(target.GameDir);
         foreach (var oldId in checks.Supersedes)
             if (reg.Find(oldId) is { } old && old.Get("pack") is { } oldPack)
+            {
+                plan.Add(ForgetChanges(oldPack, reinstall: oldPack.Equals(pack, StringComparison.OrdinalIgnoreCase)));
                 plan.Add(new ActionOp($"Remove the installed «{old.Name}» (dlcpacks\\{oldPack}) — the same pack", ctx =>
                 {
                     GameInstaller.UninstallPack(ctx.GameDir, oldPack, ctx.Log, ctx.Journal);
                     if (old.Get("overlay") == "1") ctx.Overlay.RemoveMod(oldId);
                     ctx.Unregistered.Add(oldId);
                 }));
+            }
         if (reg.Find(id) is { } again)
             plan.Warnings.Add($"«{again.Name}» is already installed — the installed version is replaced.");
 
         var plugins = target.PluginsDir ?? Path.Combine(AppContext.BaseDirectory, "data", "plugins");
         plan.Add(new EnsureModsLoaderOp(plugins));
+        if (reg.Find(id) is not null && !checks.Supersedes.Contains(id)) plan.Add(ForgetChanges(pack, reinstall: true));
         bool raise = checks.MetaDataStoreNow is not null;
         if (raise)
             plan.Add(new RpfEditOp(GamePools.GameConfig, id,
@@ -310,6 +314,20 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             plan.Warnings.Add($"Modkit {f.Kit.Name} keeps id {f.Kit.Id}, which {f.TakenBy} uses too.");
         return plan;
     }
+
+    /// <summary>
+    /// Changes other mods made inside the pack (liveries) are forgotten when it is replaced or removed as a whole — their
+    /// saved versions belong to the old pack.
+    /// </summary>
+    private static ActionOp ForgetChanges(string pack, bool reinstall) => new("", ctx =>
+    {
+        if (!File.Exists(ModsOverlay.StatePath(ctx.GameDir))) return;
+        var mods = ctx.Overlay.ForgetArchive($"update/x64/dlcpacks/{pack}/dlc.rpf");
+        if (mods.Count == 0) return;
+        var reg = ModRegistry.Load(ctx.GameDir);
+        ctx.Log($"    [!] {string.Join(", ", mods.Select(m => $"«{reg.Find(m)?.Name ?? m}»"))} changed this pack — " +
+                (reinstall ? "the new version doesn't have those changes; install them again." : "they go with it."));
+    }) { Hidden = true };
 
     /// <summary>"Add-On installed — spawn it with a trainer by name: innovabcm."</summary>
     private static string Done(AddonPackage pkg)
@@ -492,6 +510,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             var name = m.Name.Length > 0 ? m.Name : folder;
             if (c.Remove)
             {
+                plan.Add(ForgetChanges(folder, reinstall: false));
                 plan.Add(new ActionOp($"Remove «{name}» (dlcpack {folder})", ctx =>
                 {
                     GameInstaller.UninstallPack(game, folder, ctx.Log, ctx.Journal);

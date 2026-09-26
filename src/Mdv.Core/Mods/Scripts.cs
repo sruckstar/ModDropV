@@ -548,7 +548,7 @@ public sealed partial class ScriptHandler : FileModHandler
         yield return new ActionOp("", ctx => ctx.Switched[m.Id] = on) { Hidden = true };
     }
 
-    protected override IEnumerable<PlanOp> TakeOutOps(RegisteredMod m, bool off)
+    protected override IEnumerable<PlanOp> TakeOutOps(RegisteredMod m, bool off, bool reinstall = false)
     {
         if (off) yield return new RenameEntriesOp(Entries(m), on: true, "") { Hidden = true };   // the journal knows the real names
     }

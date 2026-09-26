@@ -353,6 +353,9 @@
               <DataTemplate DataType="vm:AddonViewModel">
                 <p:AddonFormView />
               </DataTemplate>
+              <DataTemplate DataType="vm:LiveryViewModel">
+                <p:LiveryFormView />
+              </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
           <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
@@ -398,6 +401,9 @@
             </DataTemplate>
             <DataTemplate DataType="vm:AddonViewModel">
               <p:AddonSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:LiveryViewModel">
+              <p:LiverySideView />
             </DataTemplate>
             <DataTemplate DataType="vm:ModPanelViewModel">
               <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />
@@ -950,9 +956,9 @@
       </Border>
     </Border>
 
-    <!-- ================= 3D PREVIEW (the add-on vehicle / ped panel's) ================= -->
-    <Border Background="{DynamicResource ScrimBrush}" IsVisible="{Binding Addon.Preview.IsOpen}">
-      <Border Classes="card dialog" Padding="0" Margin="40,30" MaxWidth="1280" DataContext="{Binding Addon.Preview}"
+    <!-- ================= 3D PREVIEW (the add-on vehicle / ped panel's, the livery panel's) ================= -->
+    <Border Background="{DynamicResource ScrimBrush}" IsVisible="{Binding OpenModelPreview, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <Border Classes="card dialog" Padding="0" Margin="40,30" MaxWidth="1280" DataContext="{Binding OpenModelPreview}"
               x:DataType="vm:ModelPreview">
         <Grid RowDefinitions="Auto,*">
           <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" Margin="20,14,12,12" ColumnSpacing="12">

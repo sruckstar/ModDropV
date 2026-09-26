@@ -49,7 +49,7 @@ public abstract partial class FileModHandler : IModHandler
         if (reg.Find(id) is { } old)
         {
             plan.Warnings.Add($"«{old.Name}» is already installed — the installed version is replaced.");
-            plan.Ops.AddRange(RemoveOps(old, IsOff(old, LoadOverlay(target)), unregister: false));
+            plan.Ops.AddRange(RemoveOps(old, IsOff(old, LoadOverlay(target)), unregister: false, reinstall: true));
         }
         if (modsLoader)
             plan.Add(new EnsureModsLoaderOp(target.PluginsDir ?? Path.Combine(AppContext.BaseDirectory, "data", "plugins")));
@@ -83,7 +83,7 @@ public abstract partial class FileModHandler : IModHandler
         foreach (var m in registry.Mods.Where(m => Owns(m.Id)))
         {
             yield return new InstalledMod(m.Id, m.Name.Length > 0 ? m.Name : m.Id[IdPrefix.Length..], ModKind.Pack,
-                                          m.Get("where") ?? Category.DisplayName(), !IsOff(m, overlay) && m.Enabled)
+                                          WhereOf(m, overlay), !IsOff(m, overlay) && m.Enabled)
             {
                 Category = m.Category, Installed = m.Installed, Source = m.Source?.Name, ImportedFrom = m.ImportedFrom,
                 CanSwitch = Switchable(m), Folder = FolderOf(m, target),
@@ -99,6 +99,9 @@ public abstract partial class FileModHandler : IModHandler
 
     /// <summary>It is switched off — by default when its archive versions are parked.</summary>
     protected virtual bool IsOff(RegisteredMod m, ModsOverlay? overlay) => overlay?.IsParked(m.Id) ?? false;
+
+    /// <summary>What the library says about where it is.</summary>
+    protected virtual string WhereOf(RegisteredMod m, ModsOverlay? overlay) => m.Get("where") ?? Category.DisplayName();
 
     /// <summary>The folder "open folder" shows (null: none).</summary>
     protected virtual string? FolderOf(RegisteredMod m, InstallTarget target) => null;
@@ -123,12 +126,12 @@ public abstract partial class FileModHandler : IModHandler
     }
 
     /// <summary>The first steps of taking a mod out — by default its archive versions (or the parked ones) go.</summary>
-    protected virtual IEnumerable<PlanOp> TakeOutOps(RegisteredMod m, bool off)
+    protected virtual IEnumerable<PlanOp> TakeOutOps(RegisteredMod m, bool off, bool reinstall = false)
     {
         if (off)
             yield return new ActionOp($"Forget the switched-off «{m.Name}»'s kept files", ctx => ctx.Overlay.DropParked(m.Id));
         else
-            yield return new OverlayRemoveOp(m.Id, m.Name);
+            yield return new OverlayRemoveOp(m.Id, m.Name, reinstall);
     }
 
     public InstallPlan PlanChanges(InstallTarget target, ModRegistry registry, IReadOnlyList<ModChange> changes)
@@ -153,9 +156,9 @@ public abstract partial class FileModHandler : IModHandler
     }
 
     /// <summary>Take a mod out of the game: its archive changes (or parked versions), then its journal.</summary>
-    private IEnumerable<PlanOp> RemoveOps(RegisteredMod m, bool off, bool unregister)
+    private IEnumerable<PlanOp> RemoveOps(RegisteredMod m, bool off, bool unregister, bool reinstall = false)
     {
-        foreach (var op in TakeOutOps(m, off)) yield return op;
+        foreach (var op in TakeOutOps(m, off, reinstall)) yield return op;
         if (m.Journal.Count > 0)
             yield return new ActionOp($"Take back what «{m.Name}» copied into the game folder ({Describe(m.Journal)})",
                                       ctx => ctx.Journal.RevertInto(InstallExecutor.OwnSteps(m.Journal, ctx.Overlay)));

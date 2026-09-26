@@ -85,8 +85,27 @@ public sealed class ReplacementHandler : FileModHandler
         if (!picked.Any(f => StrongExt.Contains(PathUtil.SuffixLower(f.Name))) && !report.Has(ModCategory.Replacement)) return null;
 
         var name = SourceIntake.GuessName(source.Sources);
-        return Build(picked, name == "Custom Weapon" ? "Replacement" : name,
-                     source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null);
+        var pkg = Build(picked, name == "Custom Weapon" ? "Replacement" : name,
+                        source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null);
+        // only whole texture dictionaries of the game's vehicles: a repaint, listed as a livery
+        var vanilla = VanillaModels.Load(env.DataDir);
+        var vehicles = pkg.Files.Select(f => PathUtil.SuffixLower(f.Name) == ".ytd" ? VehicleOf(f.Name) : null).ToList();
+        if (report.Primary?.Category == ModCategory.Livery && pkg.Files.Any(f => LiveryHandler.IsLiveryModel(f.Name, out _)))
+            return null;                                                              // modkit livery models: LiveryHandler
+        if (report.Primary?.Category == ModCategory.Livery && vehicles.All(v => v is not null && vanilla.IsVehicle(v)))
+        {
+            pkg.Kind = ModCategory.Livery;
+            pkg.Replaces.AddRange(vehicles.Select(v => v!).Distinct());
+            pkg.Parts.Insert(0, $"repaints the game's {string.Join(", ", pkg.Replaces)} — whole texture dictionar{(pkg.Files.Count == 1 ? "y" : "ies")}");
+        }
+        return pkg;
+    }
+
+    /// <summary>"police3" for police3.ytd and police3+hi.ytd.</summary>
+    private static string VehicleOf(string ytd)
+    {
+        var stem = Path.GetFileNameWithoutExtension(ytd).ToLowerInvariant();
+        return stem.EndsWith("+hi", StringComparison.Ordinal) ? stem[..^3] : stem;
     }
 
     /// <summary>

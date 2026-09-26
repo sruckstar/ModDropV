@@ -133,6 +133,8 @@ public static partial class ModDetector
         // a ped is a skeleton (.yft) with its drawables (.ydd) / variations (.ymt) under the same name
         var pedStems = new HashSet<string>(list.Where(f => PathUtil.SuffixLower(f.Origin) is ".ydd" or ".ymt")
                                                .Select(f => Path.GetFileNameWithoutExtension(f.Origin)), StringComparer.OrdinalIgnoreCase);
+        var yftStems = new HashSet<string>(list.Where(f => PathUtil.SuffixLower(f.Origin) == ".yft")
+                                               .Select(f => Path.GetFileNameWithoutExtension(f.Origin)), StringComparer.OrdinalIgnoreCase);
         int counted = 0;
         foreach (var (full, origin) in list)
         {
@@ -140,7 +142,7 @@ public static partial class ModDetector
             var ext = PathUtil.SuffixLower(name);
             try
             {
-                Look(s, full, origin, name, ext, pedStems);
+                Look(s, full, origin, name, ext, pedStems, yftStems);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or BadImageFormatException
                                            or InvalidDataException)
@@ -152,7 +154,7 @@ public static partial class ModDetector
         return s.Report();
     }
 
-    private static void Look(Scores s, string full, string origin, string name, string ext, HashSet<string> pedStems)
+    private static void Look(Scores s, string full, string origin, string name, string ext, HashSet<string> pedStems, HashSet<string> yftStems)
     {
         var stem = Path.GetFileNameWithoutExtension(name);
 
@@ -171,7 +173,7 @@ public static partial class ModDetector
         {
             case ".ydr" or ".ytd" or ".ydd" or ".yft":
                 if (!IsResource(full)) return;
-                LookResource(s, origin, name, stem, ext, pedStems);
+                LookResource(s, origin, name, stem, ext, pedStems, yftStems);
                 return;
             case ".rpf":
                 LookRpf(s, full, name);
@@ -197,6 +199,9 @@ public static partial class ModDetector
             case ".ymf":
                 s.Add(ModCategory.Map, 1, $"map manifest {name}");
                 return;
+            case ".dds" or ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp":
+                LookPicture(s, name, stem, ext);
+                return;
             case ".awc" or ".rel":
                 s.Add(ModCategory.Replacement, 2, $"game audio {name}");
                 return;
@@ -210,7 +215,7 @@ public static partial class ModDetector
         }
     }
 
-    private static void LookResource(Scores s, string origin, string name, string stem, string ext, HashSet<string> pedStems)
+    private static void LookResource(Scores s, string origin, string name, string stem, string ext, HashSet<string> pedStems, HashSet<string> yftStems)
     {
         if (name.StartsWith("w_", StringComparison.OrdinalIgnoreCase))
         {
@@ -233,6 +238,11 @@ public static partial class ModDetector
             s.Add(ModCategory.Ped, 3, $"ped model {name}");
             return;
         }
+        if (ext == ".yft" && LiveryHandler.IsLiveryModel(name, out _))
+        {
+            s.Add(ModCategory.Livery, 4, $"modkit livery model {name}");
+            return;
+        }
         if (ext == ".yft")
         {
             s.Add(ModCategory.Vehicle, 3, $"vehicle model {name}");
@@ -244,7 +254,25 @@ public static partial class ModDetector
             s.Add(ModCategory.Livery, 3, $"livery texture {name}");
             return;
         }
+        // a game vehicle's texture dictionary with no model next to it: a repaint of that vehicle
+        var owner = Regex.Replace(stem, @"\+hi$", "", RegexOptions.IgnoreCase);
+        if (ext == ".ytd" && !yftStems.Contains(owner) && VanillaModels.Load(null).IsVehicle(owner))
+        {
+            s.Add(ModCategory.Livery, 3, $"texture dictionary of the game's {owner} ({name})");
+            return;
+        }
         if (ext == ".ydr") s.Add(ModCategory.Prop, 1, $"model {name}");
+    }
+
+    /// <summary>A picture named like a texture of the game's vehicles, or like a livery, is a livery's.</summary>
+    private static void LookPicture(Scores s, string name, string stem, string ext)
+    {
+        if (VanillaLiveries.Load(null).IsTexture(stem))
+            s.Add(ModCategory.Livery, 3, $"vehicle texture {name}");
+        else if (LiveryHandler.IsLiveryLike(stem))
+            s.Add(ModCategory.Livery, 2, $"livery picture {name}");
+        else if (ext == ".dds")
+            s.Add(ModCategory.Livery, 1, $"texture {name}");
     }
 
     private static void LookRpf(Scores s, string full, string name)

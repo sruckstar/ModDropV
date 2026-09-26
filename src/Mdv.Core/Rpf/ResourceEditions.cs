@@ -150,6 +150,24 @@ public static class ResourceEditions
         }
     }
 
+    /// <summary>Build a resource with CodeWalker for one edition (its writer reads the same process-wide gen9 switch).</summary>
+    public static byte[] Write(GameEdition edition, Func<byte[]> save)
+    {
+        lock (Gate)
+        {
+            bool was = RpfManager.IsGen9;
+            RpfManager.IsGen9 = edition == GameEdition.Enhanced;
+            try
+            {
+                return save();
+            }
+            finally
+            {
+                RpfManager.IsGen9 = was;
+            }
+        }
+    }
+
     private static byte[]? Load<T>(T file, Action<T> load, Func<T, object?> root, Func<T, byte[]> save)
     {
         load(file);

@@ -35,7 +35,7 @@ stay untouched and every install can be switched off or removed again.
 | File replacements (textures, models, sounds, metas…) — the right place is found in the game | ✅ ready |
 | Scripts and plugins — `.asi`, ScriptHookVDotNet, RAGE Plugin Hook / LSPDFR; missing ScriptHookV, SHVDN or libraries are pointed out, LemonUI is added for you | ✅ ready |
 | Add-on vehicles and peds — finished packs, FiveM resources (packed into a `dlc.rpf` for you), peds shared as bare models (a `peds.meta` is written for them) and replacements, with a 3D preview; clashing spawn names and modkit ids are caught before installing, Legacy models are converted for Enhanced | ✅ ready |
-| Vehicle liveries | planned |
+| Vehicle liveries — pictures (PNG / JPG / DDS) put into a car's own textures (compressed to the game's format, the car guessed from the texture names), whole texture dictionaries, modkit liveries added to the car's modkit; for the game's cars and installed add-ons, with a 3D preview | ✅ ready |
 | Clothes for the main characters, MP clothes and components | planned |
 | Objects, maps and total conversions | planned |
 
@@ -73,6 +73,7 @@ dotnet run --project src/Mdv.App      # the app
 ## 🙏 Credits
 
 - [CodeWalker](https://github.com/dexyfex/CodeWalker) by dexyfex — resource reading and gen9 conversion.
+- [BCnEncoder.NET](https://github.com/Nominom/BCnEncoder.NET) by Nominom — texture compression for liveries.
 - **OpenIV.asi** by the OpenIV team and the **ASI Loader** by Alexander Blade — mod support for GTA V Legacy.
 - **Simple Mods Loader** (`DSOUND.dll`) by NativeCoder — mod support for GTA V Enhanced.
 

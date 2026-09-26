@@ -6,7 +6,9 @@
     <InternalsVisibleTo Include="Mdv.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="BCnEncoder.Net" Version="2.3.0" />
     <PackageReference Include="SharpCompress" Version="0.50.4" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
   </ItemGroup>
   <ItemGroup>
     <!-- CodeWalker (git submodule, external/CodeWalker): Gen9 (Enhanced) resource

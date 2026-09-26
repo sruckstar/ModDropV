@@ -48,7 +48,7 @@ public static class ModLibrary
     public static IReadOnlyList<IModHandler> Handlers { get; } =
     [
         new WeaponHandler(), new OivHandler(), new ReplacementHandler(), new ScriptHandler(),
-        new AddonPackHandler(ModCategory.Vehicle), new AddonPackHandler(ModCategory.Ped),
+        new AddonPackHandler(ModCategory.Vehicle), new AddonPackHandler(ModCategory.Ped), new LiveryHandler(),
     ];
 
     public static IModHandler HandlerFor(ModCategory category) =>

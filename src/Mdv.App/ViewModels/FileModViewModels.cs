@@ -242,6 +242,7 @@ public sealed partial class ReplacementViewModel : FileModViewModel
         {
             ModCategory.Vehicle => "Vehicle replacement",
             ModCategory.Ped => "Ped replacement",
+            ModCategory.Livery => "Vehicle repaint — whole texture dictionary",
             _ => "File replacement",
         };
         _ = Preview.LoadAsync(pkg.Kind is ModCategory.Vehicle or ModCategory.Ped

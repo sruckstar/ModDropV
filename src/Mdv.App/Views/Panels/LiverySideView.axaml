@@ -1,0 +1,67 @@
+<!-- Livery panel, side slot: the vehicle wearing it in 3D, what the drop holds, how it is installed. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             xmlns:c="using:Mdv.App.Controls"
+             x:Class="Mdv.App.Views.Panels.LiverySideView"
+             x:DataType="vm:LiveryViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+      <TextBlock Classes="h" Text="PREVIEW" />
+
+      <Border Grid.Row="1" Height="168" Margin="0,0,10,0" CornerRadius="9" ClipToBounds="True"
+              BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1"
+              IsVisible="{Binding Preview.ShowPanel}">
+        <Panel>
+          <c:WeaponModelView Model="{Binding Preview.Model}" VisiblePieces="{Binding Preview.Visible}"
+                             Textured="{Binding Preview.Textured}" ResetCount="{Binding Preview.ResetCount}"
+                             ToolTip.Tip="Drag to turn · wheel to zoom · double-click to frame" />
+          <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      IsVisible="{Binding Preview.IsLoading}">
+            <TextBlock Classes="desc" Text="Painting the vehicle…" HorizontalAlignment="Center" />
+            <ProgressBar IsIndeterminate="True" Width="120" Height="3" MinHeight="3" MinWidth="0" />
+          </StackPanel>
+          <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                  IsVisible="{Binding Preview.HasPreview}" IsHitTestVisible="False">
+            <TextBlock Text="3D" />
+          </Border>
+          <Button Classes="ghost small" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                  Padding="8,3" MinHeight="26" Command="{Binding Preview.OpenCommand}"
+                  IsVisible="{Binding Preview.HasPreview}" ToolTip.Tip="Open the 3D preview">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+              <TextBlock Text="Inspect" />
+            </StackPanel>
+          </Button>
+        </Panel>
+      </Border>
+
+      <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Vehicle livery" FontWeight="SemiBold" FontSize="14" FontFamily="{StaticResource DisplayFont}" />
+            <TextBlock Classes="desc" Text="{Binding Summary}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Border Classes="note">
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" Text="{Binding Note}" />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Text1Brush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

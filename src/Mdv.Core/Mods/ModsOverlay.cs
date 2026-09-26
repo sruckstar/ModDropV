@@ -239,6 +239,10 @@ public sealed class ModsOverlay
     public IReadOnlyList<string> OwnersOf(string gamePath) =>
         State.Entries.TryGetValue(KeyOf(gamePath), out var e) ? e.Layers.Select(l => l.Mod).Reverse().ToList() : [];
 
+    /// <summary>The file at <paramref name="gamePath"/> wasn't there before mods, and only <paramref name="modId"/> put it there.</summary>
+    public bool AddedBy(string gamePath, string modId) =>
+        State.Entries.TryGetValue(KeyOf(gamePath), out var e) && e.Base == Absent && e.Layers.All(l => l.Mod == modId);
+
     /// <summary>Game paths a mod changes.</summary>
     public IReadOnlyList<string> PathsOf(string modId) =>
         [.. State.Entries.Where(kv => kv.Value.Layers.Any(l => l.Mod == modId)).Select(kv => kv.Key)];
@@ -391,9 +395,20 @@ public sealed class ModsOverlay
     /// or the base — the game's file); below the top its version just goes. A copy ModDrop V made
     /// that ends up with nothing of its mods in it is deleted. Returns the number of files.
     /// </summary>
-    public int RemoveMod(string modId)
+    /// <param name="keepCopies">the mod is being installed again in the same transaction: a copy left empty stays for
+    /// now (copying a big archive back is slow) and goes at the end only if the new version leaves it empty too
+    /// (<see cref="DropKeptCopies"/>)</param>
+    public int RemoveMod(string modId, bool keepCopies = false)
     {
         var keys = PathsOf(modId);
+        // an archive that is gone (an add-on pack removed with its liveries on it) has nothing to give back
+        foreach (var key in keys.Where(k => ArchiveFile(TopOf(k)) is null).ToList())
+        {
+            var gone = State.Entries[key];
+            gone.Layers.RemoveAll(l => l.Mod == modId);
+            if (gone.Layers.Count == 0) State.Entries.Remove(key);
+        }
+        keys = PathsOf(modId);
         var drop = keys.Select(TopOf).Distinct()
                        .Where(top => State.Entries.Where(kv => TopOf(kv.Key) == top)
                                                   .All(kv => kv.Value.Layers.All(l => l.Mod == modId)))
@@ -415,8 +430,24 @@ public sealed class ModsOverlay
             }
             if (entry.Layers.Count == 0) State.Entries.Remove(key);
         }
-        foreach (var top in drop) DropCopy(top);
+        foreach (var top in drop)
+        {
+            if (keepCopies) _kept.Add(top);
+            else DropCopy(top);
+        }
         return keys.Count;
+    }
+
+    private readonly HashSet<string> _kept = new(StringComparer.Ordinal);
+
+    /// <summary>Copies <see cref="RemoveMod"/> kept that no mod changes after all are removed.</summary>
+    public void DropKeptCopies()
+    {
+        if (_kept.Count == 0) return;
+        Commit();
+        foreach (var top in _kept.Where(top => !State.Entries.Keys.Any(k => TopOf(k) == top) && Deletable(top)).ToList())
+            DropCopy(top);
+        _kept.Clear();
     }
 
     /// <summary>Put a mod's versions on top of every other mod's (it wins its conflicts).</summary>
@@ -453,6 +484,7 @@ public sealed class ModsOverlay
         foreach (var key in PathsOf(modId))
         {
             var layer = State.Entries[key].Layers.First(l => l.Mod == modId);
+            if (ArchiveFile(TopOf(key)) is null) continue;               // its archive is gone — nothing to keep
             if (layer.Content != Live) parked[key] = layer.Content;
             else
             {
@@ -476,6 +508,30 @@ public sealed class ModsOverlay
             else PutStored(modId, key, LoadBlob(content));
         }
         return parked.Count;
+    }
+
+    /// <summary>
+    /// Forget every change mods made inside an archive that is replaced or removed as a whole (an add-on pack
+    /// reinstalled or removed): its old versions mean nothing for the new one. Returns the mods that had changes in it.
+    /// </summary>
+    public List<string> ForgetArchive(string archive)
+    {
+        var top = archive.Replace('\\', '/').Trim('/').ToLowerInvariant();
+        if (top.StartsWith(GameIndex.ModsPrefix, StringComparison.Ordinal)) top = top[GameIndex.ModsPrefix.Length..];
+        var mods = new List<string>();
+        foreach (var key in State.Entries.Keys.Where(k => TopOf(k) == top).ToList())
+        {
+            mods.AddRange(State.Entries[key].Layers.Select(l => l.Mod));
+            State.Entries.Remove(key);
+        }
+        foreach (var (mod, parked) in State.Parked)
+            foreach (var key in parked.Keys.Where(k => TopOf(k) == top).ToList())
+            {
+                parked.Remove(key);
+                mods.Add(mod);
+            }
+        State.Copies.Remove(top);
+        return [.. mods.Distinct()];
     }
 
     /// <summary>Is the mod switched off (its versions parked)?</summary>
@@ -582,6 +638,7 @@ public sealed class ModsOverlay
         _editors.Clear();
         _trusted.Clear();
         _pending.Clear();
+        _kept.Clear();
         State = TextIo.FromJson<OverlayState>(_snapshot)!;
     }
 

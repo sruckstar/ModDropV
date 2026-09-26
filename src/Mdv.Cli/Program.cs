@@ -27,6 +27,7 @@ namespace Mdv.Cli;
 /// mdvctl overlay &lt;game_dir&gt;
 /// mdvctl refresh &lt;game_dir&gt; [archive...]
 /// mdvctl compact &lt;game_dir&gt; [archive...]
+/// mdvctl textures &lt;file.ytd&gt; | &lt;game_dir&gt; &lt;game_path&gt;
 /// </code>
 /// </summary>
 internal static class Program
@@ -67,6 +68,7 @@ internal static class Program
                 "remove" => Remove(rest),
                 "switch" => Switch(rest),
                 "cat" => Cat(rest),
+                "textures" => TexturesCmd(rest),
                 "unpack" => Unpack(rest),
                 _ => Usage($"unknown command '{args[0]}'"),
             };
@@ -139,16 +141,18 @@ internal static class Program
                   with the mods' changes and added dlclist entries put back
               compact <game_dir> [archive ...]
                   rewrite archive copies in mods without the holes edits leave behind
-              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped] [--edition legacy|enhanced|auto]
-                      [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME] [--replace] [--keep-kits] [--gender male|female]
-                      [--dry-run]
+              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery]
+                      [--edition legacy|enhanced|auto] [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME]
+                      [--replace] [--keep-kits] [--gender male|female] [--vehicle NAME] [--slot PICTURE=TEXTURE ...] [--dry-run]
                   install a dropped mod the way the app does: analyse, print the plan, run it
                   (--kind picks one of the mods found; --target sends a replacement file elsewhere;
                   --variant picks a script mod's version; scripts print where each file goes and
                   what the mod needs from the game; add-on vehicles / peds print the checks against
                   the game — --pack names the dlcpacks folder, --replace installs the mod's Replace
                   version, --keep-kits leaves clashing modkit ids as they are, --gender picks the template
-                  of the peds.meta written for peds that come without one)
+                  of the peds.meta written for peds that come without one; liveries print the vehicle and
+                  which texture each picture replaces — --vehicle picks the vehicle (a game one or an
+                  installed add-on), --slot sends a picture to another texture of it)
               remove <game_dir> <mod_id> [<mod_id> ...]
                   remove installed mods (ids as `installed` prints them)
               switch <game_dir> <mod_id> on|off
@@ -156,6 +160,8 @@ internal static class Program
               cat <game_dir> <game_path> [out_file]
                   a file inside the game's archives as the game reads it now (the copy in mods
                   if there is one), decompressed — to out_file, else to the console
+              textures <file.ytd> | <game_dir> <game_path>
+                  the textures of a texture dictionary (size, format, mips)
               unpack <archive.rpf> <out_dir>
                   every file of an (OPEN) archive into a folder; nested archives become folders
                   named like them
@@ -639,7 +645,8 @@ internal static class Program
 
     private static int Install(string[] argv)
     {
-        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender"], ["--dry-run", "--replace", "--keep-kits"]);
+        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--vehicle", "--slot"],
+                      ["--dry-run", "--replace", "--keep-kits"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
         var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
@@ -676,6 +683,7 @@ internal static class Program
             }
             if (pkg is ScriptPackage sp) PrintScripts(sp, a.Opt("--variant"), target);
             if (pkg is AddonPackage ap) PrintAddon(ap, a, target);
+            if (pkg is LiveryPackage lp) PrintLivery(lp, a, target);
             var plan = ModLibrary.HandlerFor(pkg.Category).PlanInstall(pkg, target);
             plan.Warnings.InsertRange(0, pkg.Warnings);
             Console.WriteLine($"{plan.Title}:");
@@ -727,6 +735,43 @@ internal static class Program
             Console.WriteLine($"    {(c.Level switch { CheckLevel.Ok => "ok ", CheckLevel.Info => " i ", _ => "[!]" })} {c.Title}: {c.Detail}" +
                               (c.Link is null ? "" : $"  ({c.Link})"));
         if (ap.Replace is { } r) Console.WriteLine($"    (a Replace version is there too — --replace installs it: {r.Files.Count} file(s))");
+    }
+
+    /// <summary>A livery: the vehicle it goes on, which texture each picture replaces, where its livery models go.</summary>
+    private static void PrintLivery(LiveryPackage lp, Args a, InstallTarget target)
+    {
+        if (a.Opt("--vehicle") is { } vehicle)
+        {
+            if (!LiveryHandler.Vehicles(target, null).Any(v => v.Model.Equals(vehicle, StringComparison.OrdinalIgnoreCase)))
+                throw new UsageException($"--vehicle: {vehicle} is neither a vehicle of the game nor an installed add-on");
+            lp.Vehicle = vehicle.ToLowerInvariant();
+            lp.VehicleFrom = "--vehicle";
+        }
+        if (lp.Vehicle is null)
+        {
+            Console.WriteLine($"    the vehicle is not clear{(lp.Guesses.Count > 0 ? $" (textures fit {string.Join(", ", lp.Guesses.Take(8))})" : "")} — pass --vehicle NAME");
+            throw new UsageException("--vehicle is needed for this livery");
+        }
+        var r = LiveryHandler.Resolve(lp, target);
+        foreach (var s in a.All("--slot"))
+        {
+            var eq = s.IndexOf('=');
+            if (eq < 0) throw new UsageException($"--slot expects PICTURE=TEXTURE, got '{s}'");
+            var t = lp.Textures.FirstOrDefault(x => x.Name.Equals(s[..eq], StringComparison.OrdinalIgnoreCase))
+                    ?? throw new UsageException($"--slot: the livery has no picture {s[..eq]}");
+            var slot = r.Slots.FirstOrDefault(x => x.Name.Equals(s[(eq + 1)..], StringComparison.OrdinalIgnoreCase))
+                       ?? throw new UsageException($"--slot: the {lp.Vehicle} has no texture {s[(eq + 1)..]} ({string.Join(", ", r.Slots.Take(12).Select(x => x.Name))}…)");
+            t.Slot = slot.Name;
+            t.Note = null;
+        }
+        Console.WriteLine($"    vehicle: {lp.Vehicle} (by {lp.VehicleFrom}){(lp.Guesses.Count > 1 ? $" — the textures fit {string.Join(", ", lp.Guesses.Take(6))} too" : "")}");
+        foreach (var (path, inside) in r.Dictionaries) Console.WriteLine($"    dictionary {path} ({inside.Count} textures)");
+        foreach (var t in lp.Textures)
+            Console.WriteLine($"    {t.Name,-28} -> {t.Slot ?? "(no texture picked — --slot)"}{(t.Note is null ? "" : "  — " + t.Note)}");
+        foreach (var m in lp.Models)
+            Console.WriteLine($"    {m.Name,-28} -> {m.Target ?? "(nowhere)"}{(m.Replaces ? "  (replaces the game's)" : r.KitName is { } k ? $"  (added to modkit {k})" : "")}");
+        if (r.KitProblem is { } why && lp.Models.Any(m => !m.Replaces)) Console.WriteLine($"    [!] {why}");
+        Console.WriteLine($"    livery-like textures of the {lp.Vehicle}: {string.Join(", ", r.Slots.Where(x => LiveryHandler.IsLiveryLike(x.Name)).Select(x => x.Name))}");
     }
 
     /// <summary>A script mod: its versions, where each file goes, and what it needs from the game.</summary>
@@ -810,6 +855,23 @@ internal static class Program
         }
         if (a.Positional.Count == 3) File.WriteAllBytes(a.Positional[2], data);
         else Console.Write(TextIo.DecodeUtf8Sig(data, strict: false));
+        return 0;
+    }
+
+    /// <summary>mdvctl textures &lt;file.ytd&gt; | &lt;game_dir&gt; &lt;game_path&gt; — the textures of a dictionary.</summary>
+    private static int TexturesCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 2, "file.ytd | game_dir game_path");
+        byte[]? data = a.Positional.Count == 1 ? File.ReadAllBytes(a.Positional[0]) : ModsOverlay.Load(a.Positional[0]).Read(a.Positional[1]);
+        if (data is null)
+        {
+            Console.Error.WriteLine($"[!] {a.Positional[^1]} is not in the game.");
+            return 1;
+        }
+        var list = Mdv.Core.Textures.Ytd.List(data, Path.GetFileName(a.Positional[^1]));
+        Console.WriteLine($"{Path.GetFileName(a.Positional[^1])}: {Mdv.Core.Textures.Ytd.EditionOf(data)?.ToString() ?? "?"}, {list.Count} texture(s)");
+        foreach (var t in list) Console.WriteLine($"  {t.Name,-40} {t.Width,5}×{t.Height,-5} {t.Format,-10} {t.Levels} mip(s)");
         return 0;
     }
 

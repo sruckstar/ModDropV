@@ -128,6 +128,7 @@ public sealed partial class MainViewModel
         _ = Replace.UseAsync(null);
         Script.Use(null);
         _ = Addon.UseAsync(null);
+        _ = Livery.UseAsync(null);
     }
 
     /// <summary>
@@ -292,6 +293,10 @@ public sealed partial class MainViewModel
             case AddonPackage ad:
                 SelectedPanel = Addon;
                 _panelLoad = Addon.UseAsync(ad);
+                break;
+            case LiveryPackage lv:
+                SelectedPanel = Livery;
+                _panelLoad = Livery.UseAsync(lv);
                 break;
             default:
                 SelectedPanel = null;

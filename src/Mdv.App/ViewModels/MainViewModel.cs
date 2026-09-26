@@ -40,6 +40,12 @@ public sealed partial class MainViewModel : ObservableObject
         Replace = new ReplacementViewModel(this);
         Script = new ScriptViewModel(this);
         Addon = new AddonViewModel(this);
+        Livery = new LiveryViewModel(this);
+        foreach (var preview in new[] { Addon.Preview, Livery.Preview })
+            preview.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ModelPreview.IsOpen)) OnPropertyChanged(nameof(OpenModelPreview));
+            };
         InitModderTypes();
         IsPlayer = settings.Mode == "player";
         OutputFolder = settings.LastOutput ?? "";
@@ -133,6 +139,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Player: add-on vehicles and peds (finished packs, FiveM resources, loose models with metas).</summary>
     public AddonViewModel Addon { get; }
+
+    /// <summary>Player: vehicle liveries (pictures into a vehicle's textures, modkit livery models).</summary>
+    public LiveryViewModel Livery { get; }
+
+    /// <summary>The 3D preview opened large (an add-on's, a livery's), or null.</summary>
+    public ModelPreview? OpenModelPreview => Addon.Preview.IsOpen ? Addon.Preview : Livery.Preview.IsOpen ? Livery.Preview : null;
 
     /// <summary>Player: the panel of the mod picked from the drop (null: nothing installable dropped yet).</summary>
     [ObservableProperty] public partial ModPanelViewModel? SelectedPanel { get; set; }

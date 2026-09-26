@@ -254,13 +254,13 @@ public sealed class DeleteFileOp(string gameRel) : PlanOp
 }
 
 /// <summary>Take a mod's files out of the game's archives: the version below it (another mod's, or the game's) comes back.</summary>
-public sealed class OverlayRemoveOp(string modId, string name) : PlanOp
+public sealed class OverlayRemoveOp(string modId, string name, bool reinstall = false) : PlanOp
 {
     public override string Describe() => $"Take «{name}»'s files out of the game archives (what was there before comes back)";
 
     public override void Execute(InstallContext ctx)
     {
-        int n = ctx.Overlay.RemoveMod(modId);
+        int n = ctx.Overlay.RemoveMod(modId, keepCopies: reinstall);
         ctx.Log($"    «{name}»: {n} file(s) taken out of the archive copies in mods.");
     }
 }
@@ -378,6 +378,7 @@ public static class InstallExecutor
                 op.Execute(ctx);
                 ctx.LoadedOverlay?.Commit();                 // each step's archive edits land together
             }
+            ctx.LoadedOverlay?.DropKeptCopies();
         }
         catch (Exception ex)
         {

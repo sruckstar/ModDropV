@@ -76,6 +76,7 @@ public static partial class SourceIntake
 
     private const int MaxNesting = 3;
     private const long MaxTextBytes = 16L << 20;
+    private const long MaxImageBytes = 96L << 20;
     private const long MaxUnpackedBytes = 8L << 30;
     private const int MaxFiles = 20000;
 
@@ -353,7 +354,8 @@ public static partial class SourceIntake
         bool wanted = InputScanner.ResourceExt.Contains(ext) || ext == ".rpf" || ArchiveExt.Contains(ext)
                       || Mods.ModDetector.SniffedExt.Contains(ext)
                       || ((TextExt.Contains(ext) || StoreInfoReader.TextTableExt.Contains(ext)) && entry.Size <= MaxTextBytes)
-                      || Mods.ReplacementHandler.ReplaceableExt.Contains(ext) || everything;
+                      || Mods.ReplacementHandler.ReplaceableExt.Contains(ext) || everything
+                      || (Textures.TextureImages.IsTexture(name) && entry.Size <= MaxImageBytes);   // a livery's pictures
         if (!wanted) return null;
         if (entry.IsEncrypted)
             throw new IntakeException($"«{origin}» is password-protected — unpack it yourself and drop the folder.");

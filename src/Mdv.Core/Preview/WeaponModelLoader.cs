@@ -400,7 +400,12 @@ public static class WeaponModelLoader
 
         var posType = info.GetComponentType((int)VertexSemantics.Position);
         var nrmType = info.GetComponentType((int)VertexSemantics.Normal);
-        var uvType = info.GetComponentType((int)VertexSemantics.TexCoord0);
+        // a vehicle's livery is a second layer with its own mapping: shown instead of the paint under it when asked for
+        var layer = textures.LayerFor(g.Shader);
+        int uvSem = (int)VertexSemantics.TexCoord0;
+        if (layer is not null && info.GetComponentType((int)VertexSemantics.TexCoord1) is VertexComponentType.Float2 or VertexComponentType.Half2)
+            uvSem = (int)VertexSemantics.TexCoord1;
+        var uvType = info.GetComponentType(uvSem);
         if (posType is not (VertexComponentType.Float3 or VertexComponentType.Float4)) return null;
 
         var pos = new float[n * 3];
@@ -435,12 +440,12 @@ public static class WeaponModelLoader
             switch (uvType)
             {
                 case VertexComponentType.Float2:
-                    var t = vd.GetVector2(v, (int)VertexSemantics.TexCoord0);
+                    var t = vd.GetVector2(v, uvSem);
                     uv[v * 2] = t.X;
                     uv[v * 2 + 1] = t.Y;
                     break;
                 case VertexComponentType.Half2:
-                    var h = vd.GetHalf2(v, (int)VertexSemantics.TexCoord0);
+                    var h = vd.GetHalf2(v, uvSem);
                     uv[v * 2] = h.X;
                     uv[v * 2 + 1] = h.Y;
                     break;
@@ -460,7 +465,7 @@ public static class WeaponModelLoader
         if (k < idx.Length) Array.Resize(ref idx, k);
         if (!haveNormals) FaceNormals(pos, idx, nrm);
 
-        var (texture, tinted, bucket) = textures.ForShader(g.Shader);
+        var (texture, tinted, bucket) = layer is { } l ? (l, null, g.Shader?.RenderBucket ?? 0) : textures.ForShader(g.Shader);
         return new PreviewMesh
         {
             Positions = pos,
@@ -519,6 +524,30 @@ public static class WeaponModelLoader
         /// <summary>A stand-in for a texture the source doesn't have (null: the surface is drawn plain).</summary>
         public Func<string, PreviewTexture?>? Fallback { get; init; }
         public int Decoded => _decoded.Values.Count(t => t.Texture is not null);
+
+        /// <summary>
+        /// Second-layer textures (a vehicle's livery, <c>DiffuseSampler2</c>) to show instead of the surface under them: gets the
+        /// texture the shader names, gives the one to show (another livery of the set), or null to leave the surface as it is.
+        /// </summary>
+        public Func<string, string?>? Layer { get; init; }
+
+        private static readonly uint Diffuse2 = (uint)ShaderParamNames.DiffuseSampler2;
+
+        /// <summary>The second-layer texture of a shader that <see cref="Layer"/> asks for, decoded; null when there is none.</summary>
+        public PreviewTexture? LayerFor(ShaderFX? shader)
+        {
+            if (Layer is null || shader?.ParametersList is not { Parameters: { } ps, Hashes: { } hs }) return null;
+            for (int i = 0; i < ps.Length && i < hs.Length; i++)
+            {
+                if ((uint)hs[i] != Diffuse2 || ps[i].Data is not TextureBase tb || tb.Name is not { Length: > 0 } name ||
+                    Layer(name) is not { } shown) continue;
+                var tex = shown.Equals(name, StringComparison.OrdinalIgnoreCase) ? Resolve(tb) : Library().GetValueOrDefault(shown) ?? Resolve(tb);
+                if (tex is null) return null;
+                if (!_decoded.TryGetValue((tex, null), out var decoded)) _decoded[(tex, null)] = decoded = Decode(tex, null);
+                return decoded.Texture;
+            }
+            return null;
+        }
 
         private static readonly uint Diffuse = (uint)ShaderParamNames.DiffuseSampler;
         private static readonly uint Plain = (uint)ShaderParamNames.TextureSampler;
