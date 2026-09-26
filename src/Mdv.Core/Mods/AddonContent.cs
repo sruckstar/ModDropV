@@ -46,17 +46,32 @@ public sealed partial class AddonContent
     /// <summary>Text labels by hash (gxt2, AddTextEntry in a FiveM script).</summary>
     public Dictionary<uint, string> Labels { get; } = [];
     public HashSet<string> DataTypes { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Its content.xml mounts map data (<c>CONTENTS_DLC_MAP_DATA</c>) — a map pack even before its placements are read.</summary>
+    public bool MapData { get; set; }
+    /// <summary>What its placement files (.ymap) put into the world (read when the pack is looked at closely).</summary>
+    public List<YmapInfo> Maps { get; } = [];
+    /// <summary>The archetypes (props) its .ytyp files define — the names Menyoo / Map Editor spawn them by.</summary>
+    public List<string> Archetypes { get; } = [];
+    /// <summary>It brings its own pack manifest (_manifest.ymf), which says which archetypes each placement needs.</summary>
+    public bool HasManifest { get; set; }
     /// <summary>The editions its models are built for (Legacy / Enhanced resource versions found).</summary>
     public HashSet<GameEdition> ModelEditions { get; } = [];
     /// <summary>The edition its models are built for, when they all say the same (null: unknown, none or mixed).</summary>
     public GameEdition? ModelsEdition => ModelEditions.Count == 1 ? ModelEditions.First() : null;
 
-    /// <summary>The kind of add-on: vehicles first, then peds, then clothes (null: none of them).</summary>
+    /// <summary>The kind of add-on: vehicles first, then peds, then clothes, then maps, then props (null: none of them).</summary>
     public ModCategory? Kind =>
         Vehicles.Count > 0 || DataTypes.Contains("VEHICLE_METADATA_FILE") ? ModCategory.Vehicle
         : Peds.Count > 0 || DataTypes.Contains("PED_METADATA_FILE") ? ModCategory.Ped
         : Collections.Count > 0 || DataTypes.Contains("SHOP_PED_APPAREL_META_FILE") ? ModCategory.Clothing
+        : MapData || Ymaps.Any() ? ModCategory.Map
+        : Ytyps.Any() || DataTypes.Contains("DLC_ITYP_REQUEST") ? ModCategory.Prop
         : null;
+
+    /// <summary>Its placement files (streamed names ending in .ymap).</summary>
+    public IEnumerable<string> Ymaps => Streamed.Where(s => s.EndsWith(".ymap", StringComparison.OrdinalIgnoreCase));
+    /// <summary>Its archetype files (streamed names ending in .ytyp).</summary>
+    public IEnumerable<string> Ytyps => Streamed.Where(s => s.EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase));
 
     public void AddCollection(string ped, string dlcName)
     {
@@ -94,12 +109,16 @@ public sealed partial class AddonContent
         return make is null || name.StartsWith(make, StringComparison.OrdinalIgnoreCase) ? name : $"{make} {name}";
     }
 
-    /// <summary>"innovabcm (Toyota Innova)" per vehicle, the ped names, or the clothing collections.</summary>
+    /// <summary>"innovabcm (Toyota Innova)" per vehicle, the ped names, the clothing collections, the placements or the props.</summary>
     public IEnumerable<string> Describe() =>
         Vehicles.Count > 0
             ? Vehicles.Select(v => DisplayName(v) is { } d ? $"{d} ({v.Model})" : v.Model)
-            : Peds.Count > 0 || Collections.Count == 0 ? Peds.Select(p => p.Name)
-            : Collections.Select(c => $"{ClothingNames.PedLabel(c.Ped)} · {c.DlcName}");
+            : Peds.Count > 0 ? Peds.Select(p => p.Name)
+            : Collections.Count > 0 ? Collections.Select(c => $"{ClothingNames.PedLabel(c.Ped)} · {c.DlcName}")
+            : Kind == ModCategory.Map
+                ? Maps.Count > 0 ? Maps.Select(m => $"{m.Name} ({m.Entities} object{(m.Entities == 1 ? "" : "s")})")
+                                 : Ymaps.Select(y => Path.GetFileNameWithoutExtension(y.Split('/')[^1]))
+            : Archetypes;
 
     // ------------------------------------------------------------------ data files
 
@@ -235,6 +254,42 @@ public sealed partial class AddonContent
         return updated;
     }
 
+    // ------------------------------------------------------------------ maps
+
+    /// <summary>
+    /// Read placement and archetype files (binary or their XML form): what each placement places, the props the
+    /// archetype files define. The names of the add-on's other files are taught to CodeWalker first, so its models
+    /// read as names rather than hashes.
+    /// </summary>
+    public void ReadMaps(IEnumerable<(string Name, byte[] Data)> files, List<string> warnings)
+    {
+        MapMeta.Know(Streamed.Select(s => Path.GetFileNameWithoutExtension(s.Split('/')[^1])));
+        foreach (var (name, data) in files)
+        {
+            var file = MapFileName(name);
+            try
+            {
+                var doc = MapMeta.Read(data, file);
+                if (file.EndsWith(".ymap", StringComparison.OrdinalIgnoreCase))
+                {
+                    var info = MapMeta.Ymap(doc, file);
+                    if (!Maps.Any(m => m.Name.Equals(info.Name, StringComparison.OrdinalIgnoreCase))) Maps.Add(info);
+                }
+                else
+                    foreach (var a in MapMeta.Archetypes(doc))
+                        if (!Archetypes.Contains(a)) Archetypes.Add(a);
+            }
+            catch (InvalidDataException ex)
+            {
+                warnings.Add($"{file} could not be read ({ex.Message}) — the game may not be able to either.");
+            }
+        }
+    }
+
+    /// <summary>"x.ymap" for "x.ymap" and its XML form "x.ymap.xml".</summary>
+    public static string MapFileName(string name) =>
+        name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+
     // ------------------------------------------------------------------ labels
 
     [GeneratedRegex(@"AddTextEntry\s*\(\s*['""]([^'""]+)['""]\s*,\s*['""]([^'""]*)['""]")] private static partial Regex AddTextEntryRe();
@@ -296,8 +351,11 @@ public sealed partial class AddonContent
         public List<string> Warnings { get; } = [];
     }
 
-    /// <summary>Read a finished pack: setup2.xml, the content.xml data files, the metas that declare things, labels, streamed files.</summary>
-    public static FinishedPack ReadPack(string dlcRpf)
+    /// <summary>
+    /// Read a finished pack: setup2.xml, the content.xml data files, the metas that declare things, labels, streamed files;
+    /// with <paramref name="maps"/>, what its placements place and the props its archetype files define too.
+    /// </summary>
+    public static FinishedPack ReadPack(string dlcRpf, bool maps = true)
     {
         using var arc = RpfArchive.Open(dlcRpf);
         var tree = arc.Tree().Where(t => !t.IsDir).ToList();
@@ -314,7 +372,12 @@ public sealed partial class AddonContent
             Device = DeviceRe().Match(setup) is { Success: true } d ? d.Groups[1].Value : null,
             NameHash = NameHashRe().Match(setup) is { Success: true } n ? n.Groups[1].Value : null,
         };
-        if (Text("content.xml") is { } content) pack.DataFiles.AddRange(ContentFiles(content));
+        if (Text("content.xml") is { } content)
+        {
+            pack.DataFiles.AddRange(ContentFiles(content));
+            pack.Content.MapData = content.Contains("CONTENTS_DLC_MAP_DATA", StringComparison.OrdinalIgnoreCase);
+        }
+        var mapFiles = new List<(string Name, byte[] Data)>();
         foreach (var f in pack.DataFiles)
         {
             pack.Content.DataTypes.Add(f.Type);
@@ -338,6 +401,7 @@ public sealed partial class AddonContent
                 using var s = RpfArchive.Open(sub);
                 Walk(s, "", 0);
             }
+        if (maps) pack.Content.ReadMaps(mapFiles, pack.Warnings);
         // the collections whose ymt it streams
         foreach (var st in pack.Content.Streamed.Where(s => s.EndsWith(".ymt", StringComparison.OrdinalIgnoreCase)))
             if (ClothingNames.WearerOfYmt(st.Split('/')[^1]) is { IsMp: true, Collection: { } coll } w) pack.Content.AddCollection(w.Ped, coll);
@@ -368,9 +432,12 @@ public sealed partial class AddonContent
                         // an unreadable text table only costs the in-game names
                     }
                 }
+                else if (ext == ".ymf" && depth > 0)
+                    pack.Content.HasManifest = true;
                 else if (e.IsResource && depth > 0)
                 {
                     pack.Content.Streamed.Add(t.Path);
+                    if (maps && ext is ".ymap" or ".ytyp") mapFiles.Add((e.Name, a.ReadContent(e)));
                     if (ResourceEditions.EditionOf(ext, (int)((((e.X8 >> 28) & 0xF) << 4) | ((e.XC >> 28) & 0xF))) is { } ed)
                         pack.Content.ModelEditions.Add(ed);
                 }

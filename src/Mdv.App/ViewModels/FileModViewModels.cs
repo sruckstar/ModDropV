@@ -43,15 +43,17 @@ public abstract class FileModViewModel(MainViewModel shell) : ModPanelViewModel(
         var game = Shell.GameFolder.Trim();
         var edition = Shell.Edition;
         var target = MainViewModel.TargetFor(game, edition);
+        var run = new PlanRun();
         return (new PanelJob("Installing into GTA V…", log =>
         {
             log($"Installing «{pkg.Name}» ({pkg.Category.DisplayName()}) into {edition.DisplayName()}: {game}");
-            ModLibrary.Install(pkg, target, log);
+            ModLibrary.Install(pkg, target, log, run);
             return new PanelOutcome(true, $"Installed into {edition.DisplayName()}",
                                     $"«{pkg.Name}» is in the game — manage it in the Library:\n{game}", game);
         })
         {
             Package = pkg,
+            Control = run,
             LogHeader = pkg.Source is { } src ? [$"Source: {src.Name} — {pkg.Category.DisplayName()}"] : [],
         }, null);
     }

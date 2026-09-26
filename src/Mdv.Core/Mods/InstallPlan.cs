@@ -23,6 +23,105 @@ public sealed class InstallPlan
 
     /// <summary>One line per step, for the "what will be done" view and the log (bookkeeping steps left out).</summary>
     public IEnumerable<string> Describe() => Ops.Where(o => !o.Hidden).Select(o => o.Describe());
+
+    /// <summary>
+    /// What the plan takes on the game's drive and how much it touches: the archives it copies into mods first (a copy is
+    /// as big as the game's archive), the files it adds, and how much room the drive has.
+    /// </summary>
+    public PlanFootprint Footprint(InstallTarget target)
+    {
+        var newCopies = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        var archives = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int inArchives = 0;
+        long files = 0;
+        void Touch(string gamePath)
+        {
+            string top;
+            try
+            {
+                top = ModsOverlay.Split(gamePath).Archive;
+            }
+            catch (ArgumentException)
+            {
+                return;
+            }
+            inArchives++;
+            archives.Add(top);
+            if (newCopies.ContainsKey(top) || File.Exists(Path.Combine(target.ModsDir, top))) return;
+            var game = new FileInfo(Path.Combine(target.GameDir, top));
+            if (game.Exists) newCopies[top] = game.Length;
+        }
+        static long Size(string path)
+        {
+            try
+            {
+                return File.Exists(path) ? new FileInfo(path).Length : 0;
+            }
+            catch (IOException)
+            {
+                return 0;
+            }
+        }
+        foreach (var op in Ops)
+            switch (op)
+            {
+                case RpfPutOp put:
+                    Touch(put.GamePath);
+                    files += Size(put.Source);
+                    break;
+                case RpfDeleteOp del: Touch(del.GamePath); break;
+                case RpfEditOp edit: Touch(edit.GamePath); break;
+                case BuildArchiveOp b when b.InArchive: Touch(b.ArchivePath); break;
+                case CopyFilesOp copy: files += copy.Files.Sum(f => Size(f.Source)); break;
+                case CopyFileOp copy: files += Size(copy.Source); break;
+                case InstallDlcPackOp pack: files += pack.Size; break;
+            }
+        long? free = null;
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(target.GameDir));
+            if (!string.IsNullOrEmpty(root)) free = new DriveInfo(root).AvailableFreeSpace;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            // not a local drive — unknown
+        }
+        return new PlanFootprint(newCopies.Values.Sum() + files, [.. newCopies.Keys.Order(StringComparer.OrdinalIgnoreCase)], inArchives,
+                                 [.. archives.Order(StringComparer.OrdinalIgnoreCase)], free);
+    }
+}
+
+/// <summary>What a plan takes on the game's drive.</summary>
+/// <param name="Bytes">about how much it writes: archive copies made in mods plus the files it brings</param>
+/// <param name="NewCopies">game archives copied into mods first (they are what makes a big mod big)</param>
+/// <param name="InArchives">files it changes inside game archives</param>
+/// <param name="Archives">the game archives those are in</param>
+/// <param name="Free">free space on the game's drive (null: unknown)</param>
+public sealed record PlanFootprint(long Bytes, IReadOnlyList<string> NewCopies, int InArchives, IReadOnlyList<string> Archives, long? Free)
+{
+    /// <summary>The drive has less room than the plan needs (with a margin for the rewrite of archive tables).</summary>
+    public bool TooBig => Free is { } f && f < Bytes + (256L << 20);
+}
+
+/// <summary>Where a running plan is: the step it is on (1-based) of all the steps shown to the player.</summary>
+public readonly record struct PlanProgress(int Step, int Steps, string What);
+
+/// <summary>
+/// The hand on a running plan: it reports each step as it starts, and can be asked to stop — the plan stops before
+/// its next step and takes back everything it did.
+/// </summary>
+public sealed class PlanRun
+{
+    private readonly CancellationTokenSource _cts = new();
+
+    public CancellationToken Token => _cts.Token;
+    public bool Cancelled => _cts.IsCancellationRequested;
+    public void Cancel() => _cts.Cancel();
+
+    /// <summary>Called on the worker thread as each shown step starts.</summary>
+    public event Action<PlanProgress>? Progress;
+
+    internal void Report(PlanProgress p) => Progress?.Invoke(p);
 }
 
 /// <summary>
@@ -139,6 +238,9 @@ public sealed class CopyToScriptsOp(string source, string? relInScripts = null)
 /// <param name="done">the last log line (what to look for in the game)</param>
 public sealed class InstallDlcPackOp(string dlcRpf, string pack, string done = "Add-On installed.", IReadOnlyList<string>? subPacks = null) : PlanOp
 {
+    /// <summary>The pack's size with its sub-packs.</summary>
+    public long Size => new[] { dlcRpf }.Concat(subPacks ?? []).Where(File.Exists).Sum(f => new FileInfo(f).Length);
+
     public override string Describe() => $"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}" +
                                          (subPacks is { Count: > 0 } s ? $", with {string.Join(", ", s.Select(Path.GetFileName))}" : "") + ") and add it to dlclist.xml";
     public override void Execute(InstallContext ctx) => GameInstaller.InstallToGame(ctx.GameDir, dlcRpf, pack, ctx.Log, ctx.Journal, done, subPacks);
@@ -163,6 +265,7 @@ public sealed class DlclistRemoveOp(string pack) : PlanOp
 public sealed class RpfPutOp(string gamePath, string source, string modId) : PlanOp
 {
     public string GamePath { get; } = gamePath;
+    public string Source { get; } = source;
 
     public override string Describe() => $"Replace {GamePath} with {Path.GetFileName(source)} (in a copy of its archive under mods)";
 
@@ -368,25 +471,40 @@ public sealed class TextPatchOp(string gameRel, string? find, string replacement
 /// </summary>
 public static class InstallExecutor
 {
-    public static InstallContext Run(InstallPlan plan, InstallTarget target, Action<string> log)
+    /// <param name="run">reports the steps as they start and can stop the plan (it is then taken back as on a failure)</param>
+    public static InstallContext Run(InstallPlan plan, InstallTarget target, Action<string> log, PlanRun? run = null)
     {
         var journal = new InstallJournal(target.GameDir, log);
         var ctx = new InstallContext(target, journal, log);
+        int steps = plan.Ops.Count(o => !o.Hidden), step = 0;
         try
         {
             foreach (var op in plan.Ops)
             {
+                run?.Token.ThrowIfCancellationRequested();
+                if (!op.Hidden) run?.Report(new PlanProgress(++step, steps, op.Describe()));
+                int recorded = ctx.Registered.Count;
                 op.Execute(ctx);
+                // a plan can install several mods (a map and its parts): each one's journal ends where it was recorded
+                foreach (var m in ctx.Registered.Skip(recorded)) m.JournalTo ??= journal.Steps.Count;
                 ctx.LoadedOverlay?.Commit();                 // each step's archive edits land together
             }
+            run?.Token.ThrowIfCancellationRequested();
             ctx.LoadedOverlay?.DropKeptCopies();
         }
         catch (Exception ex)
         {
-            log($"[!] {plan.Title} failed: {ex.Message}");
+            log(ex is OperationCanceledException
+                ? $"[!] {plan.Title} cancelled at step {step} of {steps} — everything done so far is taken back."
+                : $"[!] {plan.Title} failed: {ex.Message}");
             ctx.LoadedOverlay?.Discard();
             journal.Rollback();
-            if (ctx.LoadedOverlay is not null) ModsOverlay.CollectGarbage(target.GameDir);
+            if (ctx.LoadedOverlay is not null)
+            {
+                ModsOverlay.CollectGarbage(target.GameDir);
+                ModsOverlay.TightenAfterRollback(target.GameDir,
+                    journal.Steps.OfType<RpfEntrySet>().Select(s => s.Archive[GameIndex.ModsPrefix.Length..]), log);
+            }
             throw;
         }
         journal.Commit();
@@ -400,11 +518,11 @@ public static class InstallExecutor
         if (ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0)
         {
             var reg = ModRegistry.Load(target.GameDir);
-            var kept = journal.Steps.Where(s => s is not (StagingTouched or RpfEntrySet)).ToList();
             foreach (var m in ctx.Registered)
             {
-                if (m.JournalFrom is int from) m.Journal = OwnSteps(journal.Steps.Skip(from), ctx.LoadedOverlay);
-                else if (m.Journal.Count == 0) m.Journal = kept;
+                var upTo = journal.Steps.Take(m.JournalTo ?? journal.Steps.Count);
+                if (m.JournalFrom is int from) m.Journal = OwnSteps(upTo.Skip(from), ctx.LoadedOverlay);
+                else if (m.Journal.Count == 0) m.Journal = [.. upTo.Where(s => s is not (StagingTouched or RpfEntrySet))];
                 reg.Upsert(m);
             }
             foreach (var id in ctx.Unregistered) reg.Remove(id);

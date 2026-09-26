@@ -475,6 +475,37 @@ public static class DependencyCheck
                          .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)];
     }
 
+    /// <summary>
+    /// What a mod that is data for a tool needs (a Menyoo map needs Menyoo, a Map Editor map the Map Editor): each
+    /// catalogue id with who needs it, plus what those need in turn, checked against <paramref name="gameDir"/>.
+    /// </summary>
+    public static List<ScriptDependency> Tools(IEnumerable<(string Id, string By)> tools, DependencyCatalog catalog,
+                                               string? gameDir, GameEdition edition)
+    {
+        var needs = new Dictionary<string, Need>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (id, by) in tools)
+        {
+            if (!needs.TryGetValue(id, out var n)) needs[id] = n = new Need();
+            n.AddBy(by);
+        }
+        var queue = new Queue<string>(needs.Keys);
+        while (queue.Count > 0)
+        {
+            var id = queue.Dequeue();
+            foreach (var req in catalog[id]?.Requires ?? [])
+            {
+                bool fresh = !needs.ContainsKey(req);
+                if (fresh) needs[req] = new Need();
+                needs[req].AddBy(catalog[id]!.Name);
+                if (fresh) queue.Enqueue(req);
+            }
+        }
+        return [.. needs.Where(kv => catalog[kv.Key] is not null)
+                        .Select(kv => Judge(catalog[kv.Key]!, kv.Value, [], catalog, gameDir, edition))
+                        .OrderBy(r => r.IsProblem ? 0 : 1).ThenBy(r => catalog[r.Id]?.Kind == "tool" ? -1 : Order(catalog[r.Id]?.Kind))
+                        .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)];
+    }
+
     private static int Order(string? kind) => kind switch { "runtime" => 0, "library" => 1, "tool" => 2, _ => 3 };
 
     private static ScriptDependency Judge(DependencyInfo d, Need need, IReadOnlyList<ScriptFile> files, DependencyCatalog catalog,
@@ -542,7 +573,7 @@ public static class DependencyCheck
                 return new(d.Id, d.Name, DependencyState.Ok, $"{item.Value} — {char.ToLowerInvariant(supports[0])}{supports[1..]}", link, need.By);
         }
         var shown = d.Id == DependencyCatalog.AsiLoaderId ? Path.GetFileName(present)
-            : version is null ? "installed" : "v" + PeInfo.Show(version);
+            : version is null ? $"In the game ({Path.GetFileName(present)})" : "v" + PeInfo.Show(version);
         return new(d.Id, d.Name, DependencyState.Ok, shown + "." + early, link, need.By);
     }
 

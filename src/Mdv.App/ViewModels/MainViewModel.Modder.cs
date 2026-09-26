@@ -44,7 +44,7 @@ public sealed partial class MainViewModel
         new("Vehicles & peds", "Add-on packs, FiveM resources, replacements — checked against the game", true),
         new("Liveries", "Pictures, texture dictionaries, modkit liveries — for the game's cars and add-ons", true),
         new("Clothing", "MP clothes packs and FiveM clothing, story characters' clothes — new slots added when needed", true),
-        new("Props, maps & big packs", "ymap, Menyoo and Map Editor maps, total conversions", false),
+        new("Maps, props & big packs", "Add-on maps and props, Menyoo and Map Editor maps, total conversions — with a size check and cancel", true),
     ];
 
     /// <summary>What a modder can build, today and later.</summary>

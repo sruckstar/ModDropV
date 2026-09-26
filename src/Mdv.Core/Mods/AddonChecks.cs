@@ -180,6 +180,9 @@ public static class AddonChecks
                     string.Join(", ", colls.Select(c => c.FullName))));
         }
 
+        // ---- maps: what they place must exist; placements named like the game's replace them
+        if (pkg.Kind == ModCategory.Map && index is not null) MapChecks(pkg, index, ownFolders, r);
+
         // ---- modkit ids
         var taken = new Dictionary<int, string>();
         foreach (var o in others)
@@ -250,6 +253,35 @@ public static class AddonChecks
         return r;
     }
 
+    /// <summary>
+    /// A map's placements against the game: models it places that neither the mod nor the game has (they don't show —
+    /// another mod has them), and placement files named like the game's own (the pack's version is used instead).
+    /// </summary>
+    private static void MapChecks(AddonPackage pkg, GameIndex index, HashSet<string> ownFolders, AddonCheckReport r)
+    {
+        var c = pkg.Content;
+        var mine = new HashSet<uint>(c.Archetypes.Select(MapMeta.Hash));
+        foreach (var s in c.Streamed.Where(s => PathUtil.SuffixLower(s) is ".ydr" or ".ydd" or ".yft"))
+            mine.Add(Gxt2.Joaat(Path.GetFileNameWithoutExtension(s.Split('/')[^1])));
+        var models = index.Models;
+        var missing = c.Maps.SelectMany(m => m.Archetypes).Distinct()
+                       .Where(a => !mine.Contains(MapMeta.Hash(a)) && !models.ContainsKey(MapMeta.Hash(a))).ToList();
+        pkg.MissingModels.Clear();
+        pkg.MissingModels.AddRange(missing);
+        if (missing.Count > 0)
+            r.Items.Add(new AddonCheck(CheckLevel.Warn, "Models not in the game", PlacementHandler.MissingText(missing)));
+        else if (c.Maps.Count > 0)
+            r.Items.Add(new AddonCheck(CheckLevel.Ok, "Every model is there",
+                $"{c.Maps.Sum(m => m.Entities)} objects of {c.Maps.SelectMany(m => m.Archetypes).Distinct().Count()} kinds — from the mod or the game."));
+        var replaced = c.Ymaps.Select(y => y.Split('/')[^1])
+                        .Where(y => index.Find(y).Any(h => h.Active && !InFolder(h, ownFolders)))
+                        .Select(Path.GetFileNameWithoutExtension).ToList();
+        if (replaced.Count > 0)
+            r.Items.Add(new AddonCheck(CheckLevel.Info, "Changes the game's map",
+                $"{string.Join(", ", replaced.Take(5))}{(replaced.Count > 5 ? ", …" : "")} {(replaced.Count == 1 ? "is a part" : "are parts")} of the game's " +
+                "own map — the pack's version is used instead while it is installed."));
+    }
+
     private static bool InFolder(FileHit h, HashSet<string> folders) =>
         folders.Any(f => h.Archive.RelPath.StartsWith($"mods/update/x64/dlcpacks/{f}/", StringComparison.OrdinalIgnoreCase));
 
@@ -279,7 +311,7 @@ public static class AddonChecks
                 if (!File.Exists(rpf)) continue;
                 try
                 {
-                    var p = AddonContent.ReadPack(rpf);
+                    var p = AddonContent.ReadPack(rpf, maps: false);
                     list.Add(new OtherPack(folder, on, p.Device, [.. p.Content.SpawnNames], p.Content.Kits, [.. p.Content.Collections.Select(c => c.FullName)]));
                 }
                 catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or RpfEncryptedException)

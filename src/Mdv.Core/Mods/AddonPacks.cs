@@ -45,6 +45,21 @@ public sealed class AddonPackage : ModPackage
     public bool FixKits { get; set; } = true;
     /// <summary>The last checks against a game (null: not checked yet).</summary>
     public AddonCheckReport? Checks { get; set; }
+
+    // ---- maps
+    /// <summary>The same map saved by Menyoo / Map Editor, when the mod ships that too (the other way in).</summary>
+    public PlacementPackage? Placement { get; set; }
+    /// <summary>Install the Menyoo / Map Editor map instead of the add-on pack.</summary>
+    public bool UsePlacement { get; set; }
+    /// <summary>
+    /// Other parts of the mod its readme has players install by hand — game files it replaces, its scripts: each goes in
+    /// with the pack as a mod of its own (so it can be switched off / removed on its own too).
+    /// </summary>
+    public List<ModPackage> Extras { get; } = [];
+    /// <summary>Parts the player left out.</summary>
+    public HashSet<ModPackage> SkippedExtras { get; } = [];
+    /// <summary>Models the map places that neither it nor the game has (from the last checks).</summary>
+    public List<string> MissingModels { get; } = [];
     /// <summary>ModDrop V's data folder (the game's own names and ids).</summary>
     public string? DataDir { get; init; }
 }
@@ -63,11 +78,22 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     public const string VehiclePrefix = "vehicle:";
     public const string PedPrefix = "ped:";
     public const string ClothingPrefix = "clothing:";
+    public const string MapPrefix = "map:";
+    public const string PropPrefix = "prop:";
     private const string StagedKey = "addon.staged";
 
     public ModCategory Category { get; } = kind;
-    private string Prefix => Category switch { ModCategory.Ped => PedPrefix, ModCategory.Clothing => ClothingPrefix, _ => VehiclePrefix };
-    private string Noun => Category switch { ModCategory.Ped => "ped", ModCategory.Clothing => "clothing collection", _ => "vehicle" };
+    private string Prefix => Category switch
+    {
+        ModCategory.Ped => PedPrefix, ModCategory.Clothing => ClothingPrefix, ModCategory.Map => MapPrefix, ModCategory.Prop => PropPrefix,
+        _ => VehiclePrefix,
+    };
+    private string Noun => Category switch
+    {
+        ModCategory.Ped => "ped", ModCategory.Clothing => "clothing collection", ModCategory.Map => "placement file", ModCategory.Prop => "prop",
+        _ => "vehicle",
+    };
+    private bool IsMapKind => Category is ModCategory.Map or ModCategory.Prop;
 
     public bool Owns(string modId) => modId.StartsWith(Prefix, StringComparison.Ordinal);
 
@@ -110,6 +136,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             foreach (var (other, _) in packs.Skip(1))
                 pkg.Warnings.Add($"Several add-on packs found — installing «{file.Origin}», not «{other.Origin}». Drop the others separately.");
             Describe(pkg, $"finished pack {file.Origin}");
+            if (IsMapKind) AttachMapParts(pkg, source, report, env, Path.GetDirectoryName(file.FullPath));
             return pkg;
         }
 
@@ -127,9 +154,11 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             Describe(pkg, spec.Resources.Count > 0
                 ? $"FiveM resource{(spec.Resources.Count > 1 ? "s" : "")} {string.Join(", ", spec.Resources)} — packed into a dlc.rpf"
                 : "loose models and metas — packed into a dlc.rpf");
+            if (IsMapKind) AttachMapParts(pkg, source, report, env, null);
             return pkg;
         }
 
+        if (IsMapKind) return LooseMap(source, report, env, name, src);
         if (report.Primary?.Category != Category) return null;
         if (Category == ModCategory.Clothing) return LooseClothing(source, files, name, src, env);
         var vanilla = VanillaModels.Load(env.DataDir);
@@ -256,9 +285,18 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     public InstallPlan PlanInstall(ModPackage package, InstallTarget target)
     {
         if (package is ReplacementPackage rp) return new ReplacementHandler().PlanInstall(rp, target);
+        if (package is PlacementPackage pp) return new PlacementHandler().PlanInstall(pp, target);
         var pkg = (AddonPackage)package;
         if (pkg.UseReplace && pkg.Replace is { } replace) return new ReplacementHandler().PlanInstall(replace, target);
+        var plan = pkg.UsePlacement && pkg.Placement is { } placement
+            ? new PlacementHandler().PlanInstall(placement, target)
+            : PlanPack(pkg, target);
+        AddExtras(plan, pkg, target);
+        return plan;
+    }
 
+    private InstallPlan PlanPack(AddonPackage pkg, InstallTarget target)
+    {
         if (pkg.Checks is null || !pkg.Checks.GameDir.Equals(Path.GetFullPath(target.GameDir), StringComparison.OrdinalIgnoreCase) ||
             pkg.Checks.Edition != target.Edition)
             Check(pkg, target, TryIndex(target));
@@ -343,6 +381,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     /// <summary>"Add-On installed — spawn it with a trainer by name: innovabcm."</summary>
     private static string Done(AddonPackage pkg)
     {
+        if (pkg.Kind is ModCategory.Map or ModCategory.Prop) return MapDone(pkg);
         if (pkg.Kind == ModCategory.Clothing)
         {
             var peds = CollectionsOf(pkg).Select(c => ClothingNames.PedLabel(c.Ped)).Distinct().ToList();
@@ -374,6 +413,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         else if (pkg.Compose is { NewPeds.Count: > 0 } made)
             parts.Add($"Write peds.meta for {string.Join(", ", made.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()})"))} " +
                       "and pack it with the models into a dlc.rpf");
+        else if (pkg.Compose is { } map && pkg.Kind is ModCategory.Map or ModCategory.Prop)
+            parts.Add(map.Resources.Count > 0
+                ? $"Pack the FiveM resource{(map.Resources.Count > 1 ? "s" : "")} {string.Join(", ", map.Resources)} into a dlc.rpf as a {(pkg.Kind == ModCategory.Map ? "map" : "props")} pack"
+                : pkg.Kind == ModCategory.Map
+                    ? $"Pack the map ({map.Files.Count} file(s): placements, archetypes, models) into a dlc.rpf" +
+                      (map.Content.HasManifest ? "" : " with a manifest that loads its archetypes with its placements")
+                    : $"Pack the props ({map.Files.Count} file(s)) into a dlc.rpf, their archetypes loaded for good");
         else if (pkg.Compose is { } spec)
             parts.Add(spec.Resources.Count > 0
                 ? $"Pack the FiveM resource{(spec.Resources.Count > 1 ? "s" : "")} {string.Join(", ", spec.Resources)} into a dlc.rpf"
@@ -486,7 +532,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     private RegisteredMod Record(AddonPackage pkg, string id, InstallTarget target, bool overlay, bool pools)
     {
         var c = pkg.Content;
-        var names = pkg.Kind == ModCategory.Clothing ? CollectionsOf(pkg).Select(x => x.FullName).ToList() : c.SpawnNames.ToList();
+        var names = pkg.Kind switch
+        {
+            ModCategory.Clothing => CollectionsOf(pkg).Select(x => x.FullName).ToList(),
+            ModCategory.Map => c.Ymaps.Select(y => Path.GetFileNameWithoutExtension(y.Split('/')[^1])).ToList(),
+            ModCategory.Prop => c.Archetypes.ToList(),
+            _ => c.SpawnNames.ToList(),
+        };
         var record = new RegisteredMod
         {
             Id = id, Category = Category, Name = pkg.Name, Edition = WeaponHandler.EditionKey(target.Edition),
@@ -497,6 +549,10 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 ["kind"] = "addon", ["pack"] = pkg.PackName, ["device"] = pkg.Device,
                 ["models"] = string.Join(",", names),
                 ["where"] = names.Count == 0 ? $"dlcpacks\\{pkg.PackName}"
+                    : pkg.Kind == ModCategory.Map
+                        ? $"{(c.Maps.Count > 0 ? $"{c.Maps.Sum(m => m.Entities)} objects" : string.Join(", ", names.Take(3)))} · dlcpacks\\{pkg.PackName}"
+                    : pkg.Kind == ModCategory.Prop
+                        ? $"props: {string.Join(", ", names.Take(4))}{(names.Count > 4 ? ", …" : "")} · dlcpacks\\{pkg.PackName}"
                     : pkg.Kind == ModCategory.Clothing
                         ? $"{string.Join(", ", CollectionsOf(pkg).Take(3).Select(x => $"{ClothingNames.PedLabel(x.Ped)} · {x.DlcName}"))} · dlcpacks\\{pkg.PackName}"
                     : $"spawn: {string.Join(", ", names.Take(4))}{(names.Count > 4 ? ", …" : "")} · dlcpacks\\{pkg.PackName}",

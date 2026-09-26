@@ -34,6 +34,8 @@ public abstract class ModPanelViewModel(MainViewModel shell) : ObservableObject
 public sealed record PanelJob(string Stage, Func<Action<string>, PanelOutcome> Run)
 {
     public ModPackage? Package { get; init; }
+    /// <summary>The hand on the plan the job runs (its steps as they go, stopping it), when it runs one.</summary>
+    public PlanRun? Control { get; init; }
     /// <summary>Lines the log starts with (what is being built from).</summary>
     public IReadOnlyList<string> LogHeader { get; init; } = [];
 }

@@ -49,7 +49,8 @@ public static class ModLibrary
     [
         new WeaponHandler(), new OivHandler(), new ReplacementHandler(), new ScriptHandler(),
         new AddonPackHandler(ModCategory.Vehicle), new AddonPackHandler(ModCategory.Ped), new LiveryHandler(),
-        new AddonPackHandler(ModCategory.Clothing),
+        new AddonPackHandler(ModCategory.Clothing), new AddonPackHandler(ModCategory.Map), new AddonPackHandler(ModCategory.Prop),
+        new PlacementHandler(),
     ];
 
     public static IModHandler HandlerFor(ModCategory category) =>
@@ -77,8 +78,14 @@ public static class ModLibrary
         }
         // a vehicle / ped / clothing handler that took the drop (as an add-on or a replacement of the game's one) says
         // more than the plain file replacement of the same files
-        if (result.Packages.Any(p => p.Category is ModCategory.Vehicle or ModCategory.Ped or ModCategory.Clothing))
+        if (result.Packages.Any(p => p.Category is ModCategory.Vehicle or ModCategory.Ped or ModCategory.Clothing or ModCategory.Map or ModCategory.Prop))
             result.Packages.RemoveAll(p => p.Category == ModCategory.Replacement);
+        // an OIV package says what to do with every file in it — what other handlers see inside it is its content
+        if (result.Packages.Any(p => p.Category == ModCategory.Package))
+            result.Packages.RemoveAll(p => p.Category != ModCategory.Package);
+        // the parts a map comes with (its scripts, the game files it changes) go in with it, not on their own
+        var parts = result.Packages.OfType<AddonPackage>().SelectMany(a => a.Extras).Select(e => e.Category).ToHashSet();
+        result.Packages.RemoveAll(p => parts.Contains(p.Category) && p is not AddonPackage);
         // the kind the detector is surest of first — it is the one picked for the player
         int Rank(ModPackage p)
         {
@@ -119,15 +126,15 @@ public static class ModLibrary
     }
 
     /// <summary>Apply switches and removals — all of them, or (on a failure) none.</summary>
-    public static void Apply(InstallTarget target, IReadOnlyCollection<ModChange> changes, Action<string> log)
+    public static void Apply(InstallTarget target, IReadOnlyCollection<ModChange> changes, Action<string> log, PlanRun? run = null)
     {
         if (changes.Count == 0) return;
-        InstallExecutor.Run(PlanChanges(target, changes), target, log);
+        InstallExecutor.Run(PlanChanges(target, changes), target, log, run);
     }
 
     /// <summary>Install an analysed package through its handler's plan.</summary>
-    public static InstallContext Install(ModPackage package, InstallTarget target, Action<string> log) =>
-        InstallExecutor.Run(HandlerFor(package.Category).PlanInstall(package, target), target, log);
+    public static InstallContext Install(ModPackage package, InstallTarget target, Action<string> log, PlanRun? run = null) =>
+        InstallExecutor.Run(HandlerFor(package.Category).PlanInstall(package, target), target, log, run);
 }
 
 /// <summary>

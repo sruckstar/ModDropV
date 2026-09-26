@@ -2,6 +2,7 @@ using System.Text;
 using Avalonia.Threading;
 using Mdv.App.Services;
 using Mdv.Core;
+using Mdv.Core.Mods;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -42,6 +43,7 @@ public sealed partial class MainViewModel : ObservableObject
         Addon = new AddonViewModel(this);
         Livery = new LiveryViewModel(this);
         Clothing = new ClothingViewModel(this);
+        Map = new MapViewModel(this);
         foreach (var preview in new[] { Addon.Preview, Livery.Preview })
             preview.PropertyChanged += (_, e) =>
             {
@@ -146,6 +148,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Player: clothes (MP clothes packs, FiveM clothing, story characters' and freemode replacements, new slots).</summary>
     public ClothingViewModel Clothing { get; }
+
+    /// <summary>Player: maps and props (add-on packs, FiveM maps, loose placements) and Menyoo / Map Editor maps.</summary>
+    public MapViewModel Map { get; }
 
     /// <summary>The 3D preview opened large (an add-on's, a livery's), or null.</summary>
     public ModelPreview? OpenModelPreview => Addon.Preview.IsOpen ? Addon.Preview : Livery.Preview.IsOpen ? Livery.Preview : null;
@@ -329,6 +334,50 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] public partial string StageStatus { get; set; } = "";
     [ObservableProperty] public partial string StageHint { get; set; } = "";
+
+    // ---- a running plan: its steps, and stopping it
+    private PlanRun? _run;
+    [ObservableProperty] public partial bool HasStageSteps { get; set; }
+    [ObservableProperty] public partial int StageStep { get; set; }
+    [ObservableProperty] public partial int StageSteps { get; set; }
+    [ObservableProperty] public partial string StageStepText { get; set; } = "";
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CancelRunCommand))]
+    public partial bool CanCancelRun { get; set; }
+    [ObservableProperty] public partial string CancelRunText { get; set; } = "Cancel";
+
+    /// <summary>Follow a plan while it runs (null: a job with no plan of its own).</summary>
+    internal void Follow(PlanRun? run)
+    {
+        _run = run;
+        HasStageSteps = false;
+        StageStep = 0;
+        StageSteps = 0;
+        StageStepText = "";
+        CanCancelRun = run is not null;
+        CancelRunText = "Cancel";
+        if (run is null) return;
+        run.Progress += p => Dispatcher.UIThread.Post(() =>
+        {
+            if (_run != run) return;
+            StageSteps = p.Steps;
+            StageStep = p.Step;
+            HasStageSteps = p.Steps > 1;
+            StageStepText = $"Step {p.Step} of {p.Steps}: {p.What}";
+        });
+    }
+
+    /// <summary>Stop the running plan after its current step; what it did is taken back.</summary>
+    [RelayCommand(CanExecute = nameof(CanCancelRun))]
+    private void CancelRun()
+    {
+        if (_run is not { } run || run.Cancelled) return;
+        run.Cancel();
+        CanCancelRun = false;
+        CancelRunText = "Stopping…";
+        StageHint = "Stopping — taking back what was done";
+        AppLog.Info("run: cancel asked");
+    }
     /// <summary>Incremented every time the build reaches a new phase (the stage animation reacts to it).</summary>
     [ObservableProperty] public partial int FireCount { get; set; }
 
@@ -382,12 +431,18 @@ public sealed partial class MainViewModel : ObservableObject
         IsBuilding = true;
         StageStatus = job.Stage;
         StageHint = "Getting ready";
+        Follow(job.Control);
         AppLog.Info($"build started: mode={(IsPlayer ? "player" : "modder")} panel={ActivePanel?.Category}");
         try
         {
             var outcome = await Task.Run(() => job.Run(OnLog));
             if (!outcome.Ok) FailLog(null);
             ShowResult(outcome.Ok, outcome.Title, outcome.Detail, outcome.Path);
+        }
+        catch (OperationCanceledException)
+        {
+            AppLog.Info("build cancelled");
+            ShowResult(false, "Cancelled — nothing changed", "Every step done so far was taken back; the game is as it was.", null);
         }
         catch (Exception ex)
         {
@@ -398,6 +453,7 @@ public sealed partial class MainViewModel : ObservableObject
         finally
         {
             IsBuilding = false;
+            Follow(null);
         }
         if (IsPlayer) await AfterGameChangedAsync();
     }

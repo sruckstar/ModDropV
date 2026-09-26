@@ -59,7 +59,7 @@ public sealed partial class MainViewModel
         int gen = ++_installedGeneration;
         var game = IsPlayer ? InstalledGameDir() : null;
         List<InstalledMod> mods = [];
-        Dictionary<string, List<string>> conflicts = [];
+        Dictionary<string, (List<string> Others, bool OnTop)> conflicts = [];
         string empty;
         if (game is null)
             empty = GameFolder.Trim().Length == 0
@@ -91,7 +91,8 @@ public sealed partial class MainViewModel
         Installed.Clear();
         foreach (var m in mods)
         {
-            var row = new InstalledModViewModel(m, conflicts.GetValueOrDefault(m.Id));
+            var c = conflicts.GetValueOrDefault(m.Id);
+            var row = new InstalledModViewModel(m, c.Others, c.Others is null || c.OnTop, RaiseInstalled);
             row.PropertyChanged += OnInstalledRowChanged;
             Installed.Add(row);
         }
@@ -106,20 +107,34 @@ public sealed partial class MainViewModel
     /// Installed mod → the other installed mods that change some of the same game files
     /// (through the mods layer). Reads only.
     /// </summary>
-    private static Dictionary<string, List<string>> Conflicts(string game, List<InstalledMod> mods)
+    private static Dictionary<string, (List<string> Others, bool OnTop)> Conflicts(string game, List<InstalledMod> mods)
     {
-        var result = new Dictionary<string, List<string>>();
+        var result = new Dictionary<string, (List<string>, bool)>();
         if (!File.Exists(ModsOverlay.StatePath(game))) return result;
         var overlay = ModsOverlay.Load(game);
         var names = mods.ToDictionary(m => m.Id, m => m.Name);
         foreach (var m in mods)
         {
-            var others = overlay.PathsOf(m.Id).SelectMany(overlay.OwnersOf).Where(o => o != m.Id).Distinct()
-                                .Select(o => names.GetValueOrDefault(o, o)).OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase)
-                                .ToList();
-            if (others.Count > 0) result[m.Id] = others;
+            var shared = overlay.PathsOf(m.Id).Select(overlay.OwnersOf).Where(o => o.Count > 1).ToList();
+            var others = shared.SelectMany(o => o).Where(o => o != m.Id).Distinct()
+                               .Select(o => names.GetValueOrDefault(o, o)).OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase)
+                               .ToList();
+            if (others.Count > 0) result[m.Id] = (others, shared.All(o => o[0] == m.Id));
         }
         return result;
+    }
+
+    /// <summary>Put a mod's versions of the files it shares with other mods on top — through the plan.</summary>
+    private void RaiseInstalled(InstalledModViewModel row)
+    {
+        var game = InstalledGameDir();
+        if (game is null || IsBuilding) return;
+        var plan = new InstallPlan { Title = $"Putting «{row.Name}» on top" };
+        plan.Add(new OverlayRaiseOp(row.Mod.Id, row.Name));
+        plan.Warnings.Add($"Where it and {string.Join(", ", row.Conflicts)} change the same files, the game gets «{row.Name}»'s.");
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Put on top",
+                 () => RunPlanAsync(plan, "Reordering mods…", $"«{row.Name}» is on top"),
+                 "Only the order changes — every mod keeps its files, and removing one brings the next one's back.");
     }
 
     /// <summary>"All" plus a chip per category present; the one picked stays picked if it's still there.</summary>
@@ -230,11 +245,17 @@ public sealed partial class MainViewModel
         StageHint = "Getting ready";
         var target = TargetFor(game, Edition);
         AppLog.Info($"installed changes: {string.Join(", ", changes)} in {game}");
+        var run = new PlanRun();
+        Follow(run);
         try
         {
-            await Task.Run(() => ModLibrary.Apply(target, changes, OnLog));
+            await Task.Run(() => ModLibrary.Apply(target, changes, OnLog, run));
             var summary = PendingSummary;
             ShowResult(true, "Installed mods updated", $"{summary} — done:\n{game}", game);
+        }
+        catch (OperationCanceledException)
+        {
+            ShowResult(false, "Cancelled — nothing changed", "Every step done so far was taken back.", null);
         }
         catch (Exception ex)
         {
@@ -245,6 +266,7 @@ public sealed partial class MainViewModel
         finally
         {
             IsBuilding = false;
+            Follow(null);
         }
         await AfterGameChangedAsync();
     }

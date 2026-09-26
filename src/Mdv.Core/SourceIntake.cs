@@ -380,7 +380,8 @@ public static partial class SourceIntake
     private static string Slug(string s)
     {
         var clean = SafeName(s);
-        return clean.Length > 40 ? clean[..40] : clean;
+        // cut, then trimmed again: Windows drops a trailing space or dot from a folder name, and the files would be lost
+        return clean.Length > 40 ? clean[..40].TrimEnd(' ', '.') : clean;
     }
 
     // ------------------------------------------------------------------ selection

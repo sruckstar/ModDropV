@@ -398,6 +398,32 @@ public sealed class GameIndex
                                          .ThenByDescending(h => h.Rank).ThenBy(h => h.GamePath, StringComparer.OrdinalIgnoreCase))];
     }
 
+    private Dictionary<uint, string>? _models;
+
+    /// <summary>
+    /// The game's models (.ydr / .ydd / .yft, in any archive) by the hash of their name — what a map's placements
+    /// refer to them by. A prop's model usually has its archetype's name.
+    /// </summary>
+    public IReadOnlyDictionary<uint, string> Models
+    {
+        get
+        {
+            if (_models is { } m) return m;
+            var map = new Dictionary<uint, string>();
+            foreach (var name in _byName.Value.Keys)
+            {
+                var ext = Path.GetExtension(name);
+                if (!ext.Equals(".ydr", StringComparison.OrdinalIgnoreCase) && !ext.Equals(".ydd", StringComparison.OrdinalIgnoreCase) &&
+                    !ext.Equals(".yft", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var stem = Path.GetFileNameWithoutExtension(name).ToLowerInvariant();
+                if (stem.EndsWith("_hi", StringComparison.Ordinal)) continue;
+                map.TryAdd(Gxt2.Joaat(stem, lowercase: false), stem);
+            }
+            return _models = map;
+        }
+    }
+
     /// <summary>The copy of <paramref name="query"/> the game loads (see <see cref="Find"/>), or null.
     /// With several different files matching, the first group's winner.</summary>
     public FileHit? Resolve(string query) => Find(query).FirstOrDefault(h => h.Winner);

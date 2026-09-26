@@ -26,6 +26,12 @@ public sealed partial class MainViewModel
     [ObservableProperty] public partial string PlanConfirmText { get; set; } = "";
     [ObservableProperty] public partial string PlanNote { get; set; } = "";
     [ObservableProperty] public partial bool HasPlanWarnings { get; set; }
+    /// <summary>"Changes 192 files inside 17 game archives" — for plans that touch the game's archives.</summary>
+    [ObservableProperty] public partial string PlanFootprint { get; set; } = "";
+    [ObservableProperty] public partial bool HasPlanFootprint { get; set; }
+    /// <summary>"Needs about 21 GB on D:\ — 260 GB free."</summary>
+    [ObservableProperty] public partial string PlanSpace { get; set; } = "";
+    [ObservableProperty] public partial bool PlanTooBig { get; set; }
 
     public ObservableCollection<PlanStepRow> PlanSteps { get; } = [];
     public ObservableCollection<string> PlanWarnings { get; } = [];
@@ -90,10 +96,50 @@ public sealed partial class MainViewModel
         PlanWarnings.Clear();
         foreach (var w in plan.Warnings.Distinct()) PlanWarnings.Add(w);
         HasPlanWarnings = PlanWarnings.Count > 0;
+        ShowFootprint(plan);
         _planConfirm = run;
         IsPlanOpen = true;
         AppLog.Info($"plan shown: {plan.Title} — {string.Join(" | ", plan.Describe())}");
     }
+
+    /// <summary>What the plan takes: files in archives, the copies it makes in mods, the room on the drive.</summary>
+    private void ShowFootprint(InstallPlan plan)
+    {
+        PlanFootprint = "";
+        PlanSpace = "";
+        PlanTooBig = false;
+        HasPlanFootprint = false;
+        var game = GameFolder.Trim();
+        if (game.Length == 0 || !Directory.Exists(game)) return;
+        PlanFootprint f;
+        try
+        {
+            f = plan.Footprint(TargetFor(game, Edition));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("plan footprint failed", ex);
+            return;
+        }
+        var parts = new List<string>();
+        if (f.InArchives > 0)
+            parts.Add($"Changes {f.InArchives} file{(f.InArchives == 1 ? "" : "s")} inside {f.Archives.Count} game archive{(f.Archives.Count == 1 ? "" : "s")}");
+        if (f.NewCopies.Count > 0)
+            parts.Add($"copies {(f.NewCopies.Count == 1 ? f.NewCopies[0] : $"{f.NewCopies.Count} archives")} into mods first (the game's own stay untouched)");
+        PlanFootprint = parts.Count == 0 ? "" : string.Join("; ", parts) + ".";
+        if (f.Bytes >= 64L << 20)
+        {
+            var drive = Path.GetPathRoot(Path.GetFullPath(game));
+            PlanSpace = $"Needs about {Size(f.Bytes)} on {drive}" +
+                        (f.Free is { } free ? $" — {Size(free)} free." : ".") +
+                        (f.TooBig ? " Not enough room: free some space first, or the install stops and takes itself back." : "");
+            PlanTooBig = f.TooBig;
+        }
+        HasPlanFootprint = PlanFootprint.Length > 0 || (PlanSpace.Length > 0 && !PlanTooBig);
+    }
+
+    private static string Size(long n) => string.Format(System.Globalization.CultureInfo.InvariantCulture,
+        n >= 1L << 30 ? "{0:0.0} GB" : "{1:0} MB", n / 1073741824.0, n / 1048576.0);
 
     [RelayCommand]
     private void ClosePlan()
@@ -119,10 +165,16 @@ public sealed partial class MainViewModel
         IsBuilding = true;
         StageStatus = stage;
         StageHint = "Getting ready";
+        var run = new PlanRun();
+        Follow(run);
         try
         {
-            await Task.Run(() => InstallExecutor.Run(plan, TargetFor(game, Edition), OnLog));
+            await Task.Run(() => InstallExecutor.Run(plan, TargetFor(game, Edition), OnLog, run));
             ShowResult(true, done, game, game);
+        }
+        catch (OperationCanceledException)
+        {
+            ShowResult(false, "Cancelled — nothing changed", "Every step done so far was taken back; the game is as it was.", null);
         }
         catch (Exception ex)
         {
@@ -133,6 +185,7 @@ public sealed partial class MainViewModel
         finally
         {
             IsBuilding = false;
+            Follow(null);
         }
         await AfterGameChangedAsync();
     }

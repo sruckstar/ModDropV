@@ -1,0 +1,81 @@
+<!-- Map / props panel, form slot: what the mod places, the way in (add-on pack or a trainer's map), the parts it comes
+     with, the dlcpacks folder it goes into. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.MapFormView"
+             x:DataType="vm:MapViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,0,10,0">
+        <TextBlock Classes="h" Text="{Binding Heading}" />
+        <TextBlock Grid.Column="1" Classes="desc" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   Text="{Binding Name}" />
+        <Border Grid.Column="2" Classes="badge">
+          <TextBlock Text="{Binding KindBadge}" />
+        </Border>
+      </Grid>
+      <TextBlock Grid.Row="1" Classes="desc" Text="{Binding SourceText}" TextWrapping="Wrap" Margin="0,0,10,0" />
+
+      <!-- the mod ships the map both ways: a pack that loads with the game, or a trainer's map file -->
+      <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding HasPlacementChoice}">
+        <TextBlock Classes="label" Text="INSTALL AS" Margin="0" />
+        <RadioButton Classes="found" GroupName="map-as" IsChecked="{Binding InstallAsPack}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+            <Panel Width="16" Height="16" VerticalAlignment="Center">
+              <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+              <Ellipse Classes="radio-dot" Width="8" Height="8" />
+            </Panel>
+            <TextBlock Grid.Column="1" Text="{Binding PackText}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </Grid>
+        </RadioButton>
+        <RadioButton Classes="found" GroupName="map-as" IsChecked="{Binding InstallAsPlacement}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+            <Panel Width="16" Height="16" VerticalAlignment="Center">
+              <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+              <Ellipse Classes="radio-dot" Width="8" Height="8" />
+            </Panel>
+            <TextBlock Grid.Column="1" Text="{Binding PlacementText}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </Grid>
+        </RadioButton>
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="3" Padding="0,0,10,0">
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="6" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:MapItemRow">
+              <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,8"
+                      BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+                    <SelectableTextBlock Text="{Binding Detail}" FontSize="11.5" Foreground="{DynamicResource Text3Brush}"
+                                         IsVisible="{Binding HasDetail}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Text="{Binding Tag}" FontSize="10.5" VerticalAlignment="Center"
+                             FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource AccentBrush}"
+                             IsVisible="{Binding HasTag}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <StackPanel Grid.Row="4" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <TextBlock Classes="kv-key" Text="Pack folder" VerticalAlignment="Center" />
+          <TextBox Grid.Column="1" Classes="path" Text="{Binding PackName}" MaxLength="32"
+                   ToolTip.Tip="The folder under mods\update\x64\dlcpacks — latin letters, digits and _ only" />
+        </Grid>
+        <TextBlock Text="{Binding PackDetail}" FontSize="10.5" FontFamily="{StaticResource MonoFont}"
+                   Foreground="{DynamicResource Text3Brush}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

@@ -43,6 +43,9 @@ public sealed class RegisteredMod
     /// shared set-up before it — the mods loader — isn't the mod's to take back).
     /// </summary>
     [JsonIgnore] public int? JournalFrom { get; set; }
+    /// <summary>Set while a plan runs: the journal's length when the mod was recorded — the steps after it (another mod
+    /// the same plan installs) aren't its.</summary>
+    [JsonIgnore] public int? JournalTo { get; set; }
 
     public string? Get(string key) => Data.TryGetValue(key, out var v) ? v : null;
 }

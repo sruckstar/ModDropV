@@ -13,11 +13,18 @@ namespace Mdv.App.ViewModels;
 /// </summary>
 public sealed partial class InstalledModViewModel : ObservableObject
 {
-    public InstalledModViewModel(InstalledMod mod, IReadOnlyList<string>? conflicts = null)
+    private readonly Action<InstalledModViewModel>? _raise;
+
+    /// <param name="onTop">its versions of the files it shares with other mods are the ones the game gets</param>
+    /// <param name="raise">puts it on top of the others (shows the plan first)</param>
+    public InstalledModViewModel(InstalledMod mod, IReadOnlyList<string>? conflicts = null, bool onTop = true,
+                                 Action<InstalledModViewModel>? raise = null)
     {
         Mod = mod;
         Enabled = mod.Enabled;
         Conflicts = conflicts ?? [];
+        OnTop = onTop;
+        _raise = raise;
     }
 
     public InstalledMod Mod { get; }
@@ -57,9 +64,17 @@ public sealed partial class InstalledModViewModel : ObservableObject
     /// <summary>Other installed mods that change the same game files.</summary>
     public IReadOnlyList<string> Conflicts { get; }
     public bool HasConflicts => Conflicts.Count > 0;
-    public string ConflictsTip => HasConflicts
-        ? $"Changes the same game files as {string.Join(", ", Conflicts)}. The mod installed last wins."
-        : "";
+    /// <summary>Where it shares files with other mods, the game gets its versions.</summary>
+    public bool OnTop { get; }
+    /// <summary>Another mod's versions win somewhere — it can be put on top.</summary>
+    public bool CanRaise => HasConflicts && !OnTop && _raise is not null;
+    public string ConflictsTip => !HasConflicts ? ""
+        : OnTop ? $"Changes the same game files as {string.Join(", ", Conflicts)} — its versions are on top, the game gets them."
+        : $"Changes the same game files as {string.Join(", ", Conflicts)} — theirs are on top where they overlap. " +
+          "«On top» puts this one's first.";
+
+    [RelayCommand]
+    private void Raise() => _raise?.Invoke(this);
 
     public bool CanOpenFolder => Mod.Folder is { } f && Directory.Exists(f);
 

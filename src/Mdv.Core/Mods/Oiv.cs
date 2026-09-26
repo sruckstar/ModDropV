@@ -238,11 +238,14 @@ public static partial class OivReader
         return archive is null ? rel : $"{archive}/{rel}";
     }
 
-    /// <summary>'/'-separated relative path without "." segments; null for an empty, absolute or escaping one.</summary>
+    /// <summary>
+    /// '/'-separated relative path without "." segments; null for an empty, escaping or drive path. A leading '\' is
+    /// the root of where the step is (the archive, else the game folder) — OpenIV writes paths that way.
+    /// </summary>
     internal static string? Norm(string raw)
     {
-        var p = raw.Trim().Replace('\\', '/');
-        if (p.Length == 0 || p.Contains(':') || p.StartsWith('/')) return null;
+        var p = raw.Trim().Replace('\\', '/').TrimStart('/');
+        if (p.Length == 0 || p.Contains(':')) return null;
         var segs = p.Split('/', StringSplitOptions.RemoveEmptyEntries).Where(s => s != ".").ToList();
         if (segs.Count == 0 || segs.Any(s => s == "..")) return null;
         return string.Join('/', segs);
@@ -631,6 +634,10 @@ public sealed class OivHandler : FileModHandler
 public sealed class BuildArchiveOp(string path, bool inArchive, IReadOnlyList<OivStep> steps, string root, string modId, GameEdition edition)
     : PlanOp
 {
+    /// <summary>The archive it creates (a game path when <see cref="InArchive"/>, else under mods).</summary>
+    public string ArchivePath => path;
+    public bool InArchive => inArchive;
+
     public override string Describe() =>
         inArchive ? $"Create {path} ({steps.Count(s => s is OivAdd)} file(s)) inside its archive (in a copy under mods)"
                   : $"Create mods/{path} ({steps.Count(s => s is OivAdd)} file(s))";

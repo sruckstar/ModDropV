@@ -129,6 +129,8 @@ public sealed partial class MainViewModel
         Script.Use(null);
         _ = Addon.UseAsync(null);
         _ = Livery.UseAsync(null);
+        _ = Clothing.UseAsync(null);
+        _ = Map.UseAsync(null);
     }
 
     /// <summary>
@@ -237,6 +239,9 @@ public sealed partial class MainViewModel
         foreach (var d in a.Report.Found)
         {
             if (a.Packages.Any(p => p.Category == d.Category)) continue;
+            // what goes in as part of another mod (a map's scripts) is no mod of its own here
+            if (a.Packages.OfType<AddonPackage>().Any(p => p.Extras.Any(e => e.Category == d.Category))) continue;
+            if (a.Packages.Any(p => p.Category == ModCategory.Package)) continue;          // it is all the OIV's content
             bool main = d == a.Report.Primary;
             if (a.Problems.TryGetValue(d.Category, out var why))
                 items.Add(new DetectedModViewModel(d.Category, d.Category.DisplayName(), why, null, "can't install"));
@@ -289,6 +294,14 @@ public sealed partial class MainViewModel
             case ScriptPackage s:
                 Script.Use(s);
                 SelectedPanel = Script;
+                break;
+            case AddonPackage { Kind: ModCategory.Map or ModCategory.Prop } map:
+                SelectedPanel = Map;
+                _panelLoad = Map.UseAsync(map);
+                break;
+            case PlacementPackage pl:
+                SelectedPanel = Map;
+                _panelLoad = Map.UseAsync(null, pl);
                 break;
             case AddonPackage { Kind: ModCategory.Clothing } cl:
                 SelectedPanel = Clothing;

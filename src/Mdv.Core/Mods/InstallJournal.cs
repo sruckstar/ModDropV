@@ -146,6 +146,8 @@ public sealed class InstallJournal
         catch (IOException) { }
         TryDeleteEmpty(stashes);
         TryDeleteEmpty(Abs(HomeDir));
+        // switched-off packs wait in dlcpacks_disabled; with the last one back on (or removed) the folder goes too
+        TryDeleteEmpty(GameInstaller.DisabledDlcpacksDir(GameDir));
     }
 
     /// <summary>Undo every recorded step, newest first. Failures are logged, not thrown.</summary>

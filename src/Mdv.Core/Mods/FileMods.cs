@@ -33,7 +33,7 @@ public abstract partial class FileModHandler : IModHandler
     public string IdFor(string name)
     {
         var slug = NonSlugRe().Replace(name.ToLowerInvariant(), "-").Trim('-');
-        return IdPrefix + (slug.Length == 0 ? "mod" : slug.Length > 60 ? slug[..60] : slug);
+        return IdPrefix + (slug.Length == 0 ? "mod" : slug.Length > 60 ? slug[..60].TrimEnd('-') : slug);
     }
 
     /// <summary>

@@ -1,0 +1,131 @@
+<!-- Map / props panel, side slot: the checks against the game — the tool a trainer's map needs, models the game lacks,
+     the game's own map sections it changes. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.MapSideView"
+             x:DataType="vm:MapViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+      <TextBlock Classes="h" Text="CHECKS" />
+      <StackPanel Grid.Row="1" Spacing="6" Margin="0,0,10,0">
+        <TextBlock Classes="desc" Text="{Binding CheckStatus}" TextWrapping="Wrap" />
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsChecking}" Height="3" MinHeight="3" />
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <!-- what the readme has players install by hand next to the map: it goes in with it -->
+          <StackPanel Spacing="6" IsVisible="{Binding HasParts}">
+            <TextBlock Classes="label" Text="INSTALLED WITH IT" Margin="0" />
+            <ItemsControl ItemsSource="{Binding Parts}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="4" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MapPartRow">
+                  <CheckBox IsChecked="{Binding IsOn}" ToolTip.Tip="Installed with the map as a mod of its own — switch it off or remove it on its own in the Library">
+                    <StackPanel Spacing="1">
+                      <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Detail}" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource Text3Brush}" />
+                    </StackPanel>
+                  </CheckBox>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding Tools}" IsVisible="{Binding HasTools}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DependencyRow">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Panel Width="18" Height="18" VerticalAlignment="Top" Margin="0,1,0,0">
+                    <Ellipse Fill="{DynamicResource SuccessWashBrush}" IsVisible="{Binding IsOk}" />
+                    <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource SuccessBrush}" StrokeThickness="2.2"
+                          StrokeLineCap="Round" Stretch="Uniform" Width="9" Height="9" IsVisible="{Binding IsOk}" />
+                    <Ellipse Fill="{DynamicResource WarnWashBrush}" IsVisible="{Binding IsProblem}" />
+                    <Path Data="{StaticResource IconAlert}" Stroke="{DynamicResource WarnBrush}" StrokeThickness="1.8"
+                          StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="10" Height="10"
+                          IsVisible="{Binding IsProblem}" />
+                    <Ellipse Stroke="{DynamicResource BorderBrushStrong}" StrokeThickness="1.4" StrokeDashArray="2,2"
+                             IsVisible="{Binding IsPending}" />
+                  </Panel>
+                  <StackPanel Grid.Column="1" Spacing="2">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="10.5" VerticalAlignment="Center"
+                                 FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Text3Brush}" />
+                    </Grid>
+                    <SelectableTextBlock Text="{Binding Detail}" FontSize="11.5" TextWrapping="Wrap"
+                                         Foreground="{DynamicResource Text2Brush}" />
+                    <Button Classes="ghost small" HorizontalAlignment="Left" Margin="0,3,0,0" Command="{Binding OpenLinkCommand}"
+                            IsVisible="{Binding HasLink}" ToolTip.Tip="{Binding Dependency.Link}">
+                      <StackPanel Orientation="Horizontal" Spacing="7">
+                        <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+                        <TextBlock Text="Get it" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <ItemsControl ItemsSource="{Binding Checks}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AddonCheckRow">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Panel Width="18" Height="18" VerticalAlignment="Top" Margin="0,1,0,0">
+                    <Ellipse Fill="{DynamicResource SuccessWashBrush}" IsVisible="{Binding IsOk}" />
+                    <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource SuccessBrush}" StrokeThickness="2.2"
+                          StrokeLineCap="Round" Stretch="Uniform" Width="9" Height="9" IsVisible="{Binding IsOk}" />
+                    <Ellipse Fill="{DynamicResource WarnWashBrush}" IsVisible="{Binding IsProblem}" />
+                    <Path Data="{StaticResource IconAlert}" Stroke="{DynamicResource WarnBrush}" StrokeThickness="1.8"
+                          StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="10" Height="10"
+                          IsVisible="{Binding IsProblem}" />
+                    <Ellipse Fill="{DynamicResource AccentWashBrush}" IsVisible="{Binding IsInfo}" />
+                    <Ellipse Fill="{DynamicResource AccentBrush}" Width="5" Height="5" IsVisible="{Binding IsInfo}" />
+                  </Panel>
+                  <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                    <SelectableTextBlock Text="{Binding Detail}" FontSize="11.5" TextWrapping="Wrap"
+                                         Foreground="{DynamicResource Text2Brush}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Classes="note">
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" Text="{Binding Note}" />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Text1Brush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

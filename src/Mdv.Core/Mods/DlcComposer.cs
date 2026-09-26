@@ -9,7 +9,8 @@ namespace Mdv.Core.Mods;
 public sealed record ComposeFile(string Source, string PackPath);
 
 /// <summary>A content.xml entry of a composed pack: the path inside it (without the device) and its data file type.</summary>
-public sealed record ComposeData(string PackPath, string Type, bool Persistent = false);
+/// <param name="Contents">what an archive holds, when the game must know (<c>CONTENTS_DLC_MAP_DATA</c>)</param>
+public sealed record ComposeData(string PackPath, string Type, bool Persistent = false, string? Contents = null);
 
 /// <summary>An add-on still to be packed: its files, the content.xml entries and what it declares.</summary>
 public sealed class ComposeSpec
@@ -24,6 +25,8 @@ public sealed class ComposeSpec
     public List<NewPed> NewPeds { get; } = [];
     /// <summary>MP clothing collections whose shop meta (and, for loose models, the ymt) is written on packing.</summary>
     public List<NewCollection> NewCollections { get; } = [];
+    /// <summary>The resource being read streams a map / props (its archetype requests go into the map's archives).</summary>
+    internal ModCategory? MapKind { get; set; }
 }
 
 /// <summary>
@@ -136,7 +139,73 @@ public static partial class DlcComposer
         if (spec.Content.Kind is null && spec.Data.Count == 0) return null;
         AddImages(spec);
         AddMissingShops(spec);
+        AddTypeRequests(spec);
+        ReadMaps(spec);
         return spec;
+    }
+
+    public const string MapImage = "x64/levels/gta5/map.rpf";
+    /// <summary>Placements (and the pack manifest) of a map go into an archive of their own, mounted as map data — as Rockstar's DLCs keep them.</summary>
+    public const string MapMetaImage = "x64/levels/gta5/map_metadata.rpf";
+    public const string ManifestName = "_manifest.ymf";
+
+    /// <summary>File types a map / props add-on is made of.</summary>
+    private static readonly HashSet<string> MapExts = new(StringComparer.OrdinalIgnoreCase)
+        { ".ymap", ".ytyp", ".ymf", ".ydr", ".ydd", ".yft", ".ytd", ".ybn", ".ypt", ".ycd", ".ynv", ".ynd" };
+
+    /// <summary>A placement / archetype file or its XML form (<c>x.ymap</c>, <c>x.ymap.xml</c>, <c>x.ytyp.xml</c>).</summary>
+    public static bool IsMapFile(string name)
+    {
+        var n = AddonContent.MapFileName(name);
+        return n.EndsWith(".ymap", StringComparison.OrdinalIgnoreCase) || n.EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Map / props files with no manifest to say so — placements (.ymap), archetypes (.ytyp) and the models, textures
+    /// and collisions they use, binary or as XML: an add-on of their own. Null when there is neither a placement nor
+    /// an archetype file. Files of scripts / trainers (scripts\, menyooStuff\) are not the map's.
+    /// </summary>
+    public static ComposeSpec? FromMapFiles(DroppedSource src)
+    {
+        var files = src.Files.Where(f => !f.InBackupDir && (MapExts.Contains(PathUtil.SuffixLower(f.Name)) || IsMapFile(f.Name)) &&
+                                         !f.Origin.Replace('\\', '/').Split('/').SkipLast(1).Any(d =>
+                                             d.Equals("scripts", StringComparison.OrdinalIgnoreCase) ||
+                                             d.Equals("menyooStuff", StringComparison.OrdinalIgnoreCase) ||
+                                             d.Equals("plugins", StringComparison.OrdinalIgnoreCase) ||
+                                             d.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase)))
+                             .OrderBy(f => f.Depth).ThenBy(f => f.Origin, PathUtil.PathOrder).ToList();
+        if (!files.Any(f => IsMapFile(f.Name))) return null;
+        var spec = new ComposeSpec();
+        var kind = files.Any(f => AddonContent.MapFileName(f.Name).EndsWith(".ymap", StringComparison.OrdinalIgnoreCase)) ? ModCategory.Map : ModCategory.Prop;
+        var streamed = new Dictionary<string, DroppedFile>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in files) AddStreamed(spec, f, kind, streamed);
+        AddImages(spec);
+        AddTypeRequests(spec);
+        ReadMaps(spec);
+        return spec;
+    }
+
+    /// <summary>What the spec's placements place and the props its archetype files define (read from the mod's files).</summary>
+    private static void ReadMaps(ComposeSpec spec)
+    {
+        if (spec.Content.Kind is not (ModCategory.Map or ModCategory.Prop)) return;
+        var files = spec.Files.Where(f => f.PackPath.EndsWith(".ymap", StringComparison.OrdinalIgnoreCase) ||
+                                          f.PackPath.EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase))
+                              .Select(f => (Path.GetFileName(f.PackPath), File.ReadAllBytes(f.Source)));
+        spec.Content.ReadMaps(files, spec.Warnings);
+    }
+
+    /// <summary>
+    /// Archetype files a props pack must load for good (so trainers can spawn its props): a DLC_ITYP_REQUEST each. A map's
+    /// archetypes load with its placements — through its own manifest, or the one written on packing.
+    /// </summary>
+    private static void AddTypeRequests(ComposeSpec spec)
+    {
+        if (spec.Content.Kind != ModCategory.Prop) return;
+        foreach (var f in spec.Files.Where(f => f.PackPath.EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase)))
+            if (!spec.Data.Any(d => d.PackPath.Equals(f.PackPath, StringComparison.OrdinalIgnoreCase)))
+                spec.Data.Add(new ComposeData(f.PackPath, "DLC_ITYP_REQUEST"));
+        spec.Content.DataTypes.Add("DLC_ITYP_REQUEST");
     }
 
     public const string PedImage = "x64/peds.rpf";
@@ -203,7 +272,9 @@ public static partial class DlcComposer
         foreach (var rpf in spec.Files.Select(f => ImageOf(f.PackPath)).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase))
             spec.Data.Add(rpf.Equals(StreamedPedImage, StringComparison.OrdinalIgnoreCase)
                 ? new ComposeData(rpf, "PEDSTREAM_FILE", Persistent: true)
-                : new ComposeData(rpf, "RPF_FILE", Persistent: true));
+                : rpf.Equals(MapMetaImage, StringComparison.OrdinalIgnoreCase)
+                    ? new ComposeData(rpf, "RPF_FILE", Persistent: true, Contents: "CONTENTS_DLC_MAP_DATA")
+                    : new ComposeData(rpf, "RPF_FILE", Persistent: true));
     }
 
     /// <summary>
@@ -321,6 +392,9 @@ public static partial class DlcComposer
         var byRel = files.ToDictionary(f => Rel(root, f.Origin).ToLowerInvariant(), f => f);
         var sub = several ? Slug(name) + "/" : "";
         var used = new HashSet<DroppedFile>();
+        var streamKind = KindByStream(files.Where(f => Rel(root, f.Origin).Split('/').SkipLast(1)
+                                                         .Any(s => s.Equals("stream", StringComparison.OrdinalIgnoreCase))));
+        spec.MapKind = streamKind is ModCategory.Map or ModCategory.Prop ? streamKind : null;
 
         foreach (Match m in DataFileRe().Matches(text))
         {
@@ -388,7 +462,12 @@ public static partial class DlcComposer
     }
 
     private static ModCategory KindByStream(IEnumerable<DroppedFile> files) =>
-        files.Any(f => ClothingNames.WearerOfYmt(f.Name) is { IsMp: true, Collection: not null } ||
+        files.Any(f => AddonContent.MapFileName(f.Name).EndsWith(".ymap", StringComparison.OrdinalIgnoreCase))
+            ? ModCategory.Map
+        : files.Any(f => AddonContent.MapFileName(f.Name).EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase)) &&
+        !files.Any(f => PathUtil.SuffixLower(f.Name) is ".yft" or ".ydd" or ".ymt")
+            ? ModCategory.Prop
+        : files.Any(f => ClothingNames.WearerOfYmt(f.Name) is { IsMp: true, Collection: not null } ||
                        (f.Name.Contains('^') && ClothingNames.WearerOfFolder(f.Name[..f.Name.LastIndexOf('^')]) is { IsMp: true }))
             ? ModCategory.Clothing
         : files.Any(f => PathUtil.SuffixLower(f.Name) == ".yft" && !f.Name.Contains('^')) &&
@@ -415,7 +494,7 @@ public static partial class DlcComposer
                 spec.Data.Add(new ComposeData(RelRe().Replace(path, ".dat"), type));        // the game adds "151.rel"
                 break;
             case "DLC_ITYP_REQUEST":
-                AddStreamed(spec, f, spec.Content.Kind ?? ModCategory.Vehicle, streamed);
+                AddStreamed(spec, f, spec.Content.Kind ?? spec.MapKind ?? ModCategory.Vehicle, streamed);
                 if (spec.Files.LastOrDefault() is { } ytyp && ytyp.Source == f.FullPath)
                     spec.Data.Add(new ComposeData(ytyp.PackPath, type));
                 return;
@@ -443,6 +522,24 @@ public static partial class DlcComposer
     private static void AddStreamed(ComposeSpec spec, DroppedFile f, ModCategory kind, Dictionary<string, DroppedFile> streamed)
     {
         var ext = PathUtil.SuffixLower(f.Name);
+        if (kind is ModCategory.Map or ModCategory.Prop && (GameIndex.StreamedExts.Contains(ext) || IsMapFile(f.Name)))
+        {
+            // placements and the manifest into the map data archive, the rest (archetypes, models, textures, collisions) beside it
+            var name = AddonContent.MapFileName(f.Name.Split('^')[^1]).ToLowerInvariant();
+            var inMeta = name.EndsWith(".ymap", StringComparison.Ordinal) || name.EndsWith(".ymf", StringComparison.Ordinal);
+            if (name.EndsWith(".ymf", StringComparison.Ordinal)) spec.Content.HasManifest = true;
+            if (streamed.TryGetValue(name, out var had))
+            {
+                if (!SameFile(had.FullPath, f.FullPath))
+                    spec.Warnings.Add($"{name} is in the mod more than once — {had.Origin} is used, {f.Origin} is left out.");
+                return;
+            }
+            streamed[name] = f;
+            spec.Files.Add(new ComposeFile(f.FullPath, $"{(inMeta ? MapMetaImage : MapImage)}/{name}"));
+            spec.Content.Streamed.Add(name);
+            if (ResourceEditions.EditionOf(PathUtil.SuffixLower(name), ResourceVersion(f.FullPath)) is { } med) spec.Content.ModelEditions.Add(med);
+            return;
+        }
         if (!GameIndex.StreamedExts.Contains(ext) && ext is not ".awc") return;
         if (ext == ".awc")
         {
@@ -519,7 +616,14 @@ public static partial class DlcComposer
             {
                 var dst = Path.Combine(tree, f.PackPath.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
-                PathUtil.Copy2(f.Source, dst);
+                if (f.Source.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) && IsMapFile(f.PackPath))
+                {
+                    // a placement / archetype file as XML (CodeWalker / OpenIV export): built into the game's form
+                    var name = Path.GetFileName(f.PackPath);
+                    File.WriteAllBytes(dst, MapMeta.Write(MapMeta.Read(File.ReadAllBytes(f.Source), name), name));
+                    log($"    {name}: built from its XML form.");
+                }
+                else PathUtil.Copy2(f.Source, dst);
             }
             if (spec.NewPeds.Count > 0)
             {
@@ -545,9 +649,18 @@ public static partial class DlcComposer
                 log($"    {spec.Content.Labels.Count} text label(s) → global.gxt2 in {DlcAssembler.Langs.Length} languages.");
             }
             var changeset = device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] + "_AUTOGEN" : device + "_AUTOGEN";
-            TextIo.WriteText(Path.Combine(tree, "content.xml"),
-                             DlcAssembler.ContentXml(device, changeset, data.Select(d => (d.PackPath.Replace("x64/", "%PLATFORM%/"), d.Type, d.Persistent))));
-            TextIo.WriteText(Path.Combine(tree, "setup2.xml"), DlcAssembler.Setup2Xml(device, changeset));
+            if (spec.Content.Kind == ModCategory.Map)
+            {
+                if (!spec.Content.HasManifest) WriteManifest(spec, tree, data, log);
+                TextIo.WriteText(Path.Combine(tree, "content.xml"), MapContentXml(device, data));
+                TextIo.WriteText(Path.Combine(tree, "setup2.xml"), MapSetup2Xml(device));
+            }
+            else
+            {
+                TextIo.WriteText(Path.Combine(tree, "content.xml"),
+                                 DlcAssembler.ContentXml(device, changeset, data.Select(d => (d.PackPath.Replace("x64/", "%PLATFORM%/"), d.Type, d.Persistent))));
+                TextIo.WriteText(Path.Combine(tree, "setup2.xml"), DlcAssembler.Setup2Xml(device, changeset));
+            }
 
             // inner archives first (deepest first), each packed in place of its folder
             foreach (var dir in Directory.EnumerateDirectories(tree, "*.rpf", SearchOption.AllDirectories)
@@ -613,6 +726,97 @@ public static partial class DlcComposer
         data.Add(new ComposeData(shop, "SHOP_PED_APPAREL_META_FILE"));
         log($"    {full}_shop.meta written (the mod has none).");
     }
+
+    // ================================================================ maps
+
+    /// <summary>
+    /// The pack manifest of a map made of loose files: each placement loads the archetype files that define what it
+    /// places (matched by the models' hashes). Archetype files no placement needs are requested for good instead.
+    /// </summary>
+    private static void WriteManifest(ComposeSpec spec, string tree, List<ComposeData> data, Action<string> log)
+    {
+        var typeFiles = new List<(string Name, string PackPath, HashSet<uint> Defines)>();
+        foreach (var f in spec.Files.Where(f => f.PackPath.EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase)))
+        {
+            var doc = MapMeta.Read(File.ReadAllBytes(f.Source), Path.GetFileName(f.PackPath));
+            typeFiles.Add((Path.GetFileNameWithoutExtension(f.PackPath), f.PackPath,
+                           [.. MapMeta.Archetypes(doc).Select(MapMeta.Hash)]));
+        }
+        var deps = new List<(string Ymap, IReadOnlyList<string> Ytyps)>();
+        var needed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in spec.Files.Where(f => f.PackPath.EndsWith(".ymap", StringComparison.OrdinalIgnoreCase)))
+        {
+            var name = Path.GetFileName(f.PackPath);
+            var info = MapMeta.Ymap(MapMeta.Read(File.ReadAllBytes(f.Source), name), name);
+            var uses = info.Archetypes.Select(MapMeta.Hash).ToHashSet();
+            var types = typeFiles.Where(t => t.Defines.Overlaps(uses)).Select(t => t.Name).ToList();
+            foreach (var t in types) needed.Add(t);
+            deps.Add((info.Name, types));
+        }
+        // an archetype file a placement needs loads with it (the manifest); one no placement needs is requested for good
+        data.RemoveAll(d => d.Type == "DLC_ITYP_REQUEST" && needed.Contains(Path.GetFileNameWithoutExtension(d.PackPath)));
+        foreach (var t in typeFiles.Where(t => !needed.Contains(t.Name) && !data.Any(d => d.PackPath.Equals(t.PackPath, StringComparison.OrdinalIgnoreCase))))
+            data.Add(new ComposeData(t.PackPath, "DLC_ITYP_REQUEST"));
+        if (deps.All(d => d.Ytyps.Count == 0)) return;                      // only the game's own props: nothing to bind
+        var path = Path.Combine(tree, MapMetaImage.Replace('/', Path.DirectorySeparatorChar), ManifestName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, MapMeta.Write(MapMeta.Manifest(deps), ManifestName));
+        log($"    {ManifestName} written: {string.Join(", ", deps.Where(d => d.Ytyps.Count > 0).Select(d => $"{d.Ymap} → {string.Join(" + ", d.Ytyps)}"))}.");
+    }
+
+    /// <summary>
+    /// content.xml of a map pack, laid out as the map packs players install by hand are (a level pack whose map
+    /// changeset mounts the archives in story mode): the archives, the map data one flagged as such.
+    /// </summary>
+    public static string MapContentXml(string device, IEnumerable<ComposeData> data)
+    {
+        var list = data.Select(d => (Name: $"{device}:/{d.PackPath.Replace("x64/", "%PLATFORM%/")}", d)).ToList();
+        var items = string.Join("\n", list.Select(x =>
+            "    <Item>\n" +
+            $"      <filename>{x.Name}</filename>\n" +
+            $"      <fileType>{x.d.Type}</fileType>\n" +
+            "      <overlay value=\"false\" />\n" +
+            "      <disabled value=\"true\" />\n" +
+            $"      <persistent value=\"{(x.d.Persistent ? "true" : "false")}\" />\n" +
+            (x.d.Contents is { } c ? $"      <contents>{c}</contents>\n" : "") +
+            "    </Item>"));
+        var enable = string.Join("\n", list.Select(x => $"        <Item>{x.Name}</Item>"));
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<CDataFileMgr__ContentsOfDataFileXml>\n" +
+               "  <disabledFiles />\n  <includedXmlFiles />\n  <includedDataFiles />\n" +
+               "  <dataFiles>\n" + items + "\n  </dataFiles>\n" +
+               "  <contentChangeSets>\n    <Item>\n" +
+               $"      <changeSetName>{MapChangeset(device)}</changeSetName>\n" +
+               "      <filesToEnable>\n" + enable + "\n      </filesToEnable>\n" +
+               "      <executionConditions>\n        <activeChangesetConditions />\n" +
+               "        <genericConditions>$level=MO_JIM_L11</genericConditions>\n      </executionConditions>\n" +
+               "    </Item>\n  </contentChangeSets>\n  <patchFiles />\n" +
+               "</CDataFileMgr__ContentsOfDataFileXml>\n";
+    }
+
+    private static string MapChangeset(string device) =>
+        "CCS_" + (device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] : device) + "_NG_STREAMING_MAP";
+
+    /// <summary>setup2.xml of a map pack: a level pack whose map changeset runs with the streaming updates.</summary>
+    public static string MapSetup2Xml(string device) =>
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+        "<SSetupData>\n" +
+        $"  <deviceName>{device}</deviceName>\n" +
+        "  <datFile>content.xml</datFile>\n" +
+        "  <timeStamp>01/01/2026 00:00:00</timeStamp>\n" +
+        $"  <nameHash>{(device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] : device)}</nameHash>\n" +
+        "  <contentChangeSets />\n" +
+        "  <contentChangeSetGroups>\n    <Item>\n" +
+        "      <NameHash>GROUP_UPDATE_STREAMING</NameHash>\n" +
+        "      <ContentChangeSets>\n" +
+        $"        <Item>{MapChangeset(device)}</Item>\n" +
+        "      </ContentChangeSets>\n    </Item>\n" +
+        "  </contentChangeSetGroups>\n" +
+        "  <startupScript />\n  <scriptCallstackSize value=\"0\" />\n" +
+        "  <type>EXTRACONTENT_LEVEL_PACK</type>\n" +
+        "  <order value=\"2\" />\n  <minorOrder value=\"0\" />\n" +
+        "  <isLevelPack value=\"true\" />\n  <dependencyPackHash />\n" +
+        "  <requiredVersion />\n  <subPackCount value=\"0\" />\n</SSetupData>\n";
 
     /// <summary>A shop meta that registers a collection and lists no shop items (the clothes are picked in trainers / menus).</summary>
     public static string ShopMeta(string ped, string dlc, string creature) =>

@@ -70,6 +70,7 @@ internal static class Program
                 "cat" => Cat(rest),
                 "textures" => TexturesCmd(rest),
                 "unpack" => Unpack(rest),
+                "meta" => MetaCmd(rest),
                 _ => Usage($"unknown command '{args[0]}'"),
             };
         }
@@ -141,10 +142,10 @@ internal static class Program
                   with the mods' changes and added dlclist entries put back
               compact <game_dir> [archive ...]
                   rewrite archive copies in mods without the holes edits leave behind
-              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery|clothing]
+              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery|clothing|map|prop]
                       [--edition legacy|enhanced|auto] [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME]
                       [--replace] [--keep-kits] [--gender male|female] [--vehicle NAME] [--slot PICTURE=TEXTURE ...]
-                      [--wearer WHO] [--new-slots] [--dry-run]
+                      [--wearer WHO] [--new-slots] [--as addon|menyoo|mapeditor] [--no-parts] [--dry-run]
                   install a dropped mod the way the app does: analyse, print the plan, run it
                   (--kind picks one of the mods found; --target sends a replacement file elsewhere;
                   --variant picks a script mod's version; scripts print where each file goes and
@@ -156,7 +157,10 @@ internal static class Program
                   installed add-on), --slot sends a picture to another texture of it; clothing prints whose clothes
                   they are and where each file goes — --wearer michael|franklin|trevor|mp_male|mp_female or a
                   collection folder (mp_m_freemode_01_mp_m_x), --replace puts loose models in place of the
-                  wearer's own, --new-slots adds them as new clothes (new slots in the wearer's ymt))
+                  wearer's own, --new-slots adds them as new clothes (new slots in the wearer's ymt); maps print what
+                  they place and the models the game lacks — --as menyoo / mapeditor installs the mod's Menyoo / Map
+                  Editor map instead of the add-on, --no-parts leaves out the game files / scripts it comes with;
+                  every plan prints the space it needs, and Ctrl+C while it runs takes everything back)
               remove <game_dir> <mod_id> [<mod_id> ...]
                   remove installed mods (ids as `installed` prints them)
               switch <game_dir> <mod_id> on|off
@@ -166,6 +170,8 @@ internal static class Program
                   if there is one), decompressed — to out_file, else to the console
               textures <file.ytd> | <game_dir> <game_path>
                   the textures of a texture dictionary (size, format, mips)
+              meta <file.ymap|ytyp|ymf|ymt> | <game_dir> <game_path>
+                  a map / meta file as XML (CodeWalker's form of it)
               unpack <archive.rpf> <out_dir>
                   every file of an (OPEN) archive into a folder; nested archives become folders
                   named like them
@@ -574,13 +580,34 @@ internal static class Program
     }
 
     /// <summary>Run a plan, printing its warnings and log; 1 when it failed (and was rolled back).</summary>
-    private static int RunPlan(InstallPlan plan, InstallTarget target)
+    /// <summary>Run a plan: steps shown as they start; Ctrl+C stops it before its next step and takes everything back.</summary>
+    /// <param name="cancelAfter">testing: stop as step N + 1 starts, as Ctrl+C would (0: never)</param>
+    private static int RunPlan(InstallPlan plan, InstallTarget target, int cancelAfter = 0)
     {
         foreach (var w in plan.Warnings) Console.WriteLine($"[!] {w}");
+        var run = new PlanRun();
+        run.Progress += p =>
+        {
+            Console.Error.WriteLine($"  [{p.Step}/{p.Steps}] {p.What}");
+            if (cancelAfter > 0 && p.Step > cancelAfter) run.Cancel();
+        };
+        ConsoleCancelEventHandler stop = (_, e) =>
+        {
+            e.Cancel = true;
+            if (run.Cancelled) return;
+            Console.Error.WriteLine("  stopping after this step — everything done so far is taken back…");
+            run.Cancel();
+        };
+        Console.CancelKeyPress += stop;
         try
         {
-            InstallExecutor.Run(plan, target, Console.WriteLine);
+            InstallExecutor.Run(plan, target, Console.WriteLine, run);
             return 0;
+        }
+        catch (OperationCanceledException)
+        {
+            Console.Error.WriteLine("[!] Cancelled — the game is as it was.");
+            return 1;
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or InvalidDataException or
                                          NotSupportedException or ArgumentException or UnauthorizedAccessException)
@@ -588,6 +615,33 @@ internal static class Program
             Console.Error.WriteLine($"[!] {ex.Message}");
             return 1;
         }
+        finally
+        {
+            Console.CancelKeyPress -= stop;
+        }
+    }
+
+    /// <summary>"Needs about 2.1 GB on the game's drive (340 GB free): copies of update/update.rpf, x64e.rpf".</summary>
+    private static void PrintFootprint(PlanFootprint f)
+    {
+        if (f.InArchives > 0)
+            Console.WriteLine($"  changes {f.InArchives} file(s) inside {f.Archives.Count} game archive(s)");
+        if (f.Bytes < (1L << 20)) return;
+        Console.WriteLine($"  needs about {FormatSize(f.Bytes)} on the game's drive" +
+                          (f.Free is { } free ? $" ({FormatSize(free)} free)" : "") +
+                          (f.NewCopies.Count > 0 ? $" — copies into mods: {string.Join(", ", f.NewCopies)}" : ""));
+        if (f.TooBig) Console.WriteLine("  [!] not enough free space — free some up first.");
+    }
+
+    /// <summary>A Menyoo / Map Editor map: its files, the tools it needs, models the game lacks.</summary>
+    private static void PrintPlacement(PlacementPackage pp, InstallTarget target)
+    {
+        PlacementHandler.Check(pp, target.GameDir, target.Edition, null, Mdv.Core.Index.GameIndex.Open(target.GameDir, target.IndexCacheRoot));
+        foreach (var f in pp.Files)
+            Console.WriteLine($"    {f.Name} -> {f.Dest} ({f.Counts()}{(f.At is { } at ? $", at {at.X:0}, {at.Y:0}, {at.Z:0}" : "")})");
+        foreach (var d in pp.Dependencies)
+            Console.WriteLine($"    {(d.IsProblem ? "[!]" : "ok ")} {d.Name}: {d.StateText} — {d.Detail}");
+        if (pp.MissingModels.Count > 0) Console.WriteLine($"    [!] {PlacementHandler.MissingText(pp.MissingModels)}");
     }
 
     /// <summary>One file changed by a (command-line) replacement mod, recorded in the registry.</summary>
@@ -649,8 +703,8 @@ internal static class Program
 
     private static int Install(string[] argv)
     {
-        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--vehicle", "--slot", "--wearer"],
-                      ["--dry-run", "--replace", "--keep-kits", "--new-slots"]);
+        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--vehicle", "--slot", "--wearer", "--as", "--cancel-after"],
+                      ["--dry-run", "--replace", "--keep-kits", "--new-slots", "--no-parts"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
         var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
@@ -674,17 +728,19 @@ internal static class Program
             if (pkg is ScriptPackage sp) PrintScripts(sp, a.Opt("--variant"), target);
             if (pkg is AddonPackage ap) PrintAddon(ap, a, target);
             if (pkg is LiveryPackage lp) PrintLivery(lp, a, target);
+            if (pkg is PlacementPackage pp) PrintPlacement(pp, target);
             var plan = ModLibrary.HandlerFor(pkg.Category).PlanInstall(pkg, target);
             plan.Warnings.InsertRange(0, pkg.Warnings);
             Console.WriteLine($"{plan.Title}:");
             int i = 0;
             foreach (var step in plan.Describe()) Console.WriteLine($"  {++i,2}. {step}");
+            PrintFootprint(plan.Footprint(target));
             if (a.Flags.Contains("--dry-run"))
             {
                 foreach (var w in plan.Warnings) Console.WriteLine($"[!] {w}");
                 return 0;
             }
-            return RunPlan(plan, target);
+            return RunPlan(plan, target, a.Int("--cancel-after", 0));
         }
         catch (Exception ex) when (ex is IntakeException or InvalidOperationException)
         {
@@ -754,6 +810,14 @@ internal static class Program
             ap.UseReplace = true;
             return;
         }
+        if (a.Opt("--as") is { } way && way != "addon")
+        {
+            if (ap.Placement is null) throw new UsageException("--as: the mod has no Menyoo / Map Editor map");
+            if (way is not ("menyoo" or "mapeditor")) throw new UsageException("--as: addon, menyoo or mapeditor");
+            ap.UsePlacement = true;
+            PrintPlacement(ap.Placement, target);
+            return;
+        }
         var index = Mdv.Core.Index.GameIndex.Open(target.GameDir, target.IndexCacheRoot);
         var checks = AddonPackHandler.Check(ap, target, index);
         Console.WriteLine($"    pack: dlcpacks\\{ap.PackName} ({ap.Device}){(ap.PackNameFrom is { } from ? $" — name from {from}" : "")}");
@@ -770,6 +834,23 @@ internal static class Program
             Console.WriteLine($"    {(c.Level switch { CheckLevel.Ok => "ok ", CheckLevel.Info => " i ", _ => "[!]" })} {c.Title}: {c.Detail}" +
                               (c.Link is null ? "" : $"  ({c.Link})"));
         if (ap.Replace is { } r) Console.WriteLine($"    (a Replace version is there too — --replace installs it: {r.Files.Count} file(s))");
+        if (ap.Kind is ModCategory.Map or ModCategory.Prop)
+        {
+            foreach (var m in ap.Content.Maps)
+                Console.WriteLine($"    placement {m.Name}: {m.Entities} object(s) of {m.Archetypes.Count} kind(s)" +
+                                  (m.Center is { } c ? $", around {c.X:0}, {c.Y:0}, {c.Z:0}" : ""));
+            if (ap.Content.Archetypes.Count > 0)
+                Console.WriteLine($"    props: {string.Join(", ", ap.Content.Archetypes.Take(10))}{(ap.Content.Archetypes.Count > 10 ? ", …" : "")}");
+            if (ap.Placement is { } pl)
+                Console.WriteLine($"    (also as {string.Join(", ", pl.Files.Select(f => $"{f.Tool} map {f.Name}"))} — --as menyoo / --as mapeditor installs that)");
+            foreach (var e in ap.Extras)
+            {
+                Console.WriteLine($"    part: {e.Name} — {string.Join(" · ", e.Parts)}{(a.Flags.Contains("--no-parts") ? " (left out: --no-parts)" : "")}");
+                if (a.Flags.Contains("--no-parts")) ap.SkippedExtras.Add(e);
+                else if (e is ScriptPackage sp) PrintScripts(sp, null, target);
+                else if (e is ReplacementPackage rp) PrintReplacement(rp, a, target);
+            }
+        }
     }
 
     /// <summary>A livery: the vehicle it goes on, which texture each picture replaces, where its livery models go.</summary>
@@ -910,6 +991,21 @@ internal static class Program
         return 0;
     }
 
+    /// <summary>mdvctl meta &lt;file&gt; | &lt;game_dir&gt; &lt;game_path&gt; — a ymap / ytyp / ymf / ymt as XML.</summary>
+    private static int MetaCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 2, "file | game_dir game_path");
+        byte[]? data = a.Positional.Count == 1 ? File.ReadAllBytes(a.Positional[0]) : ModsOverlay.Load(a.Positional[0]).Read(a.Positional[1]);
+        if (data is null)
+        {
+            Console.Error.WriteLine($"[!] {a.Positional[^1]} is not in the game.");
+            return 1;
+        }
+        Console.WriteLine(MapMeta.Read(data, Path.GetFileName(a.Positional[^1])).ToString());
+        return 0;
+    }
+
     private static int Unpack(string[] argv)
     {
         var a = Parse(argv, [], []);
@@ -1000,7 +1096,7 @@ internal static class Program
     }
 
     private static string FormatSize(long n) =>
-        n >= 1 << 20 ? $"{n / 1048576.0:0.0} MB" : n >= 1024 ? $"{n / 1024.0:0.0} KB" : $"{n} B";
+        n >= 1L << 30 ? $"{n / 1073741824.0:0.0} GB" : n >= 1 << 20 ? $"{n / 1048576.0:0.0} MB" : n >= 1024 ? $"{n / 1024.0:0.0} KB" : $"{n} B";
 
     private static int Verify(string[] argv)
     {

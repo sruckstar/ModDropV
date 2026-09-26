@@ -359,6 +359,9 @@
               <DataTemplate DataType="vm:ClothingViewModel">
                 <p:ClothingFormView />
               </DataTemplate>
+              <DataTemplate DataType="vm:MapViewModel">
+                <p:MapFormView />
+              </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
           <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
@@ -410,6 +413,9 @@
             </DataTemplate>
             <DataTemplate DataType="vm:ClothingViewModel">
               <p:ClothingSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:MapViewModel">
+              <p:MapSideView />
             </DataTemplate>
             <DataTemplate DataType="vm:ModPanelViewModel">
               <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />
@@ -499,10 +505,17 @@
                               <Run Text="{Binding Where}" FontFamily="{StaticResource MonoFont}" /><Run Text="{Binding OriginSuffix}" />
                             </TextBlock>
                           </StackPanel>
-                          <Border Grid.Column="3" Classes="badge conflict" VerticalAlignment="Center" IsVisible="{Binding HasConflicts}"
-                                  ToolTip.Tip="{Binding ConflictsTip}">
-                            <TextBlock Text="conflict" />
-                          </Border>
+                          <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                                      IsVisible="{Binding HasConflicts}">
+                            <Border Classes="badge conflict" VerticalAlignment="Center" ToolTip.Tip="{Binding ConflictsTip}">
+                              <TextBlock Text="conflict" />
+                            </Border>
+                            <Button Classes="ghost small" Padding="7,2" MinHeight="22" VerticalAlignment="Center"
+                                    Command="{Binding RaiseCommand}" IsVisible="{Binding CanRaise}"
+                                    ToolTip.Tip="Put this mod's files on top of the others' (shows the plan first)">
+                              <TextBlock Text="on top" FontSize="11" />
+                            </Button>
+                          </StackPanel>
                           <Border Grid.Column="4" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
                             <TextBlock Text="{Binding Status}" />
                           </Border>
@@ -818,6 +831,18 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
 
+          <!-- what a big plan takes: archive copies in mods can be gigabytes -->
+          <Border Classes="note" IsVisible="{Binding HasPlanFootprint}">
+            <StackPanel Spacing="3">
+              <TextBlock Text="{Binding PlanFootprint}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" />
+              <TextBlock Text="{Binding PlanSpace}" TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold"
+                         Foreground="{DynamicResource Text1Brush}" IsVisible="{Binding !PlanTooBig}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="caution" IsVisible="{Binding PlanTooBig}">
+            <TextBlock Text="{Binding PlanSpace}" TextWrapping="Wrap" FontSize="12" />
+          </Border>
+
           <TextBlock Classes="hint" Margin="0" Text="{Binding PlanNote}" />
 
           <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
@@ -1106,6 +1131,17 @@
                    FontFamily="{StaticResource DisplayFont}" LetterSpacing="1" />
         <TextBlock Text="{Binding StageHint}" HorizontalAlignment="Center" FontSize="13"
                    Foreground="{DynamicResource AccentBrush}" FontFamily="{StaticResource DisplayFont}" LetterSpacing="1.5" />
+        <!-- a plan's steps as they go, and the way out: stopping takes back everything done so far -->
+        <StackPanel Spacing="8" Width="420" Margin="0,8,0,0" IsVisible="{Binding HasStageSteps}">
+          <ProgressBar Minimum="0" Maximum="{Binding StageSteps}" Value="{Binding StageStep}" Height="4" MinHeight="4" />
+          <TextBlock Text="{Binding StageStepText}" HorizontalAlignment="Center" FontSize="11.5" TextAlignment="Center"
+                     TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text3Brush}" />
+          <Button Classes="ghost small" HorizontalAlignment="Center" Command="{Binding CancelRunCommand}"
+                  IsVisible="{Binding CanCancelRun}"
+                  ToolTip.Tip="Stop after the step that is running — everything done so far is taken back and the game is as it was">
+            <TextBlock Text="{Binding CancelRunText}" />
+          </Button>
+        </StackPanel>
       </StackPanel>
     </Border>
   </Grid>

@@ -651,8 +651,8 @@ public sealed class ModsOverlay
     }
 
     /// <summary>
-    /// Copies changed in this session that are more than half holes (and at least 512 MB of them)
-    /// are rewritten tight. Not part of the transaction — the content doesn't change. Holes are
+    /// Copies changed in this session with at least 256 MB of holes, an eighth of the file or more (what removing a big
+    /// pack leaves), are rewritten tight. Not part of the transaction — the content doesn't change. Holes are
     /// otherwise left alone: rewriting a 2 GB copy costs more than the disk space it wins.
     /// </summary>
     public void CompactWasteful()
@@ -664,10 +664,39 @@ public sealed class ModsOverlay
             long length, used;
             using (var ed = RpfEditor.Open(path, Crypto())) (length, used) = ed.Measure();
             long waste = length - used;
-            if (waste < 512L << 20 || waste < length / 2) continue;
+            if (waste < 256L << 20 || waste < length / 8) continue;
             Compact(top);
         }
         _touched.Clear();
+    }
+
+    /// <summary>
+    /// After a plan was taken back (a failure, a cancel): the copies it edited hold their old content again, but as new
+    /// writes — the space its versions took is holes now. A copy left with 64 MB of holes or more is rewritten tight, so a
+    /// cancelled big install doesn't leave a bigger mods folder behind.
+    /// </summary>
+    public static void TightenAfterRollback(string gameDir, IEnumerable<string> archives, Action<string> log)
+    {
+        var tops = archives.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (tops.Count == 0 || !File.Exists(StatePath(gameDir))) return;
+        var o = Load(gameDir, log);
+        foreach (var top in tops)
+        {
+            var path = o.CopyPath(top);
+            if (!File.Exists(path)) continue;
+            long length, used;
+            try
+            {
+                using var ed = RpfEditor.Open(path, o.Crypto());
+                (length, used) = ed.Measure();
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+            if (length - used >= 64L << 20) o.Compact(top);
+        }
+        o.Save();
     }
 
     /// <summary>Rewrite a copy without holes.</summary>

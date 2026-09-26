@@ -165,9 +165,10 @@ public static partial class ModDetector
         var stem = Path.GetFileNameWithoutExtension(name);
 
         // what lives in a scripts / plugins folder is a script's own data, whatever its format
-        var dirs = origin.Replace('\\', '/').Split('/').SkipLast(1);
+        var dirs = origin.Replace('\\', '/').Split('/').SkipLast(1).ToList();
         if (ext is not (".asi" or ".dll" or ".cs" or ".vb") &&
-            dirs.Any(d => d.Equals("scripts", StringComparison.OrdinalIgnoreCase) || d.Equals("plugins", StringComparison.OrdinalIgnoreCase)))
+            dirs.Any(d => d.Equals("scripts", StringComparison.OrdinalIgnoreCase) || d.Equals("plugins", StringComparison.OrdinalIgnoreCase)) &&
+            !(ext == ".xml" && dirs.Any(d => d.Equals("AutoloadMaps", StringComparison.OrdinalIgnoreCase))))   // Map Editor maps
             return;
 
         // a folder named like a game archive: loose files meant to replace what is inside it
@@ -300,8 +301,13 @@ public static partial class ModDetector
         }
         var text = TextIo.DecodeUtf8Sig(arc.ReadContent(content.Entry), strict: false);
         bool any = false;
+        if (text.Contains("CONTENTS_DLC_MAP_DATA", StringComparison.OrdinalIgnoreCase))
+        {
+            s.Add(ModCategory.Map, 5, $"add-on pack {name} (map)");
+            any = true;
+        }
         foreach (Match m in FileTypeRe().Matches(text))
-            if (DataFileTypes.TryGetValue(m.Groups[1].Value, out var cat))
+            if (DataFileTypes.TryGetValue(m.Groups[1].Value, out var cat) && !(cat == ModCategory.Prop && any))
             {
                 s.Add(cat, 4, $"add-on pack {name} ({m.Groups[1].Value})");
                 any = true;
