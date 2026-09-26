@@ -129,14 +129,18 @@ public static partial class ModDetector
     public static DetectionReport Detect(IEnumerable<(string FullPath, string Origin)> files)
     {
         var s = new Scores();
+        var list = files.Take(20001).ToList();
+        // a ped is a skeleton (.yft) with its drawables (.ydd) / variations (.ymt) under the same name
+        var pedStems = new HashSet<string>(list.Where(f => PathUtil.SuffixLower(f.Origin) is ".ydd" or ".ymt")
+                                               .Select(f => Path.GetFileNameWithoutExtension(f.Origin)), StringComparer.OrdinalIgnoreCase);
         int counted = 0;
-        foreach (var (full, origin) in files)
+        foreach (var (full, origin) in list)
         {
             var name = Path.GetFileName(origin);
             var ext = PathUtil.SuffixLower(name);
             try
             {
-                Look(s, full, origin, name, ext);
+                Look(s, full, origin, name, ext, pedStems);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or BadImageFormatException
                                            or InvalidDataException)
@@ -148,7 +152,7 @@ public static partial class ModDetector
         return s.Report();
     }
 
-    private static void Look(Scores s, string full, string origin, string name, string ext)
+    private static void Look(Scores s, string full, string origin, string name, string ext, HashSet<string> pedStems)
     {
         var stem = Path.GetFileNameWithoutExtension(name);
 
@@ -167,7 +171,7 @@ public static partial class ModDetector
         {
             case ".ydr" or ".ytd" or ".ydd" or ".yft":
                 if (!IsResource(full)) return;
-                LookResource(s, origin, name, stem, ext);
+                LookResource(s, origin, name, stem, ext, pedStems);
                 return;
             case ".rpf":
                 LookRpf(s, full, name);
@@ -206,7 +210,7 @@ public static partial class ModDetector
         }
     }
 
-    private static void LookResource(Scores s, string origin, string name, string stem, string ext)
+    private static void LookResource(Scores s, string origin, string name, string stem, string ext, HashSet<string> pedStems)
     {
         if (name.StartsWith("w_", StringComparison.OrdinalIgnoreCase))
         {
@@ -224,7 +228,7 @@ public static partial class ModDetector
             s.Add(ModCategory.Ped, 2, $"ped components ({name})");
             return;
         }
-        if (PedModelRe().IsMatch(stem))
+        if (PedModelRe().IsMatch(stem) || (ext == ".yft" && pedStems.Contains(stem)))
         {
             s.Add(ModCategory.Ped, 3, $"ped model {name}");
             return;

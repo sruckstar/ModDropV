@@ -315,6 +315,7 @@ public sealed class WeaponModelView : SkiaControl, ICustomHitTest
     {
         if (Model is null)
         {
+            lock (_gate) _pending = null;              // nothing of the old model is drawn any more
             Show(null);
             return;
         }
@@ -389,7 +390,11 @@ public sealed class WeaponModelView : SkiaControl, ICustomHitTest
             if (image is not null)
             {
                 var frame = new FrameImage(image);
-                Dispatcher.UIThread.Post(() => Show(frame));
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (Model is null) frame.Dispose();         // the model went while this frame was drawn
+                    else Show(frame);
+                });
             }
         }
     }

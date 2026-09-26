@@ -67,6 +67,7 @@ internal static class Program
                 "remove" => Remove(rest),
                 "switch" => Switch(rest),
                 "cat" => Cat(rest),
+                "unpack" => Unpack(rest),
                 _ => Usage($"unknown command '{args[0]}'"),
             };
         }
@@ -138,12 +139,16 @@ internal static class Program
                   with the mods' changes and added dlclist entries put back
               compact <game_dir> [archive ...]
                   rewrite archive copies in mods without the holes edits leave behind
-              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script] [--edition legacy|enhanced|auto]
-                      [--target NAME=GAME_PATH ...] [--variant NAME] [--dry-run]
+              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped] [--edition legacy|enhanced|auto]
+                      [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME] [--replace] [--keep-kits] [--gender male|female]
+                      [--dry-run]
                   install a dropped mod the way the app does: analyse, print the plan, run it
                   (--kind picks one of the mods found; --target sends a replacement file elsewhere;
                   --variant picks a script mod's version; scripts print where each file goes and
-                  what the mod needs from the game)
+                  what the mod needs from the game; add-on vehicles / peds print the checks against
+                  the game — --pack names the dlcpacks folder, --replace installs the mod's Replace
+                  version, --keep-kits leaves clashing modkit ids as they are, --gender picks the template
+                  of the peds.meta written for peds that come without one)
               remove <game_dir> <mod_id> [<mod_id> ...]
                   remove installed mods (ids as `installed` prints them)
               switch <game_dir> <mod_id> on|off
@@ -151,6 +156,9 @@ internal static class Program
               cat <game_dir> <game_path> [out_file]
                   a file inside the game's archives as the game reads it now (the copy in mods
                   if there is one), decompressed — to out_file, else to the console
+              unpack <archive.rpf> <out_dir>
+                  every file of an (OPEN) archive into a folder; nested archives become folders
+                  named like them
             """);
     }
 
@@ -631,7 +639,7 @@ internal static class Program
 
     private static int Install(string[] argv)
     {
-        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant"], ["--dry-run"]);
+        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender"], ["--dry-run", "--replace", "--keep-kits"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
         var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
@@ -667,6 +675,7 @@ internal static class Program
                                       (f.Candidates.Count > 1 ? $"  [{f.Candidates.Count} places]" : ""));
             }
             if (pkg is ScriptPackage sp) PrintScripts(sp, a.Opt("--variant"), target);
+            if (pkg is AddonPackage ap) PrintAddon(ap, a, target);
             var plan = ModLibrary.HandlerFor(pkg.Category).PlanInstall(pkg, target);
             plan.Warnings.InsertRange(0, pkg.Warnings);
             Console.WriteLine($"{plan.Title}:");
@@ -688,6 +697,36 @@ internal static class Program
         {
             PathUtil.TryDeleteDir(work);
         }
+    }
+
+    /// <summary>An add-on vehicle / ped: the pack it becomes and what the checks against the game found.</summary>
+    private static void PrintAddon(AddonPackage ap, Args a, InstallTarget target)
+    {
+        if (a.Opt("--pack") is { } pack)
+            ap.PackName = AddonPackHandler.Clean(pack) ?? throw new UsageException($"--pack: '{pack}' has no usable characters (a-z, 0-9, _)");
+        if (a.Flags.Contains("--keep-kits")) ap.FixKits = false;
+        if (a.Opt("--gender") is { } gender)
+        {
+            if (!Enum.TryParse<PedGender>(gender, ignoreCase: true, out var g)) throw new UsageException("--gender: male or female");
+            if (ap.Compose is not { NewPeds.Count: > 0 } made) throw new UsageException("--gender: the mod has its own peds.meta");
+            foreach (var p in made.NewPeds) p.Gender = g;
+        }
+        if (a.Flags.Contains("--replace"))
+        {
+            if (ap.Replace is null) throw new UsageException("--replace: the mod has no Replace version");
+            ap.UseReplace = true;
+            return;
+        }
+        var index = Mdv.Core.Index.GameIndex.Open(target.GameDir, target.IndexCacheRoot);
+        var checks = AddonPackHandler.Check(ap, target, index);
+        Console.WriteLine($"    pack: dlcpacks\\{ap.PackName} ({ap.Device}){(ap.PackNameFrom is { } from ? $" — name from {from}" : "")}");
+        foreach (var p in ap.Compose?.NewPeds ?? [])
+            Console.WriteLine($"    peds.meta for {p.Name}: {p.Gender.ToString().ToLowerInvariant()}{(p.Streamed ? ", streamed" : "")}" +
+                              $"{(p.HasProps ? ", props" : "")} (--gender to change)");
+        foreach (var c in checks.Items)
+            Console.WriteLine($"    {(c.Level switch { CheckLevel.Ok => "ok ", CheckLevel.Info => " i ", _ => "[!]" })} {c.Title}: {c.Detail}" +
+                              (c.Link is null ? "" : $"  ({c.Link})"));
+        if (ap.Replace is { } r) Console.WriteLine($"    (a Replace version is there too — --replace installs it: {r.Files.Count} file(s))");
     }
 
     /// <summary>A script mod: its versions, where each file goes, and what it needs from the game.</summary>
@@ -772,6 +811,34 @@ internal static class Program
         if (a.Positional.Count == 3) File.WriteAllBytes(a.Positional[2], data);
         else Console.Write(TextIo.DecodeUtf8Sig(data, strict: false));
         return 0;
+    }
+
+    private static int Unpack(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 2, 2, "archive, out_dir");
+        int n = 0;
+        using (var arc = RpfArchive.Open(a.Positional[0])) Walk(arc, a.Positional[1]);
+        Console.WriteLine($"{n} file(s) -> {a.Positional[1]}");
+        return 0;
+
+        void Walk(RpfArchive arc, string dir)
+        {
+            foreach (var t in arc.Tree())
+            {
+                if (t.IsDir) continue;
+                var dst = Path.Combine(dir, t.Path.Replace('/', Path.DirectorySeparatorChar));
+                if (t.Entry.StoredRaw && t.Path.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var nested = arc.OpenNested(t.Entry);
+                    Walk(nested, dst);
+                    continue;
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
+                File.WriteAllBytes(dst, arc.ReadContent(t.Entry));
+                n++;
+            }
+        }
     }
 
     private static int Raise(string[] argv)

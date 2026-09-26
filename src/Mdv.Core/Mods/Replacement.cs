@@ -32,8 +32,12 @@ public sealed class ReplacementFile
 /// <summary>Loose files that replace game files, with no instructions: where each goes is looked up in the game's file index.</summary>
 public sealed class ReplacementPackage : ModPackage
 {
-    public override ModCategory Category => ModCategory.Replacement;
+    /// <summary>What it replaces: files in general, or a vehicle / ped of the game (then it is listed as one).</summary>
+    public ModCategory Kind { get; set; } = ModCategory.Replacement;
+    public override ModCategory Category => Kind;
     public List<ReplacementFile> Files { get; } = [];
+    /// <summary>The game's vehicles / peds its models are named after (a vehicle / ped replacement).</summary>
+    public List<string> Replaces { get; } = [];
     /// <summary>The game folder the targets were looked up in (null: not yet).</summary>
     public string? ResolvedFor { get; set; }
 }
@@ -76,11 +80,28 @@ public sealed class ReplacementHandler : FileModHandler
         if (files.Any(f => f.Name.Equals("fxmanifest.lua", StringComparison.OrdinalIgnoreCase) ||
                            f.Name.Equals("__resource.lua", StringComparison.OrdinalIgnoreCase)))
             return null;                                                              // a FiveM resource: an add-on
+        var picked = Pick(files, out bool dlcPack);
+        if (dlcPack) return null;                                                 // a finished add-on pack
+        if (!picked.Any(f => StrongExt.Contains(PathUtil.SuffixLower(f.Name))) && !report.Has(ModCategory.Replacement)) return null;
+
+        var name = SourceIntake.GuessName(source.Sources);
+        return Build(picked, name == "Custom Weapon" ? "Replacement" : name,
+                     source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null);
+    }
+
+    /// <summary>
+    /// The files of a drop that can replace game files — not a script's / plugin's own, not readmes saved
+    /// as XML. <paramref name="dlcPack"/>: a finished add-on pack is among them (then it isn't a replacement).
+    /// </summary>
+    internal static List<DroppedFile> Pick(IEnumerable<DroppedFile> files, out bool dlcPack)
+    {
+        dlcPack = false;
+        var list = files.ToList();
         // a plugin's / script's folder holds its own textures and settings, not replacements
-        var pluginDirs = files.Where(f => PathUtil.SuffixLower(f.Name) is ".asi" or ".dll" or ".cs" or ".vb")
-                              .Select(f => DirOf(f.Origin)).Distinct().ToList();
+        var pluginDirs = list.Where(f => PathUtil.SuffixLower(f.Name) is ".asi" or ".dll" or ".cs" or ".vb")
+                             .Select(f => DirOf(f.Origin)).Distinct().ToList();
         var picked = new List<DroppedFile>();
-        foreach (var f in files.OrderBy(f => f.Depth).ThenBy(f => f.Origin, PathUtil.PathOrder))
+        foreach (var f in list.OrderBy(f => f.Depth).ThenBy(f => f.Origin, PathUtil.PathOrder))
         {
             var ext = PathUtil.SuffixLower(f.Name);
             if (!ReplaceableExt.Contains(ext)) continue;
@@ -89,18 +110,21 @@ public sealed class ReplacementHandler : FileModHandler
             var dir = DirOf(f.Origin);
             if (pluginDirs.Any(p => p.Length == 0 || dir.Equals(p, StringComparison.OrdinalIgnoreCase) ||
                                     dir.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase))) continue;
-            if (ext == ".rpf" && SourceIntake.IsDlcPack(f.FullPath)) return null;  // a finished add-on pack
+            if (ext == ".rpf" && SourceIntake.IsDlcPack(f.FullPath))
+            {
+                dlcPack = true;
+                continue;
+            }
             if (ext is ".xml" or ".meta" && IsDocument(f.FullPath)) continue;
             picked.Add(f);
         }
-        if (!picked.Any(f => StrongExt.Contains(PathUtil.SuffixLower(f.Name))) && !report.Has(ModCategory.Replacement)) return null;
+        return picked;
+    }
 
-        var name = SourceIntake.GuessName(source.Sources);
-        var pkg = new ReplacementPackage
-        {
-            Name = name == "Custom Weapon" ? "Replacement" : name,
-            Source = source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null,
-        };
+    /// <summary>A replacement package of <paramref name="picked"/> files (the first of the same name / place wins).</summary>
+    internal static ReplacementPackage Build(IEnumerable<DroppedFile> picked, string name, ModSource? source)
+    {
+        var pkg = new ReplacementPackage { Name = name, Source = source };
         var seen = new Dictionary<string, ReplacementFile>(StringComparer.OrdinalIgnoreCase);
         foreach (var f in picked)
         {
@@ -239,7 +263,7 @@ public sealed class ReplacementHandler : FileModHandler
         }
         plan.Warnings.AddRange(ConflictWarnings(id, target, files.Select(f => f.Target!)));
         var archives = files.Select(f => ModsOverlay.Split(f.Target!).Archive).Distinct().Count();
-        plan.Add(Register(id, ModCategory.Replacement, pkg, target, $"{files.Count} file(s) in {archives} archive(s)"));
+        plan.Add(Register(id, pkg.Category, pkg, target, $"{files.Count} file(s) in {archives} archive(s)"));
         return plan;
     }
 }

@@ -2,15 +2,35 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
+             xmlns:c="using:Mdv.App.Controls"
              x:Class="Mdv.App.Views.Panels.ReplaceSideView"
              x:DataType="vm:ReplacementViewModel">
   <Border Classes="card" Padding="16,13,6,13">
-    <Grid RowDefinitions="Auto,*" RowSpacing="10">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
       <TextBlock Classes="h" Text="ANALYSIS" />
-      <ScrollViewer Grid.Row="1" Padding="0,0,10,0">
+      <!-- a vehicle / ped replacement: the model it brings -->
+      <Border Grid.Row="1" Height="148" Margin="0,0,10,0" CornerRadius="9" ClipToBounds="True"
+              BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1"
+              IsVisible="{Binding Preview.ShowPanel}">
+        <Panel>
+          <c:WeaponModelView Model="{Binding Preview.Model}" VisiblePieces="{Binding Preview.Visible}"
+                             Textured="{Binding Preview.Textured}" ResetCount="{Binding Preview.ResetCount}"
+                             ToolTip.Tip="Drag to turn · wheel to zoom · double-click to frame" />
+          <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      IsVisible="{Binding Preview.IsLoading}">
+            <TextBlock Classes="desc" Text="Loading the model…" HorizontalAlignment="Center" />
+            <ProgressBar IsIndeterminate="True" Width="120" Height="3" MinHeight="3" MinWidth="0" />
+          </StackPanel>
+          <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                  IsVisible="{Binding Preview.HasPreview}" IsHitTestVisible="False">
+            <TextBlock Text="3D" />
+          </Border>
+        </Panel>
+      </Border>
+      <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
         <StackPanel Spacing="10">
           <StackPanel Spacing="3">
-            <TextBlock Text="File replacement" FontWeight="SemiBold" FontSize="14" FontFamily="{StaticResource DisplayFont}" />
+            <TextBlock Text="{Binding KindTitle}" FontWeight="SemiBold" FontSize="14" FontFamily="{StaticResource DisplayFont}" />
             <TextBlock Classes="desc" Text="{Binding Summary}" TextWrapping="Wrap" />
           </StackPanel>
           <Border Classes="note">

@@ -27,10 +27,10 @@ public sealed partial class PreviewPieceViewModel : ObservableObject
     public string? Bone => Piece.Attached ? Piece.Bone : null;
 
     /// <summary>Where it hangs, or why it floats at the weapon's origin.</summary>
-    public string Where => Piece.Kind == "weapon" ? $"{Piece.Triangles:#,0} triangles"
+    public string Where => Piece.Note ?? (Piece.Kind == "weapon" ? $"{Piece.Triangles:#,0} triangles"
         : Piece.Attached ? $"on {Piece.Bone}"
         : Piece.Bone is null ? "separate model — shown at the origin"
-        : $"no {Piece.Bone} on the weapon — shown at the origin";
+        : $"no {Piece.Bone} on the weapon — shown at the origin");
 
     [ObservableProperty] public partial bool IsOn { get; set; }
 

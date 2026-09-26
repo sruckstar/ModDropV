@@ -1,0 +1,110 @@
+<!-- Add-on vehicle / ped panel, side slot: the 3D preview and the checks against the game. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             xmlns:c="using:Mdv.App.Controls"
+             x:Class="Mdv.App.Views.Panels.AddonSideView"
+             x:DataType="vm:AddonViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+      <TextBlock Classes="h" Text="{Binding SideHeading}" />
+
+      <!-- 3D preview: turn it right here, or open it large -->
+      <Border Grid.Row="1" Height="148" Margin="0,0,10,0" CornerRadius="9" ClipToBounds="True"
+              BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1"
+              IsVisible="{Binding Preview.ShowPanel}">
+        <Panel>
+          <c:WeaponModelView Model="{Binding Preview.Model}" VisiblePieces="{Binding Preview.Visible}"
+                             Textured="{Binding Preview.Textured}" ResetCount="{Binding Preview.ResetCount}"
+                             ToolTip.Tip="Drag to turn · wheel to zoom · double-click to frame" />
+          <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      IsVisible="{Binding Preview.IsLoading}">
+            <TextBlock Classes="desc" Text="Loading the model…" HorizontalAlignment="Center" />
+            <ProgressBar IsIndeterminate="True" Width="120" Height="3" MinHeight="3" MinWidth="0" />
+          </StackPanel>
+          <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                  IsVisible="{Binding Preview.HasPreview}" IsHitTestVisible="False">
+            <TextBlock Text="3D" />
+          </Border>
+          <Button Classes="ghost small" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                  Padding="8,3" MinHeight="26" Command="{Binding Preview.OpenCommand}"
+                  IsVisible="{Binding Preview.HasPreview}" ToolTip.Tip="Open the 3D preview">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+              <TextBlock Text="Inspect" />
+            </StackPanel>
+          </Button>
+        </Panel>
+      </Border>
+
+      <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding ShowChecks}">
+        <TextBlock Classes="desc" Text="{Binding CheckStatus}" TextWrapping="Wrap" />
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsChecking}" Height="3" MinHeight="3" />
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="3" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <ItemsControl ItemsSource="{Binding Checks}" IsVisible="{Binding ShowChecks}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AddonCheckRow">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Panel Width="18" Height="18" VerticalAlignment="Top" Margin="0,1,0,0">
+                    <Ellipse Fill="{DynamicResource SuccessWashBrush}" IsVisible="{Binding IsOk}" />
+                    <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource SuccessBrush}" StrokeThickness="2.2"
+                          StrokeLineCap="Round" Stretch="Uniform" Width="9" Height="9" IsVisible="{Binding IsOk}" />
+                    <Ellipse Fill="{DynamicResource WarnWashBrush}" IsVisible="{Binding IsProblem}" />
+                    <Path Data="{StaticResource IconAlert}" Stroke="{DynamicResource WarnBrush}" StrokeThickness="1.8"
+                          StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="10" Height="10"
+                          IsVisible="{Binding IsProblem}" />
+                    <Ellipse Fill="{DynamicResource AccentWashBrush}" IsVisible="{Binding IsInfo}" />
+                    <Ellipse Fill="{DynamicResource AccentBrush}" Width="5" Height="5" IsVisible="{Binding IsInfo}" />
+                  </Panel>
+                  <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                    <SelectableTextBlock Text="{Binding Detail}" FontSize="11.5" TextWrapping="Wrap"
+                                         Foreground="{DynamicResource Text2Brush}" />
+                    <Button Classes="ghost small" HorizontalAlignment="Left" Margin="0,3,0,0" Command="{Binding OpenLinkCommand}"
+                            IsVisible="{Binding HasLink}" ToolTip.Tip="{Binding Check.Link}">
+                      <StackPanel Orientation="Horizontal" Spacing="7">
+                        <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+                        <TextBlock Text="Get it" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <CheckBox IsChecked="{Binding FixKits}" IsVisible="{Binding HasKitFixes}" IsEnabled="{Binding ShowChecks}"
+                    ToolTip.Tip="The pack's carcols.meta gets the free id; the kit's name, which the vehicle refers to, stays">
+            <TextBlock Text="Give clashing modkits a free id on install" FontSize="12.5" TextWrapping="Wrap" />
+          </CheckBox>
+          <Border Classes="note">
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" Text="{Binding Note}" />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Text1Brush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

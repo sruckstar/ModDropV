@@ -196,6 +196,8 @@ public sealed class PreviewPiece
     /// <summary>False when the weapon has no bone for it — it sits at the weapon's origin.</summary>
     public bool Attached { get; init; } = true;
     public bool DefaultVisible { get; init; }
+    /// <summary>What the parts list says about it instead of where it hangs (vehicle bodies, ped components).</summary>
+    public string? Note { get; set; }
     public List<PreviewMesh> Meshes { get; } = [];
     public Vector3 Min { get; set; } = new(float.MaxValue);
     public Vector3 Max { get; set; } = new(float.MinValue);

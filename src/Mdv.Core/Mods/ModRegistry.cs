@@ -137,6 +137,12 @@ public sealed class ModRegistry
     public void Save(string gameDir)
     {
         var path = PathFor(gameDir);
+        if (Mods.Count == 0 && Imports.Count == 0)
+        {
+            File.Delete(path);                             // nothing installed: the mods folder is left as it was
+            Upgraded = false;
+            return;
+        }
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var tmp = path + ".tmp";
         TextIo.WriteJson(tmp, this);

@@ -200,8 +200,9 @@ public static class RpfPacker
 {
     /// <summary>
     /// Pack an entire folder tree into a single nested RPF7-OPEN archive (the
-    /// canonical dlc.rpf). Resources keep their RSC7 header with a once-compressed
-    /// body; nested <c>.rpf</c> children are stored raw; everything else
+    /// canonical dlc.rpf). Resources (models, and any file with an RSC7 header) keep their
+    /// RSC7 header with a once-compressed body; nested <c>.rpf</c> children and <c>.awc</c>
+    /// audio banks are stored raw; everything else
     /// (xml/meta/gxt2/json) is DEFLATE-compressed. Directory children are laid out
     /// breadth-first so every directory's children are contiguous and sorted.
     /// </summary>
@@ -226,12 +227,13 @@ public static class RpfPacker
                 {
                     var full = k.FullName;
                     var ext = Path.GetExtension(k.Name).ToLowerInvariant();
-                    if (Rpf7.IsResourceExt(ext))
+                    // models by their type (a broken one fails here); any other RSC7 file (.ymt, .ybn, .ycd…) by its header
+                    if (Rpf7.IsResourceExt(ext) || IsRsc7(full))
                     {
                         Rpf7.ReadRsc7Flags(full);
                         node.Produce = () => RpfStreamBuilder.ResourceFromFile(full, edition);
                     }
-                    else if (ext == ".rpf")
+                    else if (ext is ".rpf" or ".awc")          // audio banks are streamed from the archive as they are
                         node.Produce = () => RpfStreamBuilder.RawFileStream(full);
                     else
                         node.Produce = () => RpfStreamBuilder.Binary(File.ReadAllBytes(full));
@@ -243,6 +245,13 @@ public static class RpfPacker
         long size = RpfStreamBuilder.Write(outPath, nodes);
         int dirs = nodes.Count(n => n.IsDir);
         return new RpfBuildInfo(outPath, nodes.Count - dirs, size, dirs, nodes.Count - dirs);
+    }
+
+    private static bool IsRsc7(string path)
+    {
+        using var fs = File.OpenRead(path);
+        Span<byte> head = stackalloc byte[16];
+        return fs.Read(head) == 16 && BinaryPrimitives.ReadUInt32LittleEndian(head) == Rpf7.Rsc7Magic;
     }
 }
 

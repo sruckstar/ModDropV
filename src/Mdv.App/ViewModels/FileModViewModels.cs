@@ -205,7 +205,12 @@ public sealed partial class ReplacementViewModel : FileModViewModel
     public ObservableCollection<ReplaceFileRow> Files { get; } = [];
 
     [ObservableProperty] public partial string Name { get; set; } = "";
+    /// <summary>"File replacement", "Vehicle replacement"…</summary>
+    [ObservableProperty] public partial string KindTitle { get; set; } = "File replacement";
     [ObservableProperty] public partial bool IsResolving { get; set; }
+
+    /// <summary>A vehicle / ped replacement shows the model it brings.</summary>
+    public ModelPreview Preview { get; } = new();
     [ObservableProperty] public partial string Status { get; set; } = "";
     [ObservableProperty] public partial string Summary { get; set; } = "";
 
@@ -229,9 +234,19 @@ public sealed partial class ReplacementViewModel : FileModViewModel
         {
             ++_generation;
             SetWarnings([]);
+            _ = Preview.LoadAsync(null);
             return Task.CompletedTask;
         }
         Name = pkg.Name;
+        KindTitle = pkg.Kind switch
+        {
+            ModCategory.Vehicle => "Vehicle replacement",
+            ModCategory.Ped => "Ped replacement",
+            _ => "File replacement",
+        };
+        _ = Preview.LoadAsync(pkg.Kind is ModCategory.Vehicle or ModCategory.Ped
+                                  ? ct => Mdv.Core.Preview.AddonModelLoader.Load(pkg, ct)
+                                  : null);
         return ResolveAsync();
     }
 

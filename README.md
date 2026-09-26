@@ -34,7 +34,7 @@ stay untouched and every install can be switched off or removed again.
 | OIV packages — installed into the `mods` folder, removable | ✅ ready |
 | File replacements (textures, models, sounds, metas…) — the right place is found in the game | ✅ ready |
 | Scripts and plugins — `.asi`, ScriptHookVDotNet, RAGE Plugin Hook / LSPDFR; missing ScriptHookV, SHVDN or libraries are pointed out, LemonUI is added for you | ✅ ready |
-| Add-on vehicles and peds | planned |
+| Add-on vehicles and peds — finished packs, FiveM resources (packed into a `dlc.rpf` for you), peds shared as bare models (a `peds.meta` is written for them) and replacements, with a 3D preview; clashing spawn names and modkit ids are caught before installing, Legacy models are converted for Enhanced | ✅ ready |
 | Vehicle liveries | planned |
 | Clothes for the main characters, MP clothes and components | planned |
 | Objects, maps and total conversions | planned |

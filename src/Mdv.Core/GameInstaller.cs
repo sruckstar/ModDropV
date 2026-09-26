@@ -366,8 +366,10 @@ public static partial class GameInstaller
 
     /// <summary>Install a built dlc.rpf into the game; returns the installed path.</summary>
     /// <param name="journal">records every change, so a failed transaction can take it back</param>
+    /// <param name="done">the last log line (what to look for in the game)</param>
     public static string InstallToGame(string gameDir, string dlcRpf, string dlcName, Action<string> log,
-                                       InstallJournal? journal = null)
+                                       InstallJournal? journal = null,
+                                       string done = "Add-On installed. Launch the game and check the weapon in the shop.")
     {
         log($"Installing into game: {gameDir}");
         RegisterInDlclist(gameDir, dlcName, log, journal);
@@ -390,7 +392,7 @@ public static partial class GameInstaller
             Discard(parked, journal);
             log($"    Removed the switched-off earlier copy: {parked}");
         }
-        log("Add-On installed. Launch the game and check the weapon in the shop.");
+        log(done);
         return dest;
     }
 

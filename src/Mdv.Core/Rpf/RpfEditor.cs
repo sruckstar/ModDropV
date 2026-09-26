@@ -92,10 +92,29 @@ public sealed class RpfEditor : IDisposable
         _top = Load(ra, null, null, Blk(fs.Length));
     }
 
+    /// <summary>
+    /// Open an archive for writing. A file just written is often held for a moment by someone else (an antivirus
+    /// scanning it, a program reading it): a sharing violation is retried for about two seconds before giving up.
+    /// </summary>
+    internal static FileStream OpenForWrite(string path)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.Read, 1 << 16);
+            }
+            catch (IOException ex) when (attempt < 10 && (ex.HResult & 0xFFFF) is 32 or 33)     // ERROR_SHARING_VIOLATION / LOCK_VIOLATION
+            {
+                Thread.Sleep(200);
+            }
+        }
+    }
+
     /// <param name="crypto">keys for archives the game encrypted (a fresh copy of a game archive)</param>
     public static RpfEditor Open(string path, GameCrypto? crypto = null)
     {
-        var fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.Read, 1 << 16);
+        var fs = OpenForWrite(path);
         try
         {
             return new RpfEditor(path, fs, crypto);

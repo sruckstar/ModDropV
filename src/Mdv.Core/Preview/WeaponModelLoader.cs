@@ -294,7 +294,7 @@ public static class WeaponModelLoader
 
     // ------------------------------------------------------------------ bones
 
-    private static Matrix4x4 M(SharpDX.Matrix t) =>
+    internal static Matrix4x4 M(SharpDX.Matrix t) =>
         new(t.M11, t.M12, t.M13, t.M14, t.M21, t.M22, t.M23, t.M24, t.M31, t.M32, t.M33, t.M34, t.M41, t.M42, t.M43, t.M44);
 
     private static Dictionary<string, Matrix4x4> BoneTable(Drawable d)
@@ -357,11 +357,12 @@ public static class WeaponModelLoader
 
     // ------------------------------------------------------------------ geometry
 
-    private static PreviewPiece MakePiece(Drawable d, string id, string label, string kind, string? bone, bool attached,
-                                          bool visible, Matrix4x4 attach, TextureLibrary textures)
+    /// <param name="skeletonTransforms">place unskinned models by their bone (false: the drawable is placed by <paramref name="attach"/> alone)</param>
+    internal static PreviewPiece MakePiece(DrawableBase d, string id, string label, string kind, string? bone, bool attached,
+                                          bool visible, Matrix4x4 attach, TextureLibrary textures, bool skeletonTransforms = true)
     {
         var piece = new PreviewPiece { Id = id, Label = label, Kind = kind, Bone = bone, Attached = attached, DefaultVisible = visible };
-        var bones = d.Skeleton?.Bones?.Items;
+        var bones = skeletonTransforms ? d.Skeleton?.Bones?.Items : null;
         var models = d.DrawableModels?.High ?? d.AllModels ?? [];
         var min = new Vector3(float.MaxValue);
         var max = new Vector3(float.MinValue);
@@ -506,7 +507,7 @@ public static class WeaponModelLoader
     // ------------------------------------------------------------------ textures
 
     /// <summary>Every texture of the source by name, decoded on first use.</summary>
-    private sealed class TextureLibrary
+    internal sealed class TextureLibrary
     {
         private readonly Dictionary<string, Func<byte[]>> _files;
         private Dictionary<string, Texture>? _byName;
@@ -515,6 +516,8 @@ public static class WeaponModelLoader
         public TextureLibrary(Dictionary<string, Func<byte[]>> files) => _files = files;
 
         public HashSet<string> Missing { get; } = new(StringComparer.OrdinalIgnoreCase);
+        /// <summary>A stand-in for a texture the source doesn't have (null: the surface is drawn plain).</summary>
+        public Func<string, PreviewTexture?>? Fallback { get; init; }
         public int Decoded => _decoded.Values.Count(t => t.Texture is not null);
 
         private static readonly uint Diffuse = (uint)ShaderParamNames.DiffuseSampler;
@@ -534,7 +537,8 @@ public static class WeaponModelLoader
                 else if (h == Palette) palette ??= tb;
             }
             var tex = Resolve(diffuse ?? plain);
-            if (tex is null) return (null, null, shader.RenderBucket);
+            if (tex is null)
+                return (Fallback is { } stand && (diffuse ?? plain)?.Name is { Length: > 0 } name ? stand(name) : null, null, shader.RenderBucket);
             var pal = Resolve(palette);
             if (!_decoded.TryGetValue((tex, pal), out var decoded))
                 _decoded[(tex, pal)] = decoded = Decode(tex, pal);

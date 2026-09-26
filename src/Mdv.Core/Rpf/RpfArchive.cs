@@ -146,8 +146,8 @@ public sealed class RpfArchive : IDisposable
 
     public static RpfArchive Open(string path, bool writable = false, GameCrypto? crypto = null)
     {
-        var fs = new FileStream(path, FileMode.Open, writable ? FileAccess.ReadWrite : FileAccess.Read,
-                                writable ? FileShare.Read : FileShare.ReadWrite, 1 << 16);
+        var fs = writable ? RpfEditor.OpenForWrite(path)
+                          : new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1 << 16);
         try
         {
             return new RpfArchive(fs, true, 0, fs.Length, Path.GetFileName(path), crypto);

@@ -1,0 +1,111 @@
+<!-- Add-on vehicle / ped panel, form slot: what the mod brings, Add-On or Replace, the template of a written peds.meta,
+     the dlcpacks folder it goes into. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.AddonFormView"
+             x:DataType="vm:AddonViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,0,10,0">
+        <TextBlock Classes="h" Text="{Binding Heading}" />
+        <TextBlock Grid.Column="1" Classes="desc" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   Text="{Binding Name}" />
+        <Border Grid.Column="2" Classes="badge">
+          <TextBlock Text="{Binding KindBadge}" />
+        </Border>
+      </Grid>
+      <TextBlock Grid.Row="1" Classes="desc" Text="{Binding SourceText}" TextWrapping="Wrap" Margin="0,0,10,0" />
+
+      <!-- the mod ships both: a new vehicle, or one that takes the place of the game's own -->
+      <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding HasReplace}">
+        <TextBlock Classes="label" Text="INSTALL AS" Margin="0" />
+        <RadioButton Classes="found" GroupName="addon-as" IsChecked="{Binding InstallAsAddon}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+            <Panel Width="16" Height="16" VerticalAlignment="Center">
+              <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+              <Ellipse Classes="radio-dot" Width="8" Height="8" />
+            </Panel>
+            <TextBlock Grid.Column="1" Text="Add-On — a new one, spawned by its name; the game's own stay as they are"
+                       FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </Grid>
+        </RadioButton>
+        <RadioButton Classes="found" GroupName="addon-as" IsChecked="{Binding InstallAsReplace}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+            <Panel Width="16" Height="16" VerticalAlignment="Center">
+              <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+              <Ellipse Classes="radio-dot" Width="8" Height="8" />
+            </Panel>
+            <TextBlock Grid.Column="1" Text="{Binding ReplaceText}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </Grid>
+        </RadioButton>
+      </StackPanel>
+
+      <!-- peds without a peds.meta: the entry written for them is a male or a female ped's -->
+      <StackPanel Grid.Row="3" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding HasNewPeds}">
+        <TextBlock Classes="label" Text="PEDS.META IS WRITTEN AS" Margin="0" />
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+          <RadioButton Classes="found" GroupName="ped-gender" IsChecked="{Binding PedIsMale}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+              <Panel Width="16" Height="16" VerticalAlignment="Center">
+                <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+                <Ellipse Classes="radio-dot" Width="8" Height="8" />
+              </Panel>
+              <TextBlock Grid.Column="1" Text="Male — walk, voice and gestures of a man" FontSize="12.5" TextWrapping="Wrap"
+                         VerticalAlignment="Center" />
+            </Grid>
+          </RadioButton>
+          <RadioButton Grid.Column="1" Classes="found" GroupName="ped-gender" IsChecked="{Binding PedIsFemale}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+              <Panel Width="16" Height="16" VerticalAlignment="Center">
+                <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+                <Ellipse Classes="radio-dot" Width="8" Height="8" />
+              </Panel>
+              <TextBlock Grid.Column="1" Text="Female — walk, voice and gestures of a woman" FontSize="12.5" TextWrapping="Wrap"
+                         VerticalAlignment="Center" />
+            </Grid>
+          </RadioButton>
+        </Grid>
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="4" Padding="0,0,10,0">
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="6" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AddonItemRow">
+              <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,8"
+                      BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Detail}" FontSize="11.5" Foreground="{DynamicResource Text3Brush}"
+                               IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <TextBlock Text="spawn name" FontSize="10" HorizontalAlignment="Right" Foreground="{DynamicResource Text3Brush}" />
+                    <SelectableTextBlock Text="{Binding Spawn}" FontFamily="{StaticResource MonoFont}" FontSize="12.5"
+                                         Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Right" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <StackPanel Grid.Row="5" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <TextBlock Classes="kv-key" Text="Pack folder" VerticalAlignment="Center" />
+          <TextBox Grid.Column="1" Classes="path" Text="{Binding PackName}" MaxLength="32"
+                   ToolTip.Tip="The folder under mods\update\x64\dlcpacks — latin letters, digits and _ only" />
+        </Grid>
+        <TextBlock Text="{Binding PackDetail}" FontSize="10.5" FontFamily="{StaticResource MonoFont}"
+                   Foreground="{DynamicResource Text3Brush}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

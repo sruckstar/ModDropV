@@ -39,6 +39,7 @@ public sealed partial class MainViewModel : ObservableObject
         Oiv = new OivViewModel(this);
         Replace = new ReplacementViewModel(this);
         Script = new ScriptViewModel(this);
+        Addon = new AddonViewModel(this);
         InitModderTypes();
         IsPlayer = settings.Mode == "player";
         OutputFolder = settings.LastOutput ?? "";
@@ -129,6 +130,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Player: ASI plugins, ScriptHookVDotNet scripts, RAGE plugins.</summary>
     public ScriptViewModel Script { get; }
+
+    /// <summary>Player: add-on vehicles and peds (finished packs, FiveM resources, loose models with metas).</summary>
+    public AddonViewModel Addon { get; }
 
     /// <summary>Player: the panel of the mod picked from the drop (null: nothing installable dropped yet).</summary>
     [ObservableProperty] public partial ModPanelViewModel? SelectedPanel { get; set; }
