@@ -19,6 +19,7 @@ public partial class App : Application
             var vm = new MainViewModel(Settings.Load());
             ApplyTheme(vm.IsDark);
             vm.ThemeChanged += ApplyTheme;
+            GameIndexWarmup.Attach(vm);
             desktop.MainWindow = new MainWindow { DataContext = vm };
         }
         base.OnFrameworkInitializationCompleted();

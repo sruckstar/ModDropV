@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Mdv.Core;
+using Mdv.Core.Index;
 using Mdv.Core.Mods;
 using Mdv.Core.Rpf;
 using Mdv.Core.Util;
@@ -17,6 +18,8 @@ namespace Mdv.Cli;
 /// mdvctl verify &lt;archive.rpf&gt;
 /// mdvctl detect &lt;path&gt;...
 /// mdvctl installed &lt;game_dir&gt; [--edition legacy|enhanced|auto] [--staging DIR]
+/// mdvctl index &lt;game_dir&gt; [--rebuild] [--no-cache]
+/// mdvctl find  &lt;game_dir&gt; &lt;query&gt;... [--limit N]
 /// </code>
 /// </summary>
 internal static class Program
@@ -43,6 +46,8 @@ internal static class Program
                 "verify" => Verify(rest),
                 "detect" => Detect(rest),
                 "installed" => Installed(rest),
+                "index" => Index(rest),
+                "find" => Find(rest),
                 _ => Usage($"unknown command '{args[0]}'"),
             };
         }
@@ -86,6 +91,12 @@ internal static class Program
               installed <game_dir> [--edition legacy|enhanced|auto] [--staging DIR]
                   what ModDrop V installed into a game (staging: ModDrop V's own by default;
                   AddonWeapons Builder's staged packs are picked up)
+              index <game_dir> [--rebuild] [--no-cache]
+                  build / refresh the index of every file in the game's archives (cached in
+                  %LOCALAPPDATA%\ModDropV\index; only changed archives are read again)
+              find <game_dir> <query> [<query> ...] [--limit N]
+                  where a file lives in the game and which copy the game loads (*):
+                  adder.yft, adder, w_pi_*.ydr, player_zero/uppr_000_u.ydd, common/data/dlclist.xml
             """);
     }
 
@@ -353,6 +364,99 @@ internal static class Program
                               (m.ImportedFrom is null ? "" : $"  (from {m.ImportedFrom})"));
         return 0;
     }
+
+    private static GameIndex OpenIndex(string game, bool rebuild, bool noCache)
+    {
+        var root = noCache ? null : GameIndexCache.DefaultRoot;
+        if (rebuild && root is not null)
+        {
+            var file = GameIndexCache.FileFor(root, game);
+            if (File.Exists(file)) File.Delete(file);
+        }
+        int lastPct = -1;
+        bool drew = false;
+        var index = GameIndex.Open(game, root, p =>
+        {
+            if (p.FromCache || Console.IsErrorRedirected) return;
+            int pct = p.Done * 100 / Math.Max(1, p.Total);
+            if (pct == Interlocked.Exchange(ref lastPct, pct)) return;
+            drew = true;
+            Console.Error.Write($"\r  indexing… {pct,3}%  ({p.Done}/{p.Total})");
+        }, Console.WriteLine);
+        if (drew) Console.Error.WriteLine();
+        return index;
+    }
+
+    private static int Index(string[] argv)
+    {
+        var a = Parse(argv, [], ["--rebuild", "--no-cache"]);
+        NeedPositional(a, 1, 1, "game_dir");
+        var game = a.Positional[0];
+        GameIndex index;
+        try
+        {
+            index = OpenIndex(game, a.Flags.Contains("--rebuild"), a.Flags.Contains("--no-cache"));
+        }
+        catch (IOException ex)
+        {
+            Console.Error.WriteLine($"[!] {ex.Message}");
+            return 1;
+        }
+        Console.WriteLine($"{index.GameDir} — {index.Edition?.DisplayName() ?? "unknown edition"}, {index.ExeVersion}");
+        Console.WriteLine($"  {index.Archives.Count} archives, {index.FileCount:N0} files " +
+                          $"({index.Scanned} read, {index.Reused} from cache) in {index.Elapsed.TotalSeconds:0.0}s");
+        Console.WriteLine($"  dlclist.xml: {index.DlcListSource ?? "(none)"} — {index.LoadedDlcs.Count} DLC pack(s) mounted");
+        int mods = index.Archives.Count(x => x.RelPath.StartsWith(GameIndex.ModsPrefix, StringComparison.OrdinalIgnoreCase));
+        if (mods > 0) Console.WriteLine($"  mods folder: {mods} archive(s)");
+        var broken = index.Archives.Where(x => x.Error is not null).ToList();
+        foreach (var b in broken) Console.WriteLine($"  [!] {b.RelPath}: {b.Error}");
+        if (!a.Flags.Contains("--no-cache"))
+            Console.WriteLine($"  cache: {GameIndexCache.FileFor(GameIndexCache.DefaultRoot, index.GameDir)}");
+        return broken.Count == 0 ? 0 : 1;
+    }
+
+    private static int Find(string[] argv)
+    {
+        var a = Parse(argv, ["--limit"], ["--rebuild", "--no-cache"]);
+        NeedPositional(a, 2, int.MaxValue, "game_dir, query");
+        GameIndex index;
+        try
+        {
+            index = OpenIndex(a.Positional[0], a.Flags.Contains("--rebuild"), a.Flags.Contains("--no-cache"));
+        }
+        catch (IOException ex)
+        {
+            Console.Error.WriteLine($"[!] {ex.Message}");
+            return 1;
+        }
+        int limit = a.Int("--limit", 200);
+        bool any = false;
+        foreach (var q in a.Positional.Skip(1))
+        {
+            var hits = index.Find(q, limit);
+            Console.WriteLine($"{q}: {(hits.Count == 0 ? "not found" : $"{hits.Count} cop{(hits.Count == 1 ? "y" : "ies")}")}" +
+                              (hits.Count >= limit ? $" (first {limit}, see --limit)" : ""));
+            any |= hits.Count > 0;
+            foreach (var h in hits)
+            {
+                var ed = h.File.Kind == RpfEntryKind.Resource
+                    ? ResourceEditions.EditionOf(Path.GetExtension(h.File.Name), h.File.Version) switch
+                    {
+                        GameEdition.Enhanced => $" gen9 v{h.File.Version}",
+                        GameEdition.Legacy => $" legacy v{h.File.Version}",
+                        _ => $" v{h.File.Version}",
+                    }
+                    : "";
+                var note = h.Inactive is null ? "" : $" — {h.Inactive}";
+                Console.WriteLine($"  {(h.Winner ? "*" : " ")} {h.GamePath}");
+                Console.WriteLine($"      {h.Source}, {FormatSize(h.File.Size)}{ed}{note}");
+            }
+        }
+        return any ? 0 : 1;
+    }
+
+    private static string FormatSize(long n) =>
+        n >= 1 << 20 ? $"{n / 1048576.0:0.0} MB" : n >= 1024 ? $"{n / 1024.0:0.0} KB" : $"{n} B";
 
     private static int Verify(string[] argv)
     {
