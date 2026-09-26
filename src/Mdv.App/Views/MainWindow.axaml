@@ -347,6 +347,9 @@
               <DataTemplate DataType="vm:ReplacementViewModel">
                 <p:ReplaceFormView />
               </DataTemplate>
+              <DataTemplate DataType="vm:ScriptViewModel">
+                <p:ScriptFormView />
+              </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
           <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
@@ -386,6 +389,9 @@
             </DataTemplate>
             <DataTemplate DataType="vm:ReplacementViewModel">
               <p:ReplaceSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:ScriptViewModel">
+              <p:ScriptSideView />
             </DataTemplate>
             <DataTemplate DataType="vm:ModPanelViewModel">
               <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />

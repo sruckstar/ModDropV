@@ -15,6 +15,10 @@ publish/
 !data/plugins/
 !data/plugins/*.asi
 !data/plugins/*.dll
+# ...and the script libraries whose licence lets ModDrop V ship them (data/dependencies.json says which)
+!data/dependencies/
+!data/dependencies/*/
+!data/dependencies/*/*.dll
 
 # --- tests, developer tools, research prototypes and sample third-party mods (not needed to build or run the app) ---
 tests/

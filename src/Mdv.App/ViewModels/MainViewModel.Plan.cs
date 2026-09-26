@@ -65,13 +65,17 @@ public sealed partial class MainViewModel
         }
         plan.Warnings.InsertRange(0, pkg.Warnings);
         // files for the game folder itself (plugins, scripts, settings) can only be taken back by removing the mod
-        bool gameFolder = plan.Ops.Any(o => o is FileEditOp or DeleteFileOp ||
+        bool gameFolder = plan.Ops.Any(o => o is FileEditOp or DeleteFileOp or CopyFilesOp ||
                                             o is CopyFileOp c && !c.GameRel.StartsWith("mods/", StringComparison.OrdinalIgnoreCase));
-        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Install", () => RunJobAsync(job), gameFolder
-                     ? "The game's own archives stay untouched — changes to them go into copies under mods. Files for the " +
-                       "game folder are copied there; removing the mod in the Library takes them back."
-                     : "The game's own files stay untouched — everything goes into the mods folder. " +
-                       "Switch it off or remove it any time in the Library.");
+        var note = pkg.Category == ModCategory.Script
+            ? "Scripts live in the game folder: files it replaces are kept and come back when the mod is removed. " +
+              "Switch it off or remove it any time in the Library."
+            : gameFolder
+                ? "The game's own archives stay untouched — changes to them go into copies under mods. Files for the " +
+                  "game folder are copied there; removing the mod in the Library takes them back."
+                : "The game's own files stay untouched — everything goes into the mods folder. " +
+                  "Switch it off or remove it any time in the Library.";
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Install", () => RunJobAsync(job), note);
     }
 
     internal void OpenPlan(InstallPlan plan, string target, string confirm, Func<Task> run, string note)

@@ -76,6 +76,9 @@ public sealed class ReplacementHandler : FileModHandler
         if (files.Any(f => f.Name.Equals("fxmanifest.lua", StringComparison.OrdinalIgnoreCase) ||
                            f.Name.Equals("__resource.lua", StringComparison.OrdinalIgnoreCase)))
             return null;                                                              // a FiveM resource: an add-on
+        // a plugin's / script's folder holds its own textures and settings, not replacements
+        var pluginDirs = files.Where(f => PathUtil.SuffixLower(f.Name) is ".asi" or ".dll" or ".cs" or ".vb")
+                              .Select(f => DirOf(f.Origin)).Distinct().ToList();
         var picked = new List<DroppedFile>();
         foreach (var f in files.OrderBy(f => f.Depth).ThenBy(f => f.Origin, PathUtil.PathOrder))
         {
@@ -83,6 +86,9 @@ public sealed class ReplacementHandler : FileModHandler
             if (!ReplaceableExt.Contains(ext)) continue;
             var dirs = f.Origin.Replace('\\', '/').Split('/').SkipLast(1).ToList();
             if (dirs.Any(ScriptDirs.Contains)) continue;
+            var dir = DirOf(f.Origin);
+            if (pluginDirs.Any(p => p.Length == 0 || dir.Equals(p, StringComparison.OrdinalIgnoreCase) ||
+                                    dir.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase))) continue;
             if (ext == ".rpf" && SourceIntake.IsDlcPack(f.FullPath)) return null;  // a finished add-on pack
             if (ext is ".xml" or ".meta" && IsDocument(f.FullPath)) continue;
             picked.Add(f);
@@ -114,6 +120,13 @@ public sealed class ReplacementHandler : FileModHandler
                       (pkg.Files.Count > 4 ? ", …" : ""));
         if (pkg.Files.Any(f => f.Hint is not null)) pkg.Parts.Add("folders mirror the game's archives");
         return pkg;
+    }
+
+    private static string DirOf(string origin)
+    {
+        var o = origin.Replace('\\', '/');
+        int i = o.LastIndexOf('/');
+        return i < 0 ? "" : o[..i];
     }
 
     /// <summary>An XML file that isn't game data (a readme, a script's settings saved as XML)?</summary>

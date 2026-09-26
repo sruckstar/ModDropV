@@ -33,11 +33,14 @@ stay untouched and every install can be switched off or removed again.
 | Add-on weapons (replace mods become real add-on weapons) | ✅ ready |
 | OIV packages — installed into the `mods` folder, removable | ✅ ready |
 | File replacements (textures, models, sounds, metas…) — the right place is found in the game | ✅ ready |
+| Scripts and plugins — `.asi`, ScriptHookVDotNet, RAGE Plugin Hook / LSPDFR; missing ScriptHookV, SHVDN or libraries are pointed out, LemonUI is added for you | ✅ ready |
 | Add-on vehicles and peds | planned |
 | Vehicle liveries | planned |
-| Scripts, plugins and their dependencies | planned |
 | Clothes for the main characters, MP clothes and components | planned |
 | Objects, maps and total conversions | planned |
+
+LemonUI ships with ModDrop V under its MIT licence (`data/dependencies`); ScriptHookV, ScriptHookVDotNet and
+RAGE Plugin Hook are never bundled — ModDrop V links to their official pages.
 
 Coming from AddonWeapons Builder? The weapons it installed show up in ModDrop V, and new weapons keep going
 into the same `AddonWeapons` pack.

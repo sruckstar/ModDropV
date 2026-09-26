@@ -152,6 +152,12 @@ public static partial class ModDetector
     {
         var stem = Path.GetFileNameWithoutExtension(name);
 
+        // what lives in a scripts / plugins folder is a script's own data, whatever its format
+        var dirs = origin.Replace('\\', '/').Split('/').SkipLast(1);
+        if (ext is not (".asi" or ".dll" or ".cs" or ".vb") &&
+            dirs.Any(d => d.Equals("scripts", StringComparison.OrdinalIgnoreCase) || d.Equals("plugins", StringComparison.OrdinalIgnoreCase)))
+            return;
+
         // a folder named like a game archive: loose files meant to replace what is inside it
         if (origin.Replace('\\', '/').Split('/').SkipLast(1).Any(seg => seg.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase))
             && (InputScanner.ResourceExt.Contains(ext) || ext is ".awc" or ".meta" or ".xml" or ".gxt2" or ".ymt"))

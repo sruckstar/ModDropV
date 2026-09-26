@@ -94,13 +94,16 @@ public class CopyFileOp(string source, string gameRel) : PlanOp
     public string Source { get; } = source;
     public string GameRel { get; } = gameRel.Replace('\\', '/');
 
+    /// <summary>A file other mods share: the one it replaces isn't kept for an uninstall.</summary>
+    public bool Shared { get; init; }
+
     public override string Describe() => $"Copy {Path.GetFileName(Source)} to <game>/{GameRel}";
 
     public override void Execute(InstallContext ctx)
     {
         var dst = ctx.Abs(GameRel);
         EnsureDir(ctx, Path.GetDirectoryName(dst)!);
-        if (File.Exists(dst)) ctx.Journal.MoveAside(dst, keep: true);
+        if (File.Exists(dst)) ctx.Journal.MoveAside(dst, keep: !Shared);
         else ctx.Journal.FileCreated(dst);
         PathUtil.Copy2(Source, dst);
         ctx.Log($"    {Path.GetFileName(Source)} -> {dst}");

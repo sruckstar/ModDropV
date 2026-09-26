@@ -1,0 +1,55 @@
+<!-- Script panel, form slot: the version to install (when the mod ships several) and where each file goes. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.ScriptFormView"
+             x:DataType="vm:ScriptViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,0,10,0">
+        <TextBlock Classes="h" Text="WHERE THE FILES GO" />
+        <TextBlock Grid.Column="1" Classes="desc" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   Text="{Binding Name}" />
+        <Border Grid.Column="2" Classes="badge">
+          <TextBlock Text="script" />
+        </Border>
+      </Grid>
+      <TextBlock Grid.Row="1" Classes="desc" Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,0,10,0" />
+      <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,0,10,0" IsVisible="{Binding HasVariants}">
+        <TextBlock Classes="kv-key" Text="Version" VerticalAlignment="Center" />
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Variants}" SelectedItem="{Binding SelectedVariant}"
+                  HorizontalAlignment="Stretch"
+                  ToolTip.Tip="The mod ships more than one version — the one for your game edition is picked first" />
+      </Grid>
+      <ScrollViewer Grid.Row="3" Padding="0,0,10,0">
+        <ItemsControl ItemsSource="{Binding Files}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ScriptFileRow">
+              <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,7"
+                      BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1">
+                <StackPanel Spacing="3">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <TextBlock Text="{Binding Dest}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                               TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Dest}" />
+                    <TextBlock Grid.Column="1" Text="{Binding Kind}" FontSize="10.5" VerticalAlignment="Center"
+                               FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource AccentBrush}"
+                               IsVisible="{Binding HasKind}" />
+                  </Grid>
+                  <TextBlock Text="{Binding Note}" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding HasNote}"
+                             Foreground="{DynamicResource Text3Brush}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+      <TextBlock Grid.Row="4" Classes="desc" FontSize="11.5" Text="{Binding LeftOut}" TextWrapping="Wrap"
+                 IsVisible="{Binding HasLeftOut}" Margin="0,0,10,0" />
+    </Grid>
+  </Border>
+</UserControl>

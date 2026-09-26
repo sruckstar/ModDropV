@@ -272,10 +272,12 @@ public static partial class SourceIntake
 
         using (arc)
         {
-            // an OIV package is installed as a whole: every file its instructions name is needed
+            // an OIV package is installed as a whole: every file its instructions name is needed; so is
+            // a script mod — its settings, textures and sounds sit next to the plugin in any format
             bool everything = archive.EndsWith(".oiv", StringComparison.OrdinalIgnoreCase) ||
                               arc.Entries.Any(e => !e.IsDirectory && e.Key is { } k &&
-                                                   k.Replace('\\', '/').TrimStart('/').Equals("assembly.xml", StringComparison.OrdinalIgnoreCase));
+                                                   (k.Replace('\\', '/').TrimStart('/').Equals("assembly.xml", StringComparison.OrdinalIgnoreCase)
+                                                    || PathUtil.SuffixLower(k) is ".asi" or ".dll" or ".cs" or ".vb"));
             try
             {
                 if (arc.IsSolid || arc.Type == ArchiveType.SevenZip)

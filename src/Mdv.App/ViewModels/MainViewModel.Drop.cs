@@ -126,6 +126,7 @@ public sealed partial class MainViewModel
         _ = Weapon.UseIntakeAsync(null);
         Oiv.Use(null);
         _ = Replace.UseAsync(null);
+        Script.Use(null);
     }
 
     /// <summary>
@@ -252,7 +253,7 @@ public sealed partial class MainViewModel
                    "game files to replace (.ytd / .yft / .awc / .meta …), scripts or add-on packs.";
         if (a.Problems.TryGetValue(p.Category, out var why)) return why;
         return $"This looks like a {p.Category.DisplayName().ToLowerInvariant()} mod ({string.Join(", ", p.Evidence.Take(2))}). " +
-               "ModDrop V installs weapons, OIV packages and file replacements for now — other mod types are on the way.";
+               "ModDrop V installs weapons, OIV packages, file replacements and scripts for now — other mod types are on the way.";
     }
 
     /// <summary>A mod of the drop was picked: the others are unpicked and its panel takes over.</summary>
@@ -282,6 +283,10 @@ public sealed partial class MainViewModel
             case ReplacementPackage r:
                 SelectedPanel = Replace;
                 _panelLoad = Replace.UseAsync(r);
+                break;
+            case ScriptPackage s:
+                Script.Use(s);
+                SelectedPanel = Script;
                 break;
             default:
                 SelectedPanel = null;

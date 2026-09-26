@@ -45,7 +45,7 @@ public sealed record ModChange(string Id, bool Enable, bool Remove = false);
 /// </summary>
 public static class ModLibrary
 {
-    public static IReadOnlyList<IModHandler> Handlers { get; } = [new WeaponHandler(), new OivHandler(), new ReplacementHandler()];
+    public static IReadOnlyList<IModHandler> Handlers { get; } = [new WeaponHandler(), new OivHandler(), new ReplacementHandler(), new ScriptHandler()];
 
     public static IModHandler HandlerFor(ModCategory category) =>
         Handlers.FirstOrDefault(h => h.Category == category)
@@ -70,6 +70,15 @@ public static class ModLibrary
                 result.Problems[h.Category] = ex.Message;
             }
         }
+        // the kind the detector is surest of first — it is the one picked for the player
+        int Rank(ModPackage p)
+        {
+            int i = report.Found.FindIndex(d => d.Category == p.Category);
+            return i < 0 ? int.MaxValue : i;
+        }
+        var ordered = result.Packages.OrderBy(Rank).ToList();
+        result.Packages.Clear();
+        result.Packages.AddRange(ordered);
         return result;
     }
 

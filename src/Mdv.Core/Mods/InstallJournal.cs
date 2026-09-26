@@ -136,8 +136,16 @@ public sealed class InstallJournal
     {
         foreach (var s in Steps.OfType<MovedAside>().Where(s => !s.Keep))
             DeletePath(Abs(s.Stash));
-        TryDeleteEmpty(StashRoot);
-        TryDeleteEmpty(Path.GetDirectoryName(StashRoot)!);
+        // stashes of earlier installs this one emptied (an uninstall put their files back)
+        var stashes = Path.GetDirectoryName(StashRoot)!;
+        try
+        {
+            if (Directory.Exists(stashes))
+                foreach (var d in Directory.EnumerateDirectories(stashes)) TryDeleteEmpty(d);
+        }
+        catch (IOException) { }
+        TryDeleteEmpty(stashes);
+        TryDeleteEmpty(Abs(HomeDir));
     }
 
     /// <summary>Undo every recorded step, newest first. Failures are logged, not thrown.</summary>

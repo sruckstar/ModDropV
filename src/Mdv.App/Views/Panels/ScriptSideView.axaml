@@ -1,0 +1,82 @@
+<!-- Script panel, side slot: what the mod needs from the game (hooks, libraries) and how it stands. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.ScriptSideView"
+             x:DataType="vm:ScriptViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+      <TextBlock Classes="h" Text="WHAT IT NEEDS" />
+      <TextBlock Grid.Row="1" Classes="desc" Text="{Binding NeedsSummary}" TextWrapping="Wrap" Margin="0,0,10,0" />
+      <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <ItemsControl ItemsSource="{Binding Dependencies}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DependencyRow">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Panel Width="18" Height="18" VerticalAlignment="Top" Margin="0,1,0,0">
+                    <Ellipse Fill="{DynamicResource SuccessWashBrush}" IsVisible="{Binding IsOk}" />
+                    <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource SuccessBrush}" StrokeThickness="2.2"
+                          StrokeLineCap="Round" Stretch="Uniform" Width="9" Height="9" IsVisible="{Binding IsOk}" />
+                    <Ellipse Fill="{DynamicResource WarnWashBrush}" IsVisible="{Binding IsProblem}" />
+                    <Path Data="{StaticResource IconAlert}" Stroke="{DynamicResource WarnBrush}" StrokeThickness="1.8"
+                          StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="10" Height="10"
+                          IsVisible="{Binding IsProblem}" />
+                    <Ellipse Stroke="{DynamicResource BorderBrushStrong}" StrokeThickness="1.4" StrokeDashArray="2,2"
+                             IsVisible="{Binding IsPending}" />
+                  </Panel>
+                  <StackPanel Grid.Column="1" Spacing="2">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="10.5" VerticalAlignment="Center"
+                                 FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Text3Brush}" />
+                    </Grid>
+                    <SelectableTextBlock Text="{Binding Detail}" FontSize="11.5" TextWrapping="Wrap"
+                                         Foreground="{DynamicResource Text2Brush}" />
+                    <TextBlock Text="{Binding NeededBy}" FontSize="10.5" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Text3Brush}" ToolTip.Tip="{Binding NeededBy}" />
+                    <Button Classes="ghost small" HorizontalAlignment="Left" Margin="0,3,0,0" Command="{Binding OpenLinkCommand}"
+                            IsVisible="{Binding HasLink}" ToolTip.Tip="{Binding Dependency.Link}">
+                      <StackPanel Orientation="Horizontal" Spacing="7">
+                        <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
+                        <TextBlock Text="Get it" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Classes="note">
+            <StackPanel Spacing="4">
+              <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}"
+                         Text="Plugins go into the game folder, .NET scripts into scripts\, RAGE plugins into plugins\. Libraries other mods use too are only added when missing or older, and stay when this mod is removed." />
+              <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" IsVisible="{Binding CanSwitch}"
+                         Text="Switching it off in the Library renames its plugins and scripts to *.disabled — the game skips them." />
+            </StackPanel>
+          </Border>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Text1Brush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

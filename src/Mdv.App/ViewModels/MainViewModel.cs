@@ -38,6 +38,7 @@ public sealed partial class MainViewModel : ObservableObject
         Weapon = new WeaponViewModel(this);
         Oiv = new OivViewModel(this);
         Replace = new ReplacementViewModel(this);
+        Script = new ScriptViewModel(this);
         InitModderTypes();
         IsPlayer = settings.Mode == "player";
         OutputFolder = settings.LastOutput ?? "";
@@ -125,6 +126,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Player: loose files replacing game files.</summary>
     public ReplacementViewModel Replace { get; }
+
+    /// <summary>Player: ASI plugins, ScriptHookVDotNet scripts, RAGE plugins.</summary>
+    public ScriptViewModel Script { get; }
 
     /// <summary>Player: the panel of the mod picked from the drop (null: nothing installable dropped yet).</summary>
     [ObservableProperty] public partial ModPanelViewModel? SelectedPanel { get; set; }

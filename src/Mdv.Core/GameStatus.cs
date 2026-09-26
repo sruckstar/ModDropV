@@ -51,7 +51,7 @@ public sealed class GameStatusReport
 public static class GameStatus
 {
     public const string GameKey = "game", ModsKey = "mods", LoaderKey = "loader", AsiKey = "asi",
-                        ShvKey = "shv", ShvdnKey = "shvdn", DlcKey = "dlc", CopiesKey = "copies";
+                        ShvKey = "shv", ShvdnKey = "shvdn", RphKey = "rph", DlcKey = "dlc", CopiesKey = "copies";
 
     /// <param name="dlcs">from the game's file index, once built: the number of DLC packs mounted</param>
     public static GameStatusReport Read(string gameDir, GameEdition? edition = null, MountedDlcs? dlcs = null)
@@ -134,6 +134,19 @@ public static class GameStatus
         else
             r.Items.Add(new(ShvdnKey, "ScriptHookVDotNet", "not installed", StatusLevel.Info,
                             "Needed by .NET script mods (.dll / .cs in scripts)."));
+
+        // RAGE Plugin Hook: only worth a line when it's there (LSPDFR and the plugins in plugins\ need it)
+        var rph = Path.Combine(gameDir, "RAGEPluginHook.exe");
+        if (File.Exists(rph))
+        {
+            var ver = Version(rph);
+            int rphPlugins = Directory.Exists(Path.Combine(gameDir, "plugins")) ? SafeCount(Path.Combine(gameDir, "plugins"), "*.dll") : 0;
+            bool lspdfr = File.Exists(Path.Combine(gameDir, "plugins", "LSPD First Response.dll"));
+            r.Items.Add(new(RphKey, "RAGE Plugin Hook", ver is null ? "installed" : "v" + Short(ver),
+                            e == GameEdition.Enhanced ? StatusLevel.Warning : StatusLevel.Ok,
+                            $"{rphPlugins} plugin(s) in plugins\\{(lspdfr ? ", LSPD First Response among them" : "")}. Start the game through RAGEPluginHook.exe." +
+                            (e == GameEdition.Enhanced ? " Its Enhanced support is early — not every plugin works, LSPDFR doesn't yet." : "")));
+        }
 
         // DLC packs: what the game mounts (from the index), and the add-on packs in mods
         var dlcpacks = GameInstaller.DlcpacksDir(gameDir);

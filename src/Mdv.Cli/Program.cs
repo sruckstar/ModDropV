@@ -138,10 +138,12 @@ internal static class Program
                   with the mods' changes and added dlclist entries put back
               compact <game_dir> [archive ...]
                   rewrite archive copies in mods without the holes edits leave behind
-              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon] [--edition legacy|enhanced|auto]
-                      [--target NAME=GAME_PATH ...] [--dry-run]
+              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script] [--edition legacy|enhanced|auto]
+                      [--target NAME=GAME_PATH ...] [--variant NAME] [--dry-run]
                   install a dropped mod the way the app does: analyse, print the plan, run it
-                  (--kind picks one of the mods found; --target sends a replacement file elsewhere)
+                  (--kind picks one of the mods found; --target sends a replacement file elsewhere;
+                  --variant picks a script mod's version; scripts print where each file goes and
+                  what the mod needs from the game)
               remove <game_dir> <mod_id> [<mod_id> ...]
                   remove installed mods (ids as `installed` prints them)
               switch <game_dir> <mod_id> on|off
@@ -629,7 +631,7 @@ internal static class Program
 
     private static int Install(string[] argv)
     {
-        var a = Parse(argv, ["--kind", "--edition", "--target"], ["--dry-run"]);
+        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant"], ["--dry-run"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
         var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
@@ -664,6 +666,7 @@ internal static class Program
                     Console.WriteLine($"    {f.Name,-28} -> {f.Target ?? "(not in the game)"}" +
                                       (f.Candidates.Count > 1 ? $"  [{f.Candidates.Count} places]" : ""));
             }
+            if (pkg is ScriptPackage sp) PrintScripts(sp, a.Opt("--variant"), target);
             var plan = ModLibrary.HandlerFor(pkg.Category).PlanInstall(pkg, target);
             plan.Warnings.InsertRange(0, pkg.Warnings);
             Console.WriteLine($"{plan.Title}:");
@@ -685,6 +688,28 @@ internal static class Program
         {
             PathUtil.TryDeleteDir(work);
         }
+    }
+
+    /// <summary>A script mod: its versions, where each file goes, and what it needs from the game.</summary>
+    private static void PrintScripts(ScriptPackage sp, string? variant, InstallTarget target)
+    {
+        if (variant is not null)
+        {
+            int v = sp.Variants.FindIndex(x => x.Name.Equals(variant, StringComparison.OrdinalIgnoreCase));
+            if (v < 0) throw new UsageException($"--variant: the mod has {string.Join(", ", sp.Variants)}");
+            sp.Selected = v;
+            sp.VariantPicked = true;
+        }
+        ScriptHandler.Check(sp, target.GameDir, target.Edition);
+        if (sp.Variants.Count > 1) Console.WriteLine($"    versions: {string.Join(", ", sp.Variants)} — using «{sp.Variant}»");
+        foreach (var f in sp.Files)
+            Console.WriteLine($"    {f.Origin,-44} -> {f.Dest}  [{f.KindText}{(f.Shared ? ", shared" : "")}]" +
+                              (f.Skip is null ? "" : "  (kept: the game's is newer or the same)"));
+        if (sp.Variant.LeftOut.Count > 0)
+            Console.WriteLine($"    left out: {string.Join(", ", sp.Variant.LeftOut.Take(8))}{(sp.Variant.LeftOut.Count > 8 ? ", …" : "")}");
+        Console.WriteLine("  needs:");
+        foreach (var d in sp.Dependencies)
+            Console.WriteLine($"    {(d.IsProblem ? "[!]" : "ok ")} {d.Name,-26} {d.StateText,-18} {d.Detail}");
     }
 
     private static int Remove(string[] argv)

@@ -1,0 +1,161 @@
+{
+  "comment": "What script mods depend on and how ModDrop V finds it in a game folder. files: game-relative paths that show it is installed (the first is where it goes); assemblies: .NET assembly names it provides, each at <home>/<name>.dll; imports: native DLL names an .asi imports; namespaces: C# / VB namespaces a source script uses; editions: yes | early | no; bundle: a folder under data/dependencies ModDrop V can install it from (only for licences that allow it).",
+  "dependencies": [
+    {
+      "id": "shv",
+      "name": "ScriptHookV",
+      "kind": "runtime",
+      "files": ["ScriptHookV.dll"],
+      "imports": ["ScriptHookV.dll"],
+      "requires": ["asiloader"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "http://www.dev-c.com/gtav/scripthookv/",
+      "redistributable": false,
+      "note": "Made for one game build: after a game update scripts don't start until ScriptHookV is updated too."
+    },
+    {
+      "id": "shvdn",
+      "name": "ScriptHookVDotNet",
+      "kind": "runtime",
+      "files": ["ScriptHookVDotNet.asi", "ScriptHookVDotNet.ini", "MinHook.x64.dll"],
+      "assemblies": ["ScriptHookVDotNet2", "ScriptHookVDotNet3"],
+      "home": "",
+      "namespaces": ["GTA"],
+      "requires": ["shv"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "https://github.com/scripthookvdotnet/scripthookvdotnet-nightly/releases",
+      "links": { "enhanced": "https://github.com/Chiheb-Bacha/ScriptHookVDotNetEnhanced/releases" },
+      "redistributable": true,
+      "notes": {
+        "legacy": "The nightly builds support the latest Legacy builds (the last numbered release, 3.6, is from 2022).",
+        "enhanced": "Enhanced needs Script Hook V .NET Enhanced (it runs on Legacy too)."
+      }
+    },
+    {
+      "id": "rph",
+      "name": "RAGE Plugin Hook",
+      "kind": "runtime",
+      "files": ["RAGEPluginHook.exe"],
+      "assemblies": ["RagePluginHook", "RagePluginHookSDK"],
+      "home": "",
+      "editions": { "legacy": "yes", "enhanced": "early" },
+      "link": "https://ragepluginhook.net/",
+      "redistributable": false,
+      "note": "Start the game through RAGEPluginHook.exe — plugins load only then."
+    },
+    {
+      "id": "lspdfr",
+      "name": "LSPD First Response",
+      "kind": "runtime",
+      "files": ["plugins/LSPD First Response.dll"],
+      "assemblies": ["LSPD First Response"],
+      "home": "plugins",
+      "requires": ["rph", "ragenativeui"],
+      "editions": { "legacy": "yes", "enhanced": "no" },
+      "link": "https://www.lcpdfr.com/downloads/gta5mods/g17media/7792-lspd-first-response/",
+      "redistributable": false,
+      "note": "LSPDFR for Enhanced is still in closed beta."
+    },
+    {
+      "id": "ragenativeui",
+      "name": "RAGENativeUI",
+      "kind": "library",
+      "files": ["RAGENativeUI.dll"],
+      "assemblies": ["RAGENativeUI"],
+      "home": "",
+      "requires": ["rph"],
+      "editions": { "legacy": "yes", "enhanced": "early" },
+      "link": "https://github.com/alexguirre/RAGENativeUI/releases",
+      "redistributable": true
+    },
+    {
+      "id": "lemonui-shvdn3",
+      "name": "LemonUI (SHVDN3)",
+      "kind": "library",
+      "files": ["scripts/LemonUI.SHVDN3.dll"],
+      "assemblies": ["LemonUI.SHVDN3"],
+      "home": "scripts",
+      "namespaces": ["LemonUI"],
+      "requires": ["shvdn"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "https://github.com/LemonUIbyLemon/LemonUI/releases",
+      "redistributable": true,
+      "bundle": "lemonui-shvdn3",
+      "license": "MIT"
+    },
+    {
+      "id": "lemonui-shvdn2",
+      "name": "LemonUI (SHVDN2)",
+      "kind": "library",
+      "files": ["scripts/LemonUI.SHVDN2.dll"],
+      "assemblies": ["LemonUI.SHVDN2"],
+      "home": "scripts",
+      "requires": ["shvdn"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "https://github.com/LemonUIbyLemon/LemonUI/releases/tag/v2.1.2",
+      "redistributable": true
+    },
+    {
+      "id": "lemonui-rph",
+      "name": "LemonUI (RAGE Plugin Hook)",
+      "kind": "library",
+      "files": ["LemonUI.RagePluginHook.dll"],
+      "assemblies": ["LemonUI.RagePluginHook"],
+      "home": "",
+      "requires": ["rph"],
+      "editions": { "legacy": "yes", "enhanced": "early" },
+      "link": "https://github.com/LemonUIbyLemon/LemonUI/releases",
+      "redistributable": true,
+      "bundle": "lemonui-rph",
+      "license": "MIT"
+    },
+    {
+      "id": "nativeui",
+      "name": "NativeUI",
+      "kind": "library",
+      "files": ["scripts/NativeUI.dll"],
+      "assemblies": ["NativeUI"],
+      "home": "scripts",
+      "namespaces": ["NativeUI"],
+      "requires": ["shvdn"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "https://github.com/Guad/NativeUI/releases",
+      "redistributable": true
+    },
+    {
+      "id": "ifruitaddon2",
+      "name": "iFruitAddon2",
+      "kind": "library",
+      "files": ["scripts/iFruitAddon2.dll"],
+      "assemblies": ["iFruitAddon2"],
+      "home": "scripts",
+      "namespaces": ["iFruitAddon2"],
+      "requires": ["shvdn"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "https://github.com/Bob74/iFruitAddon2/releases",
+      "redistributable": true
+    },
+    {
+      "id": "menyoo",
+      "name": "Menyoo",
+      "kind": "tool",
+      "files": ["Menyoo.asi"],
+      "requires": ["shv"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "https://github.com/itsjustcurtis/MenyooSP/releases",
+      "redistributable": false
+    },
+    {
+      "id": "mapeditor",
+      "name": "Map Editor",
+      "kind": "tool",
+      "files": ["scripts/MapEditor.dll"],
+      "assemblies": ["MapEditor"],
+      "home": "scripts",
+      "requires": ["shvdn", "nativeui"],
+      "editions": { "legacy": "yes", "enhanced": "yes" },
+      "link": "https://www.gta5-mods.com/scripts/map-editor",
+      "redistributable": false
+    }
+  ]
+}
