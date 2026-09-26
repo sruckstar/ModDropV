@@ -27,6 +27,10 @@ public sealed class ReplacementFile
     public string? Target { get; set; }
     /// <summary>Why the target was picked the way it was, when that's worth a word.</summary>
     public string? Note { get; set; }
+    /// <summary>A clothing file: what it is by its name (null: not a clothing file).</summary>
+    public ClothingPart? Part { get; init; }
+    /// <summary>It goes in as a new slot of its wearer with this number (null: in place of the wearer's own file).</summary>
+    public int? NewNumber { get; set; }
 }
 
 /// <summary>Loose files that replace game files, with no instructions: where each goes is looked up in the game's file index.</summary>
@@ -40,6 +44,21 @@ public sealed class ReplacementPackage : ModPackage
     public List<string> Replaces { get; } = [];
     /// <summary>The game folder the targets were looked up in (null: not yet).</summary>
     public string? ResolvedFor { get; set; }
+
+    // ---- clothing (Kind = Clothing)
+    /// <summary>Whose clothes they are: the files go into that ped's folder (null: not clothing).</summary>
+    public Wearer? Wearer { get; set; }
+    /// <summary>Where that came from ("the mod's folders", "its readme"), null: a guess.</summary>
+    public string? WearerFrom { get; set; }
+    /// <summary>Every model goes in as new clothes (new slots) rather than in place of the wearer's same-numbered ones.</summary>
+    public bool AsNew { get; set; }
+    /// <summary>The wearer's ymt the new slots are added to (null: none needed).</summary>
+    public string? SlotsYmt { get; set; }
+    /// <summary>Why models the wearer has no slot for can't get one (null: they can, or there are none).</summary>
+    public string? SlotsProblem { get; set; }
+    /// <summary>The mod ships the wearer's ymt itself — its slots are the mod's, none are added.</summary>
+    public bool OwnYmt => Files.Any(f => Wearer is { } w && f.Name.Equals(w.Ymt, StringComparison.OrdinalIgnoreCase));
+    public IEnumerable<ReplacementFile> NewSlotFiles => Files.Where(f => f.NewNumber is not null && f.Target is not null);
 }
 
 /// <summary>
@@ -48,7 +67,7 @@ public sealed class ReplacementPackage : ModPackage
 /// (<c>x64e.rpf/levels/gta5/vehicles.rpf/</c>), else by name; the copy the game actually loads
 /// is the default, other places can be picked. The files go into copies of the archives in mods.
 /// </summary>
-public sealed class ReplacementHandler : FileModHandler
+public sealed partial class ReplacementHandler : FileModHandler
 {
     public const string Prefix = "replace:";
 
@@ -155,7 +174,7 @@ public sealed class ReplacementHandler : FileModHandler
                                  "(drop just the folder of the version you want).");
                 continue;
             }
-            var rf = new ReplacementFile { Source = f.FullPath, Origin = f.Origin, Hint = hint };
+            var rf = new ReplacementFile { Source = f.FullPath, Origin = f.Origin, Hint = hint, Part = ClothingNames.Parse(f.Name) };
             seen[key] = rf;
             pkg.Files.Add(rf);
         }
@@ -208,6 +227,12 @@ public sealed class ReplacementHandler : FileModHandler
     /// <summary>Look every file up in the game's index: its candidates and the target picked by default.</summary>
     public static void Resolve(ReplacementPackage pkg, GameIndex index)
     {
+        if (pkg.Kind == ModCategory.Clothing && pkg.Wearer is not null)
+        {
+            ResolveClothing(pkg, index);
+            pkg.ResolvedFor = Path.GetFullPath(index.GameDir);
+            return;
+        }
         foreach (var f in pkg.Files)
         {
             f.Candidates.Clear();
@@ -270,19 +295,26 @@ public sealed class ReplacementHandler : FileModHandler
         var id = IdFor(pkg.Name);
         var files = pkg.Files.Where(f => f.Target is not null).ToList();
         if (files.Count == 0)
-            throw new InvalidOperationException(
-                $"None of the mod's files ({string.Join(", ", pkg.Files.Take(5).Select(f => f.Name))}) are in this game — nothing to replace.");
+            throw new InvalidOperationException(pkg.Wearer is { } who
+                ? $"None of the mod's files fit {who.Label}{(pkg.SlotsProblem is { } why ? $" ({why})" : "")} — nothing to install."
+                : $"None of the mod's files ({string.Join(", ", pkg.Files.Take(5).Select(f => f.Name))}) are in this game — nothing to replace.");
 
         var plan = BeginInstall(id, pkg.Name, target);
-        foreach (var f in files) plan.Add(new RpfPutOp(f.Target!, f.Source, id));
+        foreach (var f in files.Where(f => f.NewNumber is null)) plan.Add(new RpfPutOp(f.Target!, f.Source, id));
+        if (pkg.NewSlotFiles.Any()) plan.Add(NewSlotsOp(pkg, id));
         foreach (var f in pkg.Files)
         {
-            if (f.Target is null) plan.Warnings.Add($"{f.Name} is not a file of this game — skipped.");
+            if (f.Target is null && pkg.Wearer is { } w)
+                plan.Warnings.Add(f.Part is null ? $"{f.Name} is not one of {w.Label}'s clothing files — skipped."
+                                  : $"{w.Label} has no {f.Part.Describe()} ({f.Name}) — skipped{(pkg.SlotsProblem is { } why ? ": no new slot, " + why : "")}.");
+            else if (f.Target is null) plan.Warnings.Add($"{f.Name} is not a file of this game — skipped.");
             else if (f.Note is not null) plan.Warnings.Add($"{f.Name}: {f.Note}.");
         }
         plan.Warnings.AddRange(ConflictWarnings(id, target, files.Select(f => f.Target!)));
         var archives = files.Select(f => ModsOverlay.Split(f.Target!).Archive).Distinct().Count();
-        plan.Add(Register(id, pkg.Category, pkg, target, $"{files.Count} file(s) in {archives} archive(s)"));
+        plan.Add(Register(id, pkg.Category, pkg, target, pkg.Wearer is { } wearer
+            ? $"{wearer.Label}: {ClothingWhere(pkg)}"
+            : $"{files.Count} file(s) in {archives} archive(s)"));
         return plan;
     }
 }

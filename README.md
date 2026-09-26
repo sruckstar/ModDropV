@@ -36,7 +36,7 @@ stay untouched and every install can be switched off or removed again.
 | Scripts and plugins — `.asi`, ScriptHookVDotNet, RAGE Plugin Hook / LSPDFR; missing ScriptHookV, SHVDN or libraries are pointed out, LemonUI is added for you | ✅ ready |
 | Add-on vehicles and peds — finished packs, FiveM resources (packed into a `dlc.rpf` for you), peds shared as bare models (a `peds.meta` is written for them) and replacements, with a 3D preview; clashing spawn names and modkit ids are caught before installing, Legacy models are converted for Enhanced | ✅ ready |
 | Vehicle liveries — pictures (PNG / JPG / DDS) put into a car's own textures (compressed to the game's format, the car guessed from the texture names), whole texture dictionaries, modkit liveries added to the car's modkit; for the game's cars and installed add-ons, with a 3D preview | ✅ ready |
-| Clothes for the main characters, MP clothes and components | planned |
+| Clothes — MP clothes packs (sub-packs included) and FiveM clothing packed as Rockstar's own DLCs lay them out, loose models as a collection of their own for the MP male / female (its .ymt written), replacements for Michael, Franklin, Trevor and the MP peds; models a character has no slot for get new slots in their .ymt | ✅ ready |
 | Objects, maps and total conversions | planned |
 
 LemonUI ships with ModDrop V under its MIT licence (`data/dependencies`); ScriptHookV, ScriptHookVDotNet and

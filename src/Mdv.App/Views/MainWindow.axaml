@@ -356,6 +356,9 @@
               <DataTemplate DataType="vm:LiveryViewModel">
                 <p:LiveryFormView />
               </DataTemplate>
+              <DataTemplate DataType="vm:ClothingViewModel">
+                <p:ClothingFormView />
+              </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
           <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
@@ -404,6 +407,9 @@
             </DataTemplate>
             <DataTemplate DataType="vm:LiveryViewModel">
               <p:LiverySideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:ClothingViewModel">
+              <p:ClothingSideView />
             </DataTemplate>
             <DataTemplate DataType="vm:ModPanelViewModel">
               <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />

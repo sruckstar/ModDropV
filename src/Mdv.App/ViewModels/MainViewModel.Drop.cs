@@ -255,7 +255,7 @@ public sealed partial class MainViewModel
                    "game files to replace (.ytd / .yft / .awc / .meta …), scripts or add-on packs.";
         if (a.Problems.TryGetValue(p.Category, out var why)) return why;
         return $"This looks like a {p.Category.DisplayName().ToLowerInvariant()} mod ({string.Join(", ", p.Evidence.Take(2))}). " +
-               "ModDrop V installs weapons, vehicles, peds, OIV packages, file replacements and scripts for now — other mod types are on the way.";
+               "ModDrop V installs weapons, vehicles, peds, liveries, clothes, OIV packages, file replacements and scripts for now — other mod types are on the way.";
     }
 
     /// <summary>A mod of the drop was picked: the others are unpicked and its panel takes over.</summary>
@@ -289,6 +289,10 @@ public sealed partial class MainViewModel
             case ScriptPackage s:
                 Script.Use(s);
                 SelectedPanel = Script;
+                break;
+            case AddonPackage { Kind: ModCategory.Clothing } cl:
+                SelectedPanel = Clothing;
+                _panelLoad = Clothing.UseAsync(cl);
                 break;
             case AddonPackage ad:
                 SelectedPanel = Addon;

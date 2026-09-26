@@ -86,7 +86,7 @@ public static class AddonChecks
     public const string HeapLink = "https://www.gta5-mods.com/tools/heapadjuster";
 
     /// <summary>What another add-on pack in mods declares (its folder, device, spawn names, kits).</summary>
-    private sealed record OtherPack(string Folder, bool On, string? Device, List<string> Names, List<AddonKit> Kits);
+    private sealed record OtherPack(string Folder, bool On, string? Device, List<string> Names, List<AddonKit> Kits, List<string> Collections);
 
     public static AddonCheckReport Run(AddonPackage pkg, InstallTarget target, GameIndex? index = null)
     {
@@ -161,6 +161,25 @@ public static class AddonChecks
             r.Items.Add(new AddonCheck(CheckLevel.Ok, names.Count == 1 ? "Spawn name is free" : "Spawn names are free",
                 string.Join(", ", names.Take(6)) + (names.Count > 6 ? ", …" : "")));
 
+        // ---- clothing collections: a name another pack (or the game) has means one of the two doesn't load
+        if (pkg.Kind == ModCategory.Clothing)
+        {
+            var colls = AddonPackHandler.CollectionsOf(pkg);
+            var clashes = new List<string>();
+            foreach (var c in colls)
+            {
+                var other = others.FirstOrDefault(o => o.On && o.Collections.Contains(c.FullName, StringComparer.OrdinalIgnoreCase));
+                if (other is not null)
+                    clashes.Add($"«{c.FullName}» is already in the add-on pack «{other.Folder}» — only one of the two loads, the other's clothes are lost");
+                else if (index?.Find(c.FullName + ".ymt").FirstOrDefault(h => h.Active && !InFolder(h, ownFolders)) is { } hit)
+                    clashes.Add($"the game already has a collection «{c.FullName}» ({hit.Source}) — only one of the two loads");
+            }
+            foreach (var d in clashes) r.Items.Add(new AddonCheck(CheckLevel.Warn, "Collection name taken", d + "."));
+            if (clashes.Count == 0 && colls.Count > 0)
+                r.Items.Add(new AddonCheck(CheckLevel.Ok, colls.Count == 1 ? "Collection name is free" : "Collection names are free",
+                    string.Join(", ", colls.Select(c => c.FullName))));
+        }
+
         // ---- modkit ids
         var taken = new Dictionary<int, string>();
         foreach (var o in others)
@@ -187,7 +206,8 @@ public static class AddonChecks
 
         // ---- limits
         // every .ymt takes a place in MetaDataStore, which the game's own files fill to the last one
-        int ymts = content.Streamed.Count(s => s.EndsWith(".ymt", StringComparison.OrdinalIgnoreCase));
+        int ymts = content.Streamed.Count(s => s.EndsWith(".ymt", StringComparison.OrdinalIgnoreCase)) +
+                   (pkg.Compose?.NewCollections.Count(n => n.Parts.Count > 0) ?? 0);
         if (ymts > 0 && GamePools.Read(game, GamePools.MetaDataStore) is { } store)
         {
             bool heldByOthers = reg.Mods.Any(m => m.Get("pools") == "1" && !ownFolders.Contains(m.Get("pack") ?? ""));
@@ -260,11 +280,11 @@ public static class AddonChecks
                 try
                 {
                     var p = AddonContent.ReadPack(rpf);
-                    list.Add(new OtherPack(folder, on, p.Device, [.. p.Content.SpawnNames], p.Content.Kits));
+                    list.Add(new OtherPack(folder, on, p.Device, [.. p.Content.SpawnNames], p.Content.Kits, [.. p.Content.Collections.Select(c => c.FullName)]));
                 }
                 catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or RpfEncryptedException)
                 {
-                    list.Add(new OtherPack(folder, on, null, [], []));                    // can't look inside — still a folder taken
+                    list.Add(new OtherPack(folder, on, null, [], [], []));                    // can't look inside — still a folder taken
                 }
             }
         }

@@ -1,0 +1,69 @@
+<!-- Clothing panel, side slot: the checks against the game (add-on), how it goes in, what to look at. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.ClothingSideView"
+             x:DataType="vm:ClothingViewModel">
+  <Border Classes="card" Padding="16,13,6,13">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+      <TextBlock Classes="h" Text="{Binding SideHeading}" />
+
+      <StackPanel Grid.Row="1" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding ShowAddon}">
+        <TextBlock Classes="desc" Text="{Binding CheckStatus}" TextWrapping="Wrap" />
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsChecking}" Height="3" MinHeight="3" />
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="desc" Text="{Binding Summary}" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding Checks}" IsVisible="{Binding ShowAddon}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AddonCheckRow">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Panel Width="18" Height="18" VerticalAlignment="Top" Margin="0,1,0,0">
+                    <Ellipse Fill="{DynamicResource SuccessWashBrush}" IsVisible="{Binding IsOk}" />
+                    <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource SuccessBrush}" StrokeThickness="2.2"
+                          StrokeLineCap="Round" Stretch="Uniform" Width="9" Height="9" IsVisible="{Binding IsOk}" />
+                    <Ellipse Fill="{DynamicResource WarnWashBrush}" IsVisible="{Binding IsProblem}" />
+                    <Path Data="{StaticResource IconAlert}" Stroke="{DynamicResource WarnBrush}" StrokeThickness="1.8"
+                          StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="10" Height="10"
+                          IsVisible="{Binding IsProblem}" />
+                    <Ellipse Fill="{DynamicResource AccentWashBrush}" IsVisible="{Binding IsInfo}" />
+                    <Ellipse Fill="{DynamicResource AccentBrush}" Width="5" Height="5" IsVisible="{Binding IsInfo}" />
+                  </Panel>
+                  <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                    <SelectableTextBlock Text="{Binding Detail}" FontSize="11.5" TextWrapping="Wrap"
+                                         Foreground="{DynamicResource Text2Brush}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Classes="note">
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" Text="{Binding Note}" />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="caution">
+                  <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Text1Brush}" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

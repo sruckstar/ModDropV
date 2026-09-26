@@ -15,6 +15,15 @@ public sealed record AddonVehicle(string Model, string? GameName, string? Make, 
 /// <summary>A ped an add-on declares (peds.meta).</summary>
 public sealed record AddonPed(string Name, string? PedType);
 
+/// <summary>An MP clothing collection an add-on brings (<c>mp_m_freemode_01_mp_m_ftbmodels_arai</c>).</summary>
+/// <param name="Ped">mp_m_freemode_01 / mp_f_freemode_01</param>
+/// <param name="DlcName">the collection's own name (<c>mp_m_ftbmodels_arai</c>)</param>
+public sealed record AddonCollection(string Ped, string DlcName)
+{
+    public string FullName => $"{Ped}_{DlcName}";
+    public bool IsFemale => Ped.StartsWith("mp_f_", StringComparison.OrdinalIgnoreCase);
+}
+
 /// <summary>A vehicle modkit an add-on declares (carcols.meta) — its id must be unique in the game.</summary>
 /// <param name="File">the carcols.meta it is in (path inside the pack / the mod)</param>
 public sealed record AddonKit(int Id, string Name, string File);
@@ -28,6 +37,10 @@ public sealed partial class AddonContent
     public List<AddonVehicle> Vehicles { get; } = [];
     public List<AddonPed> Peds { get; } = [];
     public List<AddonKit> Kits { get; } = [];
+    /// <summary>MP clothing collections (from their ymt and shop metas).</summary>
+    public List<AddonCollection> Collections { get; } = [];
+    /// <summary>Full names of the collections a shop meta registers (<c>mp_m_freemode_01_mp_m_x</c>).</summary>
+    public HashSet<string> Shops { get; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Streamed file names (adder.yft, adder+hi.ytd, a_m_y_x/head_000_r.ydd).</summary>
     public List<string> Streamed { get; } = [];
     /// <summary>Text labels by hash (gxt2, AddTextEntry in a FiveM script).</summary>
@@ -38,11 +51,33 @@ public sealed partial class AddonContent
     /// <summary>The edition its models are built for, when they all say the same (null: unknown, none or mixed).</summary>
     public GameEdition? ModelsEdition => ModelEditions.Count == 1 ? ModelEditions.First() : null;
 
-    /// <summary>The kind of add-on: vehicles first, then peds (null: neither).</summary>
+    /// <summary>The kind of add-on: vehicles first, then peds, then clothes (null: none of them).</summary>
     public ModCategory? Kind =>
         Vehicles.Count > 0 || DataTypes.Contains("VEHICLE_METADATA_FILE") ? ModCategory.Vehicle
         : Peds.Count > 0 || DataTypes.Contains("PED_METADATA_FILE") ? ModCategory.Ped
+        : Collections.Count > 0 || DataTypes.Contains("SHOP_PED_APPAREL_META_FILE") ? ModCategory.Clothing
         : null;
+
+    public void AddCollection(string ped, string dlcName)
+    {
+        if (!Collections.Any(c => c.Ped.Equals(ped, StringComparison.OrdinalIgnoreCase) && c.DlcName.Equals(dlcName, StringComparison.OrdinalIgnoreCase)))
+            Collections.Add(new AddonCollection(ped.ToLowerInvariant(), dlcName.ToLowerInvariant()));
+    }
+
+    /// <summary>Models (drawables) and props streamed for a collection.</summary>
+    public (int Models, int Props) CountsOf(AddonCollection c)
+    {
+        int models = 0, props = 0;
+        foreach (var s in Streamed)
+        {
+            var segs = s.Split('/');
+            if (segs.Length < 2 || !s.EndsWith(".ydd", StringComparison.OrdinalIgnoreCase)) continue;
+            var dir = segs[^2];
+            if (dir.Equals(c.FullName, StringComparison.OrdinalIgnoreCase)) models++;
+            else if (dir.Equals($"{c.Ped}_p_{c.DlcName}", StringComparison.OrdinalIgnoreCase)) props++;
+        }
+        return (models, props);
+    }
 
     /// <summary>The spawn names, as trainers take them.</summary>
     public IEnumerable<string> SpawnNames => Vehicles.Count > 0 ? Vehicles.Select(v => v.Model) : Peds.Select(p => p.Name);
@@ -59,11 +94,12 @@ public sealed partial class AddonContent
         return make is null || name.StartsWith(make, StringComparison.OrdinalIgnoreCase) ? name : $"{make} {name}";
     }
 
-    /// <summary>"innovabcm (Toyota Innova)" per vehicle, or the ped names.</summary>
+    /// <summary>"innovabcm (Toyota Innova)" per vehicle, the ped names, or the clothing collections.</summary>
     public IEnumerable<string> Describe() =>
         Vehicles.Count > 0
             ? Vehicles.Select(v => DisplayName(v) is { } d ? $"{d} ({v.Model})" : v.Model)
-            : Peds.Select(p => p.Name);
+            : Peds.Count > 0 || Collections.Count == 0 ? Peds.Select(p => p.Name)
+            : Collections.Select(c => $"{ClothingNames.PedLabel(c.Ped)} · {c.DlcName}");
 
     // ------------------------------------------------------------------ data files
 
@@ -81,6 +117,7 @@ public sealed partial class AddonContent
         ["CContentUnlocks"] = "CONTENT_UNLOCKING_META_FILE",
         ["CVehicleShopData"] = "VEHICLE_SHOP_DLC_FILE",
         ["CVehicleModelInfoVarGlobalOverride"] = "CARCOLS_FILE",
+        ["ShopPedApparel"] = "SHOP_PED_APPAREL_META_FILE",
     };
 
     /// <summary>Read what a data file of type <paramref name="type"/> declares.</summary>
@@ -93,7 +130,20 @@ public sealed partial class AddonContent
             case "VEHICLE_METADATA_FILE": ReadVehicles(text); break;
             case "PED_METADATA_FILE": ReadPeds(text); break;
             case "CARCOLS_FILE": ReadKits(text, file); break;
+            case "SHOP_PED_APPAREL_META_FILE": ReadShop(text); break;
         }
+    }
+
+    /// <summary>A shop meta: the collection it registers.</summary>
+    private void ReadShop(string text)
+    {
+        var root = ParseXml(text)?.Root;
+        var ped = root?.Element("pedName")?.Value.Trim();
+        var dlc = root?.Element("dlcName")?.Value.Trim();
+        var full = root?.Element("fullDlcName")?.Value.Trim();
+        if (ped is not { Length: > 0 } || dlc is not { Length: > 0 }) return;
+        Shops.Add(full is { Length: > 0 } ? full : $"{ped}_{dlc}");
+        if (ped.StartsWith("mp_", StringComparison.OrdinalIgnoreCase)) AddCollection(ped, dlc);
     }
 
     /// <summary>A data file's XML, forgiving of what hand-edited metas carry (a BOM, junk before the root).</summary>
@@ -215,6 +265,7 @@ public sealed partial class AddonContent
     private static partial Regex ContentItemRe();
     [GeneratedRegex(@"<deviceName>\s*([^<]+?)\s*</deviceName>")] private static partial Regex DeviceRe();
     [GeneratedRegex(@"<nameHash>\s*([^<]+?)\s*</nameHash>")] private static partial Regex NameHashRe();
+    [GeneratedRegex(@"<subPackCount\s+value=""(\d+)""")] private static partial Regex SubPackRe();
 
     /// <summary>The data files a content.xml lists.</summary>
     public static List<PackDataFile> ContentFiles(string contentXml)
@@ -239,6 +290,8 @@ public sealed partial class AddonContent
         public string? Device { get; init; }
         public string? NameHash { get; init; }
         public List<PackDataFile> DataFiles { get; } = [];
+        /// <summary>Its sub-packs (<c>dlc1.rpf</c>… next to it, as setup2.xml's subPackCount says) — they go into the game with it.</summary>
+        public List<string> SubPacks { get; } = [];
         public AddonContent Content { get; } = new();
         public List<string> Warnings { get; } = [];
     }
@@ -265,12 +318,29 @@ public sealed partial class AddonContent
         foreach (var f in pack.DataFiles)
         {
             pack.Content.DataTypes.Add(f.Type);
-            if (f.Type is not ("VEHICLE_METADATA_FILE" or "PED_METADATA_FILE" or "CARCOLS_FILE")) continue;
+            if (f.Type is not ("VEHICLE_METADATA_FILE" or "PED_METADATA_FILE" or "CARCOLS_FILE" or "SHOP_PED_APPAREL_META_FILE")) continue;
             if (Text(f.Path) is { } text) pack.Content.AddData(f.Type, text, f.Path);
             else pack.Warnings.Add($"content.xml lists {f.Path}, but the pack has no such file.");
         }
 
         Walk(arc, "", 0);
+        // sub-packs: dlc1.rpf… mounted with it under the same device
+        if (SubPackRe().Match(setup) is { Success: true } sp && int.TryParse(sp.Groups[1].Value, out int subs))
+            for (int i = 1; i <= Math.Min(subs, 16); i++)
+            {
+                var sub = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(dlcRpf)!, $"dlc{i}.rpf");
+                if (!File.Exists(sub))
+                {
+                    pack.Warnings.Add($"setup2.xml says the pack has {subs} sub-pack(s), but dlc{i}.rpf is not next to its dlc.rpf — the game can crash without it.");
+                    continue;
+                }
+                pack.SubPacks.Add(sub);
+                using var s = RpfArchive.Open(sub);
+                Walk(s, "", 0);
+            }
+        // the collections whose ymt it streams
+        foreach (var st in pack.Content.Streamed.Where(s => s.EndsWith(".ymt", StringComparison.OrdinalIgnoreCase)))
+            if (ClothingNames.WearerOfYmt(st.Split('/')[^1]) is { IsMp: true, Collection: { } coll } w) pack.Content.AddCollection(w.Ped, coll);
         return pack;
 
         void Walk(RpfArchive a, string prefix, int depth)

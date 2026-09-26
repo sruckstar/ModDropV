@@ -43,7 +43,7 @@ public sealed partial class MainViewModel
         new("Scripts & plugins", "ASI, ScriptHookVDotNet, RAGE Plugin Hook — with their dependencies", true),
         new("Vehicles & peds", "Add-on packs, FiveM resources, replacements — checked against the game", true),
         new("Liveries", "Pictures, texture dictionaries, modkit liveries — for the game's cars and add-ons", true),
-        new("Clothing", "Story characters and freemode", false),
+        new("Clothing", "MP clothes packs and FiveM clothing, story characters' clothes — new slots added when needed", true),
         new("Props, maps & big packs", "ymap, Menyoo and Map Editor maps, total conversions", false),
     ];
 

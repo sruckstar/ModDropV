@@ -29,8 +29,15 @@ public sealed class AddonPackage : ModPackage
     /// <summary>The name the game mounts it under: a finished pack's own, else dlc_&lt;pack&gt;.</summary>
     public string Device => Finished?.Device is { Length: > 0 } d ? d : "dlc_" + PackName;
 
-    /// <summary>The Replace version the mod ships too (loose models of a game vehicle), if any.</summary>
+    /// <summary>The Replace version the mod ships too (loose models of a game vehicle, clothes in place of a ped's own), if any.</summary>
     public ReplacementPackage? Replace { get; init; }
+    /// <summary>
+    /// Loose MP clothing models: packed as a collection of their own for this ped (mp_m_freemode_01 / mp_f_freemode_01);
+    /// null for anything else.
+    /// </summary>
+    public NewCollection? LooseClothing => Compose?.NewCollections.FirstOrDefault(c => c.Parts.Count > 0);
+    /// <summary>The Replace version is the only way in (loose clothes of a story character — they can't have add-on collections).</summary>
+    public bool ReplaceOnly => LooseClothing is not null && Replace?.Wearer is { IsMp: false };
     /// <summary>Install the Replace version instead of the add-on.</summary>
     public bool UseReplace { get; set; }
 
@@ -55,11 +62,12 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
 {
     public const string VehiclePrefix = "vehicle:";
     public const string PedPrefix = "ped:";
+    public const string ClothingPrefix = "clothing:";
     private const string StagedKey = "addon.staged";
 
     public ModCategory Category { get; } = kind;
-    private string Prefix => Category == ModCategory.Ped ? PedPrefix : VehiclePrefix;
-    private string Noun => Category == ModCategory.Ped ? "ped" : "vehicle";
+    private string Prefix => Category switch { ModCategory.Ped => PedPrefix, ModCategory.Clothing => ClothingPrefix, _ => VehiclePrefix };
+    private string Noun => Category switch { ModCategory.Ped => "ped", ModCategory.Clothing => "clothing collection", _ => "vehicle" };
 
     public bool Owns(string modId) => modId.StartsWith(Prefix, StringComparison.Ordinal);
 
@@ -113,6 +121,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             var pkg = new AddonPackage(Category)
             {
                 Name = name, Source = src, Compose = spec, DataDir = env.DataDir, PackName = packName, PackNameFrom = from,
+                Replace = Category == ModCategory.Clothing ? ClothingReplaceVersion(source, files, name, src, spec) : null,
             };
             pkg.Warnings.AddRange(spec.Warnings);
             Describe(pkg, spec.Resources.Count > 0
@@ -122,6 +131,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         }
 
         if (report.Primary?.Category != Category) return null;
+        if (Category == ModCategory.Clothing) return LooseClothing(source, files, name, src, env);
         var vanilla = VanillaModels.Load(env.DataDir);
 
         // 3. models of peds the game doesn't have, with no peds.meta: an add-on with one written for them
@@ -287,7 +297,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         var fixes = pkg.FixKits ? checks.KitFixes : [];
         var convert = target.Edition == GameEdition.Enhanced && pkg.Content.ModelEditions.Contains(GameEdition.Legacy);
         if (pkg.Finished is { } finished && !convert && fixes.Count == 0)
-            plan.Add(new InstallDlcPackOp(finished.Path, pack, Done(pkg)));
+            plan.Add(new InstallDlcPackOp(finished.Path, pack, Done(pkg), finished.SubPacks));
         else
         {
             plan.Add(new ActionOp(StageDescription(pkg, convert, fixes), ctx => Stage(ctx, pkg, fixes, convert)));
@@ -296,7 +306,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 var staged = (string)ctx.Items[StagedKey];
                 try
                 {
-                    GameInstaller.InstallToGame(ctx.GameDir, staged, pack, ctx.Log, ctx.Journal, Done(pkg));
+                    GameInstaller.InstallToGame(ctx.GameDir, staged, pack, ctx.Log, ctx.Journal, Done(pkg),
+                                                pkg.Finished?.SubPacks.Select(s => Path.Combine(Path.GetDirectoryName(staged)!, Path.GetFileName(s))).ToList());
                 }
                 finally
                 {
@@ -332,6 +343,12 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     /// <summary>"Add-On installed — spawn it with a trainer by name: innovabcm."</summary>
     private static string Done(AddonPackage pkg)
     {
+        if (pkg.Kind == ModCategory.Clothing)
+        {
+            var peds = CollectionsOf(pkg).Select(c => ClothingNames.PedLabel(c.Ped)).Distinct().ToList();
+            return $"Clothes installed — pick them for {(peds.Count == 0 ? "the MP characters" : string.Join(" / ", peds))} in a trainer's wardrobe " +
+                   "(they come after the game's own).";
+        }
         var names = pkg.Content.SpawnNames.ToList();
         return names.Count == 0 ? "Add-On installed."
             : $"Add-On installed — spawn it with a trainer by name: {string.Join(", ", names.Take(6))}{(names.Count > 6 ? ", …" : "")}.";
@@ -352,7 +369,9 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     private string StageDescription(AddonPackage pkg, bool convert, List<KitFix> fixes)
     {
         var parts = new List<string>();
-        if (pkg.Compose is { NewPeds.Count: > 0 } made)
+        if (pkg.LooseClothing is { } loose)
+            parts.Add($"Pack the clothes as the collection {loose.Ped}_{loose.NameFor(pkg.Device)} (numbered from 0, ymt and shop meta written) into a dlc.rpf");
+        else if (pkg.Compose is { NewPeds.Count: > 0 } made)
             parts.Add($"Write peds.meta for {string.Join(", ", made.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()})"))} " +
                       "and pack it with the models into a dlc.rpf");
         else if (pkg.Compose is { } spec)
@@ -391,6 +410,12 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                     RpfRetarget.Convert(finished.Path, rpf, edition);
                 }
                 else PathUtil.Copy2(finished.Path, rpf);
+                foreach (var sub in finished.SubPacks)
+                {
+                    var subDst = Path.Combine(Path.GetDirectoryName(rpf)!, Path.GetFileName(sub));
+                    if (convert && RpfRetarget.Mismatched(sub, edition).Count > 0) RpfRetarget.Convert(sub, subDst, edition);
+                    else PathUtil.Copy2(sub, subDst);
+                }
                 if (fixes.Count > 0) FixKitsInPack(rpf, fixes, edition, ctx.Log);
             }
             Pipeline.VerifyPack(rpf, ctx.Log);
@@ -461,7 +486,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     private RegisteredMod Record(AddonPackage pkg, string id, InstallTarget target, bool overlay, bool pools)
     {
         var c = pkg.Content;
-        var names = c.SpawnNames.ToList();
+        var names = pkg.Kind == ModCategory.Clothing ? CollectionsOf(pkg).Select(x => x.FullName).ToList() : c.SpawnNames.ToList();
         var record = new RegisteredMod
         {
             Id = id, Category = Category, Name = pkg.Name, Edition = WeaponHandler.EditionKey(target.Edition),
@@ -472,6 +497,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 ["kind"] = "addon", ["pack"] = pkg.PackName, ["device"] = pkg.Device,
                 ["models"] = string.Join(",", names),
                 ["where"] = names.Count == 0 ? $"dlcpacks\\{pkg.PackName}"
+                    : pkg.Kind == ModCategory.Clothing
+                        ? $"{string.Join(", ", CollectionsOf(pkg).Take(3).Select(x => $"{ClothingNames.PedLabel(x.Ped)} · {x.DlcName}"))} · dlcpacks\\{pkg.PackName}"
                     : $"spawn: {string.Join(", ", names.Take(4))}{(names.Count > 4 ? ", …" : "")} · dlcpacks\\{pkg.PackName}",
             },
         };

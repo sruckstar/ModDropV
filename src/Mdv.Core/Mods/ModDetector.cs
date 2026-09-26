@@ -133,6 +133,12 @@ public static partial class ModDetector
         // a ped is a skeleton (.yft) with its drawables (.ydd) / variations (.ymt) under the same name
         var pedStems = new HashSet<string>(list.Where(f => PathUtil.SuffixLower(f.Origin) is ".ydd" or ".ymt")
                                                .Select(f => Path.GetFileNameWithoutExtension(f.Origin)), StringComparer.OrdinalIgnoreCase);
+        // …or with its components in a folder named after it (a streamed ped: coolped.yft + coolped/uppr_000_u.ydd)
+        foreach (var (_, origin) in list.Where(f => PedComponentRe().IsMatch(Path.GetFileName(f.Origin).Split('^')[^1])))
+        {
+            var name = Path.GetFileName(origin);
+            pedStems.Add(name.Contains('^') ? name[..name.LastIndexOf('^')] : Path.GetFileName(DirOf(origin)));
+        }
         var yftStems = new HashSet<string>(list.Where(f => PathUtil.SuffixLower(f.Origin) == ".yft")
                                                .Select(f => Path.GetFileNameWithoutExtension(f.Origin)), StringComparer.OrdinalIgnoreCase);
         int counted = 0;
@@ -223,14 +229,21 @@ public static partial class ModDetector
             return;
         }
         bool pedPart = PedComponentRe().IsMatch(stem.Split('^')[^1]) || PedPropRe().IsMatch(stem.Split('^')[^1]);
-        if (ClothingOwnerRe().IsMatch(origin) || (stem.Contains('^') && pedPart))
+        bool texture = ext == ".ytd" && ClothingNames.Parse(name) is { Kind: ClothingPartKind.Texture };
+        if (ClothingOwnerRe().IsMatch(origin))
         {
-            s.Add(ModCategory.Clothing, 3, pedPart ? $"clothing parts ({name})" : $"character files ({name})");
+            s.Add(ModCategory.Clothing, texture ? 1 : 3, pedPart || texture ? $"clothing parts ({name})" : $"character files ({name})");
             return;
         }
-        if (pedPart)
+        if (pedPart || texture)
         {
-            s.Add(ModCategory.Ped, 2, $"ped components ({name})");
+            // whose parts: a ped of the drop (its .yft) or a game ped's folder — else clothes for the player's characters
+            var whose = stem.Contains('^') ? stem[..stem.LastIndexOf('^')] : Path.GetFileName(DirOf(origin));
+            if (whose.EndsWith("_p", StringComparison.OrdinalIgnoreCase)) whose = whose[..^2];
+            if (yftStems.Contains(whose) || PedModelRe().IsMatch(whose))
+                s.Add(ModCategory.Ped, texture ? 1 : 2, $"ped components ({name})");
+            else
+                s.Add(ModCategory.Clothing, texture ? 1 : 3, $"clothing parts ({name})");
             return;
         }
         if (PedModelRe().IsMatch(stem) || (ext == ".yft" && pedStems.Contains(stem)))

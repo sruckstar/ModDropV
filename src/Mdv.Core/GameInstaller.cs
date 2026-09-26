@@ -367,9 +367,11 @@ public static partial class GameInstaller
     /// <summary>Install a built dlc.rpf into the game; returns the installed path.</summary>
     /// <param name="journal">records every change, so a failed transaction can take it back</param>
     /// <param name="done">the last log line (what to look for in the game)</param>
+    /// <param name="subPacks">sub-packs (dlc1.rpf…) that go into the pack folder next to its dlc.rpf</param>
     public static string InstallToGame(string gameDir, string dlcRpf, string dlcName, Action<string> log,
                                        InstallJournal? journal = null,
-                                       string done = "Add-On installed. Launch the game and check the weapon in the shop.")
+                                       string done = "Add-On installed. Launch the game and check the weapon in the shop.",
+                                       IReadOnlyList<string>? subPacks = null)
     {
         log($"Installing into game: {gameDir}");
         RegisterInDlclist(gameDir, dlcName, log, journal);
@@ -385,6 +387,17 @@ public static partial class GameInstaller
         }
         PathUtil.Copy2(dlcRpf, dest);
         log($"    dlc.rpf copied -> {dest}");
+        foreach (var sub in subPacks ?? [])
+        {
+            var subDest = Path.Combine(destDir, Path.GetFileName(sub));
+            if (!newDir && journal is not null)
+            {
+                if (File.Exists(subDest)) journal.MoveAside(subDest, keep: false);
+                else journal.FileCreated(subDest);
+            }
+            PathUtil.Copy2(sub, subDest);
+            log($"    {Path.GetFileName(sub)} (sub-pack) copied -> {subDest}");
+        }
         // a switched-off copy of an earlier version is superseded by this one
         var parked = DisabledPackDir(gameDir, dlcName);
         if (Directory.Exists(parked))

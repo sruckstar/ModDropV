@@ -22,6 +22,40 @@ public sealed class ComposeSpec
     public List<string> Resources { get; } = [];
     /// <summary>Peds the mod has models of but no peds.meta for: their entries are written on packing (<see cref="PedMeta"/>).</summary>
     public List<NewPed> NewPeds { get; } = [];
+    /// <summary>MP clothing collections whose shop meta (and, for loose models, the ymt) is written on packing.</summary>
+    public List<NewCollection> NewCollections { get; } = [];
+}
+
+/// <summary>
+/// An MP clothing collection written on packing: the shop meta it lacks, and — made of loose models — its files laid
+/// out under a collection of its own (numbered from 0 per slot) with a ymt written for them (<see cref="PedVariation"/>).
+/// </summary>
+/// <param name="Ped">mp_m_freemode_01 / mp_f_freemode_01</param>
+public sealed class NewCollection(string ped)
+{
+    /// <summary>The ped it is for — loose models can be switched between the two MP peds before packing.</summary>
+    public string Ped { get; set; } = ped;
+    /// <summary>The collection's name (<c>mp_m_ftbmodels_arai</c>); null: named after the pack on packing (<c>mp_m_&lt;pack&gt;</c>).</summary>
+    public string? DlcName { get; init; }
+    /// <summary>Loose clothing files to lay out, with their ymt written (empty: the mod has the ymt, only the shop meta is missing).</summary>
+    public List<(string Source, ClothingPart Part)> Parts { get; } = [];
+    public bool IsFemale => Ped.StartsWith("mp_f_", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The collection name used in a pack mounted as <paramref name="device"/>.</summary>
+    public string NameFor(string device) =>
+        DlcName ?? (IsFemale ? "mp_f_" : "mp_m_") + DlcComposer.Slug(device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] : device);
+
+    /// <summary>Each file's number in the collection: the mod's numbers per slot, in order, from 0.</summary>
+    public Dictionary<(bool Prop, int Slot, int Number), int> Numbering()
+    {
+        var map = new Dictionary<(bool, int, int), int>();
+        foreach (var g in Parts.Select(p => p.Part).Where(p => p.Kind == ClothingPartKind.Drawable).GroupBy(p => (p.Prop, p.Slot)))
+        {
+            int n = 0;
+            foreach (var number in g.Select(p => p.Number).Distinct().Order()) map[(g.Key.Prop, g.Key.Slot, number)] = n++;
+        }
+        return map;
+    }
 }
 
 /// <summary>
@@ -101,11 +135,49 @@ public static partial class DlcComposer
 
         if (spec.Content.Kind is null && spec.Data.Count == 0) return null;
         AddImages(spec);
+        AddMissingShops(spec);
         return spec;
     }
 
     public const string PedImage = "x64/peds.rpf";
     public const string StreamedPedImage = "x64/streamedpeds.rpf";
+    public const string CreatureImage = "x64/anim/creaturemetadata.rpf";
+
+    /// <summary>The image archive of MP clothes of one gender (props go in it too, as in the slot packs players use).</summary>
+    public static string ClothesImage(bool female) => $"x64/models/cdimages/clothes_{(female ? "female" : "male")}.rpf";
+
+    /// <summary>
+    /// Where a streamed file of MP clothes goes in the pack: a collection's ymt and files (FiveM spells the collection
+    /// folder with ^: <c>mp_m_freemode_01_mp_m_x^jbib_000_u.ydd</c>) into the clothes archive of its gender, creature
+    /// metadata into <see cref="CreatureImage"/>. Null: not clothes.
+    /// </summary>
+    private static string? ClothingPath(DroppedFile f)
+    {
+        var name = f.Name.ToLowerInvariant();
+        if (name.StartsWith("mp_creaturemetadata_", StringComparison.Ordinal) && name.EndsWith(".ymt", StringComparison.Ordinal))
+            return $"{CreatureImage}/{name}";
+        if (name.Contains('^'))
+        {
+            var prefix = name[..name.LastIndexOf('^')];
+            return ClothingNames.WearerOfFolder(prefix) is { IsMp: true } w
+                ? $"{ClothesImage(w.IsFemale)}/{prefix}/{name[(name.LastIndexOf('^') + 1)..]}" : null;
+        }
+        if (ClothingNames.WearerOfYmt(name) is { IsMp: true, Collection: not null } y) return $"{ClothesImage(y.IsFemale)}/{name}";
+        if (!ClothingNames.IsClothingFile(name)) return null;
+        // laid out as in a pack: …/mp_m_freemode_01_mp_m_x/jbib_000_u.ydd (props may sit one folder deeper, p_head/)
+        foreach (var dir in DirOf(f.Origin).Split('/').Reverse().Take(2))
+            if (ClothingNames.WearerOfFolder(dir) is { IsMp: true, Collection: not null } wf)
+                return $"{ClothesImage(wf.IsFemale)}/{dir.ToLowerInvariant()}/{name}";
+        return null;
+    }
+
+    /// <summary>An MP collection among the streamed files has no shop meta: one is written for it on packing.</summary>
+    private static void AddMissingShops(ComposeSpec spec)
+    {
+        foreach (var c in spec.Content.Collections)
+            if (!spec.Content.Shops.Contains(c.FullName) && !spec.NewCollections.Any(n => n.DlcName == c.DlcName))
+                spec.NewCollections.Add(new NewCollection(c.Ped) { DlcName = c.DlcName });
+    }
 
     /// <summary>
     /// The content.xml entries of the image archives. A streamed ped (its components in a folder of its own,
@@ -193,6 +265,46 @@ public static partial class DlcComposer
         }
     }
 
+    /// <summary>
+    /// Loose MP clothing models (<c>jbib_000_u.ydd</c>, <c>jbib_diff_000_a_uni.ytd</c>, <c>p_head_001.ydd</c>…) with no
+    /// ymt: an add-on collection of their own for <paramref name="ped"/> — laid out and numbered from 0 per slot, the
+    /// ymt and shop meta written on packing. Null when there is no clothing model.
+    /// </summary>
+    public static ComposeSpec? FromClothingModels(DroppedSource src, string ped)
+    {
+        var files = src.Files.Where(f => !f.InBackupDir && ClothingNames.IsClothingFile(f.Name))
+                             .OrderBy(f => f.Depth).ThenBy(f => f.Origin, PathUtil.PathOrder).ToList();
+        var spec = new ComposeSpec();
+        var coll = new NewCollection(ped);
+        var seen = new Dictionary<string, DroppedFile>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in files)
+        {
+            var part = ClothingNames.Parse(f.Name)!;
+            if (seen.TryGetValue(part.Name, out var first))
+            {
+                if (!SameFile(first.FullPath, f.FullPath))
+                    spec.Warnings.Add($"{part.Name} is in the mod more than once — {first.Origin} is used, {f.Origin} is left out.");
+                continue;
+            }
+            seen[part.Name] = f;
+            coll.Parts.Add((f.FullPath, part));
+            if (ResourceEditions.EditionOf(PathUtil.SuffixLower(f.Name), ResourceVersion(f.FullPath)) is { } ed) spec.Content.ModelEditions.Add(ed);
+        }
+        var parts = coll.Parts.Select(p => p.Part).ToList();
+        var drawables = parts.Where(p => p.Kind == ClothingPartKind.Drawable).Select(p => (p.Prop, p.Slot, p.Number)).ToHashSet();
+        if (drawables.Count == 0) return null;
+        foreach (var t in parts.Where(p => p.Kind != ClothingPartKind.Drawable && !drawables.Contains((p.Prop, p.Slot, p.Number))))
+            spec.Warnings.Add($"{t.Name} belongs to {t.Describe()}, which the mod has no model for — left out.");
+        coll.Parts.RemoveAll(p => p.Part.Kind != ClothingPartKind.Drawable && !drawables.Contains((p.Part.Prop, p.Part.Slot, p.Part.Number)));
+        foreach (var d in drawables.Where(d => !parts.Any(p => p.Kind == ClothingPartKind.Texture && (p.Prop, p.Slot, p.Number) == d)))
+            spec.Warnings.Add($"{parts.First(p => (p.Prop, p.Slot, p.Number) == d && p.Kind == ClothingPartKind.Drawable).Describe()} has no texture " +
+                              "in the mod — the game shows it untextured.");
+        spec.NewCollections.Add(coll);
+        foreach (var f in coll.Parts) spec.Content.Streamed.Add(f.Part.Name);
+        spec.Content.DataTypes.Add("SHOP_PED_APPAREL_META_FILE");
+        return spec;
+    }
+
     /// <summary>"x64/vehicles.rpf" for a streamed file's pack path.</summary>
     private static string? ImageOf(string packPath)
     {
@@ -251,7 +363,7 @@ public static partial class DlcComposer
             }
         }
         // only a mod that declares a vehicle / ped is an add-on; loose models alone are a replacement
-        if (!metas.Any(m => m.Type is "VEHICLE_METADATA_FILE" or "PED_METADATA_FILE")) return;
+        if (!metas.Any(m => m.Type is "VEHICLE_METADATA_FILE" or "PED_METADATA_FILE" or "SHOP_PED_APPAREL_META_FILE")) return;
         var seenMeta = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (f, type) in metas)
         {
@@ -276,7 +388,10 @@ public static partial class DlcComposer
     }
 
     private static ModCategory KindByStream(IEnumerable<DroppedFile> files) =>
-        files.Any(f => PathUtil.SuffixLower(f.Name) == ".yft" && !f.Name.Contains('^')) &&
+        files.Any(f => ClothingNames.WearerOfYmt(f.Name) is { IsMp: true, Collection: not null } ||
+                       (f.Name.Contains('^') && ClothingNames.WearerOfFolder(f.Name[..f.Name.LastIndexOf('^')]) is { IsMp: true }))
+            ? ModCategory.Clothing
+        : files.Any(f => PathUtil.SuffixLower(f.Name) == ".yft" && !f.Name.Contains('^')) &&
         !files.Any(f => PathUtil.SuffixLower(f.Name) is ".ydd" or ".ymt")
             ? ModCategory.Vehicle : ModCategory.Ped;
 
@@ -338,6 +453,12 @@ public static partial class DlcComposer
         var inner = f.Name.ToLowerInvariant().Replace('^', '/');
         var image = kind == ModCategory.Ped ? "x64/peds.rpf" : "x64/vehicles.rpf";
         var path = $"{image}/{inner}";
+        if (ClothingPath(f) is { } clothing)
+        {
+            path = clothing;
+            inner = clothing[(ImageOf(clothing)!.Length + 1)..];
+            if (ClothingNames.WearerOfYmt(f.Name) is { IsMp: true, Collection: not null } w) spec.Content.AddCollection(w.Ped, w.Collection);
+        }
         if (streamed.TryGetValue(inner, out var first))
         {
             if (!SameFile(first.FullPath, f.FullPath))
@@ -407,6 +528,7 @@ public static partial class DlcComposer
                 log($"    peds.meta written for {string.Join(", ", spec.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()}{(p.Streamed ? ", streamed" : "")})"))}.");
             }
             var data = spec.Data.ToList();
+            foreach (var c in spec.NewCollections) WriteCollection(spec, c, device, tree, data, log);
             if (spec.Content.Labels.Count > 0 && !data.Any(d => d.Type == "TEXTFILE_METAFILE"))
             {
                 var gxt = Gxt2.Build(new Dictionary<string, string>(), spec.Content.Labels);
@@ -449,4 +571,54 @@ public static partial class DlcComposer
             PathUtil.TryDeleteDir(tree);
         }
     }
+
+    /// <summary>
+    /// An MP collection's files, ymt and shop meta into the pack tree: loose models laid out under the collection's
+    /// folders with the numbers it gives them, the ymt written for them; a shop meta when the mod has none.
+    /// </summary>
+    private static void WriteCollection(ComposeSpec spec, NewCollection c, string device, string tree, List<ComposeData> data, Action<string> log)
+    {
+        var dlc = c.NameFor(device);
+        var full = $"{c.Ped}_{dlc}";
+        if (c.Parts.Count > 0)
+        {
+            var image = ClothesImage(c.IsFemale);
+            var numbering = c.Numbering();
+            var laid = new List<ClothingPart>();
+            foreach (var (source, part) in c.Parts)
+            {
+                if (!numbering.TryGetValue((part.Prop, part.Slot, part.Number), out var n)) continue;
+                var name = ClothingNames.Renumber(part.Name, n);
+                var dst = Path.Combine(tree, image.Replace('/', Path.DirectorySeparatorChar), part.Prop ? $"{c.Ped}_p_{dlc}" : full, name);
+                Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
+                PathUtil.Copy2(source, dst);
+                laid.Add(ClothingNames.Parse(name)!);
+            }
+            var ymt = PedVariation.Empty(dlc);
+            PedVariation.Add(ymt, PedVariation.DrawablesOf(laid).Select(d => d.Drawable));
+            File.WriteAllBytes(Path.Combine(tree, image.Replace('/', Path.DirectorySeparatorChar), full + ".ymt"), PedVariation.Write(ymt));
+            if (!data.Any(d => d.PackPath.Equals(image, StringComparison.OrdinalIgnoreCase)))
+                data.Add(new ComposeData(image, "RPF_FILE", Persistent: true));
+            var (comps, props) = PedVariation.Counts(ymt);
+            log($"    Collection {full}: {comps.Sum()} model(s){(props.Sum() > 0 ? $", {props.Sum()} prop(s)" : "")} — ymt written.");
+        }
+        if (spec.Content.Shops.Contains(full)) return;
+        var creature = spec.Files.Select(f => Path.GetFileNameWithoutExtension(f.PackPath))
+                           .Where(n => n.StartsWith("mp_creaturemetadata_", StringComparison.OrdinalIgnoreCase)).ToList();
+        var creatureName = creature.Count == 1 ? "MP_CreatureMetadata_" + creature[0]["mp_creaturemetadata_".Length..] : "MP_CreatureMetadata_independence";
+        var shop = $"common/data/{full}_shop.meta";
+        var shopFile = Path.Combine(tree, shop.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(shopFile)!);
+        TextIo.WriteText(shopFile, ShopMeta(c.Ped, dlc, creatureName));
+        data.Add(new ComposeData(shop, "SHOP_PED_APPAREL_META_FILE"));
+        log($"    {full}_shop.meta written (the mod has none).");
+    }
+
+    /// <summary>A shop meta that registers a collection and lists no shop items (the clothes are picked in trainers / menus).</summary>
+    public static string ShopMeta(string ped, string dlc, string creature) =>
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ShopPedApparel>\n" +
+        $"  <pedName>{ped}</pedName>\n  <dlcName>{dlc}</dlcName>\n  <fullDlcName>{ped}_{dlc}</fullDlcName>\n" +
+        "  <eCharacter>SCR_CHAR_MULTIPLAYER</eCharacter>\n" +
+        $"  <creatureMetaData>{creature}</creatureMetaData>\n" +
+        "  <pedOutfits />\n  <pedComponents />\n  <pedProps />\n</ShopPedApparel>\n";
 }

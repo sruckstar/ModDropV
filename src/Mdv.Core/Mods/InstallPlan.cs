@@ -137,10 +137,11 @@ public sealed class CopyToScriptsOp(string source, string? relInScripts = null)
 
 /// <summary>Install a finished dlc.rpf as mods\update\x64\dlcpacks\&lt;Pack&gt; and list it in dlclist.xml.</summary>
 /// <param name="done">the last log line (what to look for in the game)</param>
-public sealed class InstallDlcPackOp(string dlcRpf, string pack, string done = "Add-On installed.") : PlanOp
+public sealed class InstallDlcPackOp(string dlcRpf, string pack, string done = "Add-On installed.", IReadOnlyList<string>? subPacks = null) : PlanOp
 {
-    public override string Describe() => $"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}) and add it to dlclist.xml";
-    public override void Execute(InstallContext ctx) => GameInstaller.InstallToGame(ctx.GameDir, dlcRpf, pack, ctx.Log, ctx.Journal, done);
+    public override string Describe() => $"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}" +
+                                         (subPacks is { Count: > 0 } s ? $", with {string.Join(", ", s.Select(Path.GetFileName))}" : "") + ") and add it to dlclist.xml";
+    public override void Execute(InstallContext ctx) => GameInstaller.InstallToGame(ctx.GameDir, dlcRpf, pack, ctx.Log, ctx.Journal, done, subPacks);
 }
 
 public sealed class DlclistAddOp(string pack) : PlanOp

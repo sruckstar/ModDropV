@@ -141,9 +141,10 @@ internal static class Program
                   with the mods' changes and added dlclist entries put back
               compact <game_dir> [archive ...]
                   rewrite archive copies in mods without the holes edits leave behind
-              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery]
+              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery|clothing]
                       [--edition legacy|enhanced|auto] [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME]
-                      [--replace] [--keep-kits] [--gender male|female] [--vehicle NAME] [--slot PICTURE=TEXTURE ...] [--dry-run]
+                      [--replace] [--keep-kits] [--gender male|female] [--vehicle NAME] [--slot PICTURE=TEXTURE ...]
+                      [--wearer WHO] [--new-slots] [--dry-run]
                   install a dropped mod the way the app does: analyse, print the plan, run it
                   (--kind picks one of the mods found; --target sends a replacement file elsewhere;
                   --variant picks a script mod's version; scripts print where each file goes and
@@ -152,7 +153,10 @@ internal static class Program
                   version, --keep-kits leaves clashing modkit ids as they are, --gender picks the template
                   of the peds.meta written for peds that come without one; liveries print the vehicle and
                   which texture each picture replaces — --vehicle picks the vehicle (a game one or an
-                  installed add-on), --slot sends a picture to another texture of it)
+                  installed add-on), --slot sends a picture to another texture of it; clothing prints whose clothes
+                  they are and where each file goes — --wearer michael|franklin|trevor|mp_male|mp_female or a
+                  collection folder (mp_m_freemode_01_mp_m_x), --replace puts loose models in place of the
+                  wearer's own, --new-slots adds them as new clothes (new slots in the wearer's ymt))
               remove <game_dir> <mod_id> [<mod_id> ...]
                   remove installed mods (ids as `installed` prints them)
               switch <game_dir> <mod_id> on|off
@@ -645,8 +649,8 @@ internal static class Program
 
     private static int Install(string[] argv)
     {
-        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--vehicle", "--slot"],
-                      ["--dry-run", "--replace", "--keep-kits"]);
+        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--vehicle", "--slot", "--wearer"],
+                      ["--dry-run", "--replace", "--keep-kits", "--new-slots"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
         var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
@@ -666,21 +670,7 @@ internal static class Program
                 Console.Error.WriteLine("[!] Nothing to install" + (kind is null ? "." : $" of kind {kind}."));
                 return 1;
             }
-            if (pkg is ReplacementPackage rp)
-            {
-                ReplacementHandler.Resolve(rp, Mdv.Core.Index.GameIndex.Open(game, target.IndexCacheRoot));
-                foreach (var t in a.All("--target"))
-                {
-                    var eq = t.IndexOf('=');
-                    if (eq < 0) throw new UsageException($"--target expects NAME=GAME_PATH, got '{t}'");
-                    var f = rp.Files.FirstOrDefault(x => x.Name.Equals(t[..eq], StringComparison.OrdinalIgnoreCase))
-                            ?? throw new UsageException($"--target: the mod has no file {t[..eq]}");
-                    f.Target = t[(eq + 1)..];
-                }
-                foreach (var f in rp.Files)
-                    Console.WriteLine($"    {f.Name,-28} -> {f.Target ?? "(not in the game)"}" +
-                                      (f.Candidates.Count > 1 ? $"  [{f.Candidates.Count} places]" : ""));
-            }
+            if (pkg is ReplacementPackage rp) PrintReplacement(rp, a, target);
             if (pkg is ScriptPackage sp) PrintScripts(sp, a.Opt("--variant"), target);
             if (pkg is AddonPackage ap) PrintAddon(ap, a, target);
             if (pkg is LiveryPackage lp) PrintLivery(lp, a, target);
@@ -696,7 +686,7 @@ internal static class Program
             }
             return RunPlan(plan, target);
         }
-        catch (IntakeException ex)
+        catch (Exception ex) when (ex is IntakeException or InvalidOperationException)
         {
             Console.Error.WriteLine($"[!] {ex.Message}");
             return 1;
@@ -707,9 +697,48 @@ internal static class Program
         }
     }
 
-    /// <summary>An add-on vehicle / ped: the pack it becomes and what the checks against the game found.</summary>
+    /// <summary>A replacement: where each file goes (clothing: whose they are, new slots).</summary>
+    private static void PrintReplacement(ReplacementPackage rp, Args a, InstallTarget target)
+    {
+        if (a.Opt("--wearer") is { } who && rp.Kind == ModCategory.Clothing) rp.Wearer = ParseWearer(who);
+        if (a.Flags.Contains("--new-slots")) rp.AsNew = true;
+        ReplacementHandler.Resolve(rp, Mdv.Core.Index.GameIndex.Open(target.GameDir, target.IndexCacheRoot));
+        foreach (var t in a.All("--target"))
+        {
+            var eq = t.IndexOf('=');
+            if (eq < 0) throw new UsageException($"--target expects NAME=GAME_PATH, got '{t}'");
+            var f = rp.Files.FirstOrDefault(x => x.Name.Equals(t[..eq], StringComparison.OrdinalIgnoreCase))
+                    ?? throw new UsageException($"--target: the mod has no file {t[..eq]}");
+            f.Target = t[(eq + 1)..];
+        }
+        if (rp.Wearer is { } w)
+            Console.WriteLine($"    worn by: {w.Label} ({w.Folder}){(rp.WearerFrom is { } from ? $" — from {from}" : "")} (--wearer to change)" +
+                              (rp.SlotsProblem is { } why ? $"\n    no new slots: {why}" : ""));
+        foreach (var f in rp.Files)
+            Console.WriteLine($"    {f.Name,-28} -> {f.Target ?? "(not in the game)"}" +
+                              (f.NewNumber is { } n ? $"  [new slot {n}]" : f.Candidates.Count > 1 ? $"  [{f.Candidates.Count} places]" : ""));
+    }
+
+    private static Wearer ParseWearer(string who) => who.ToLowerInvariant().Replace('-', '_') switch
+    {
+        "michael" => new Wearer(ClothingNames.Michael),
+        "franklin" => new Wearer(ClothingNames.Franklin),
+        "trevor" => new Wearer(ClothingNames.Trevor),
+        "mp_male" or "male" => new Wearer(ClothingNames.MpMale),
+        "mp_female" or "female" => new Wearer(ClothingNames.MpFemale),
+        var s => ClothingNames.WearerOfFolder(s) ?? throw new UsageException($"--wearer: michael, franklin, trevor, mp_male, mp_female or a ped folder — not '{who}'"),
+    };
+
+    /// <summary>An add-on vehicle / ped / clothing: the pack it becomes and what the checks against the game found.</summary>
     private static void PrintAddon(AddonPackage ap, Args a, InstallTarget target)
     {
+        if (ap.Kind == ModCategory.Clothing && a.Opt("--wearer") is { } who) AddonPackHandler.SetWearer(ap, ParseWearer(who));
+        if (ap.Kind == ModCategory.Clothing && (ap.UseReplace || a.Flags.Contains("--replace") || a.Flags.Contains("--new-slots")) && ap.Replace is { } cr)
+        {
+            ap.UseReplace = true;
+            PrintReplacement(cr, a, target);
+            return;
+        }
         if (a.Opt("--pack") is { } pack)
             ap.PackName = AddonPackHandler.Clean(pack) ?? throw new UsageException($"--pack: '{pack}' has no usable characters (a-z, 0-9, _)");
         if (a.Flags.Contains("--keep-kits")) ap.FixKits = false;
@@ -728,6 +757,12 @@ internal static class Program
         var index = Mdv.Core.Index.GameIndex.Open(target.GameDir, target.IndexCacheRoot);
         var checks = AddonPackHandler.Check(ap, target, index);
         Console.WriteLine($"    pack: dlcpacks\\{ap.PackName} ({ap.Device}){(ap.PackNameFrom is { } from ? $" — name from {from}" : "")}");
+        foreach (var c in AddonPackHandler.CollectionsOf(ap))
+        {
+            var (models, props) = ap.Content.CountsOf(c);
+            Console.WriteLine($"    collection: {c.FullName} ({ClothingNames.PedLabel(c.Ped)})" + (models + props > 0 ? $" — {models} model(s), {props} prop(s)" : ""));
+        }
+        if (ap.LooseClothing is { } loose) Console.WriteLine($"    loose models packed as that collection for {ClothingNames.PedLabel(loose.Ped)} (--wearer mp_female to change)");
         foreach (var p in ap.Compose?.NewPeds ?? [])
             Console.WriteLine($"    peds.meta for {p.Name}: {p.Gender.ToString().ToLowerInvariant()}{(p.Streamed ? ", streamed" : "")}" +
                               $"{(p.HasProps ? ", props" : "")} (--gender to change)");

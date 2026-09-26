@@ -49,6 +49,7 @@ public static class ModLibrary
     [
         new WeaponHandler(), new OivHandler(), new ReplacementHandler(), new ScriptHandler(),
         new AddonPackHandler(ModCategory.Vehicle), new AddonPackHandler(ModCategory.Ped), new LiveryHandler(),
+        new AddonPackHandler(ModCategory.Clothing),
     ];
 
     public static IModHandler HandlerFor(ModCategory category) =>
@@ -74,9 +75,9 @@ public static class ModLibrary
                 result.Problems[h.Category] = ex.Message;
             }
         }
-        // a vehicle / ped handler that took the drop (as an add-on or a replacement of the game's one) says
+        // a vehicle / ped / clothing handler that took the drop (as an add-on or a replacement of the game's one) says
         // more than the plain file replacement of the same files
-        if (result.Packages.Any(p => p.Category is ModCategory.Vehicle or ModCategory.Ped))
+        if (result.Packages.Any(p => p.Category is ModCategory.Vehicle or ModCategory.Ped or ModCategory.Clothing))
             result.Packages.RemoveAll(p => p.Category == ModCategory.Replacement);
         // the kind the detector is surest of first — it is the one picked for the player
         int Rank(ModPackage p)

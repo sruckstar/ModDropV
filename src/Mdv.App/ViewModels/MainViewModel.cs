@@ -41,6 +41,7 @@ public sealed partial class MainViewModel : ObservableObject
         Script = new ScriptViewModel(this);
         Addon = new AddonViewModel(this);
         Livery = new LiveryViewModel(this);
+        Clothing = new ClothingViewModel(this);
         foreach (var preview in new[] { Addon.Preview, Livery.Preview })
             preview.PropertyChanged += (_, e) =>
             {
@@ -142,6 +143,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Player: vehicle liveries (pictures into a vehicle's textures, modkit livery models).</summary>
     public LiveryViewModel Livery { get; }
+
+    /// <summary>Player: clothes (MP clothes packs, FiveM clothing, story characters' and freemode replacements, new slots).</summary>
+    public ClothingViewModel Clothing { get; }
 
     /// <summary>The 3D preview opened large (an add-on's, a livery's), or null.</summary>
     public ModelPreview? OpenModelPreview => Addon.Preview.IsOpen ? Addon.Preview : Livery.Preview.IsOpen ? Livery.Preview : null;
