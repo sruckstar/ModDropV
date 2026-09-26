@@ -1,0 +1,9 @@
+<Project>
+  <!-- Third-party code: stop MSBuild from inheriting the solution-wide
+       Directory.Build.props (net10.0 / Nullable / versioning). -->
+  <PropertyGroup>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS0168;CS0169;CS0219;CS0414;CS0649;CS0162;CS0618;CS1998;CS0108;CS0114;CS0067;CS0659;CS0661;CS0660;CS8981</NoWarn>
+  </PropertyGroup>
+</Project>

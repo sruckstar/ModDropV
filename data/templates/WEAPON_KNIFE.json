@@ -1,0 +1,152 @@
+{
+  "weapon": {
+    "name": "WEAPON_KNIFE",
+    "model": "w_me_knife_01",
+    "slot": "SLOT_KNIFE",
+    "audio": null,
+    "ammo_ref": "NULL",
+    "wheel_slot": "WHEEL_UNARMED_MELEE",
+    "group": "GROUP_MELEE",
+    "human_name_hash": "WT_KNIFE",
+    "reticule_style": null,
+    "pickup": "PICKUP_WEAPON_KNIFE",
+    "mp_pickup": null,
+    "fire_type": "MELEE",
+    "attach": {
+      "gun_root": [
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_01",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_02",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_03",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_04",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_05",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_06",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_07",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_08",
+          "default": false
+        },
+        {
+          "name": "COMPONENT_KNIFE_VARMOD_XM3_09",
+          "default": false
+        }
+      ]
+    },
+    "components": [
+      "COMPONENT_KNIFE_VARMOD_XM3",
+      "COMPONENT_KNIFE_VARMOD_XM3_01",
+      "COMPONENT_KNIFE_VARMOD_XM3_02",
+      "COMPONENT_KNIFE_VARMOD_XM3_03",
+      "COMPONENT_KNIFE_VARMOD_XM3_04",
+      "COMPONENT_KNIFE_VARMOD_XM3_05",
+      "COMPONENT_KNIFE_VARMOD_XM3_06",
+      "COMPONENT_KNIFE_VARMOD_XM3_07",
+      "COMPONENT_KNIFE_VARMOD_XM3_08",
+      "COMPONENT_KNIFE_VARMOD_XM3_09"
+    ],
+    "raw_xml": "<Item type=\"CWeaponInfo\">\n          <Name>WEAPON_KNIFE</Name>\n          <Model>w_me_knife_01</Model>\n          <Audio />\n          <Slot>SLOT_KNIFE</Slot>\n          <DamageType>MELEE</DamageType>\n          <Explosion>\n            <Default>DONTCARE</Default>\n            <HitCar>DONTCARE</HitCar>\n            <HitTruck>DONTCARE</HitTruck>\n            <HitBike>DONTCARE</HitBike>\n            <HitBoat>DONTCARE</HitBoat>\n            <HitPlane>DONTCARE</HitPlane>\n          </Explosion>\n          <FireType>MELEE</FireType>\n          <WheelSlot>WHEEL_UNARMED_MELEE</WheelSlot>\n          <Group>GROUP_MELEE</Group>\n          <AmmoInfo ref=\"NULL\" />\n          <AimingInfo ref=\"UNARMED_TARGETING_RESTRAINTS\" />\n          <ClipSize value=\"0\" />\n          <AccuracySpread value=\"0.000000\" />\n          <AccurateModeAccuracyModifier value=\"0.500000\" />\n          <RunAndGunAccuracyModifier value=\"2.000000\" />\n          <RunAndGunAccuracyMinOverride value=\"-1.000000\" />\n          <RecoilAccuracyMax value=\"1.000000\" />\n          <RecoilErrorTime value=\"0.000000\" />\n          <RecoilRecoveryRate value=\"1.000000\" />\n          <RecoilAccuracyToAllowHeadShotAI value=\"1000.000000\" />\n          <MinHeadShotDistanceAI value=\"1000.000000\" />\n          <MaxHeadShotDistanceAI value=\"1000.000000\" />\n          <HeadShotDamageModifierAI value=\"1000.000000\" />\n          <RecoilAccuracyToAllowHeadShotPlayer value=\"0.175000\" />\n          <MinHeadShotDistancePlayer value=\"5.000000\" />\n          <MaxHeadShotDistancePlayer value=\"40.000000\" />\n          <HeadShotDamageModifierPlayer value=\"18.000000\" />\n          <Damage value=\"0.000000\" />\n          <DamageTime value=\"0.000000\" />\n          <DamageTimeInVehicle value=\"0.000000\" />\n          <DamageTimeInVehicleHeadShot value=\"0.000000\" />\n          <HitLimbsDamageModifier value=\"0.500000\" />\n          <NetworkHitLimbsDamageModifier value=\"0.800000\" />\n          <LightlyArmouredDamageModifier value=\"0.750000\" />\n          <Force value=\"0.000000\" />\n          <ForceHitPed value=\"100.000000\" />\n          <ForceHitVehicle value=\"0.000000\" />\n          <ForceHitFlyingHeli value=\"0.000000\" />\n          <OverrideForces />\n          <ForceMaxStrengthMult value=\"1.200000\" />\n          <ForceFalloffRangeStart value=\"0.000000\" />\n          <ForceFalloffRangeEnd value=\"50.000000\" />\n          <ForceFalloffMin value=\"1.000000\" />\n          <ProjectileForce value=\"0.000000\" />\n          <FragImpulse value=\"2250.000000\" />\n          <Penetration value=\"0.000000\" />\n          <VerticalLaunchAdjustment value=\"0.000000\" />\n          <DropForwardVelocity value=\"0.000000\" />\n          <Speed value=\"2000.000000\" />\n          <BulletsInBatch value=\"1\" />\n          <BatchSpread value=\"0.000000\" />\n          <ReloadTimeMP value=\"-1.000000\" />\n          <ReloadTimeSP value=\"-1.000000\" />\n          <VehicleReloadTime value=\"-1.000000\" />\n          <AnimReloadRate value=\"1.000000\" />\n          <BulletsPerAnimLoop value=\"1\" />\n          <TimeBetweenShots value=\"0.000000\" />\n          <TimeLeftBetweenShotsWhereShouldFireIsCached value=\"-1.000000\" />\n          <SpinUpTime value=\"0.000000\" />\n          <SpinTime value=\"0.000000\" />\n          <SpinDownTime value=\"0.000000\" />\n          <AlternateWaitTime value=\"-1.000000\" />\n          <BulletBendingNearRadius value=\"0.000000\" />\n          <BulletBendingFarRadius value=\"0.000000\" />\n          <BulletBendingZoomedRadius value=\"0.000000\" />\n          <Fx>\n            <EffectGroup>WEAPON_EFFECT_GROUP_MELEE_SHARP</EffectGroup>\n            <FlashFx />\n            <FlashFxAlt />\n            <MuzzleSmokeFx />\n            <MuzzleSmokeFxMinLevel value=\"0.000000\" />\n            <MuzzleSmokeFxIncPerShot value=\"0.000000\" />\n            <MuzzleSmokeFxDecPerSec value=\"0.000000\" />\n            <ShellFx />\n            <TracerFx />\n            <PedDamageHash />\n            <TracerFxChanceSP value=\"0.000000\" />\n            <TracerFxChanceMP value=\"0.000000\" />\n            <FlashFxChanceSP value=\"0.000000\" />\n            <FlashFxChanceMP value=\"0.000000\" />\n            <FlashFxAltChance value=\"0.000000\" />\n            <FlashFxScale value=\"1.000000\" />\n            <FlashFxLightEnabled value=\"false\" />\n            <FlashFxLightCastsShadows value=\"false\" />\n            <FlashFxLightOffsetDist value=\"0.000000\" />\n            <FlashFxLightRGBAMin x=\"0.000000\" y=\"0.000000\" z=\"0.000000\" />\n            <FlashFxLightRGBAMax x=\"0.000000\" y=\"0.000000\" z=\"0.000000\" />\n            <FlashFxLightIntensityMinMax x=\"0.000000\" y=\"0.000000\" />\n            <FlashFxLightRangeMinMax x=\"0.000000\" y=\"0.000000\" />\n            <FlashFxLightFalloffMinMax x=\"0.000000\" y=\"0.000000\" />\n            <GroundDisturbFxEnabled value=\"false\" />\n            <GroundDisturbFxDist value=\"5.000000\" />\n            <GroundDisturbFxNameDefault />\n            <GroundDisturbFxNameSand />\n            <GroundDisturbFxNameDirt />\n            <GroundDisturbFxNameWater />\n            <GroundDisturbFxNameFoliage />\n          </Fx>\n          <InitialRumbleDuration value=\"0\" />\n          <InitialRumbleIntensity value=\"0.000000\" />\n          <InitialRumbleIntensityTrigger value=\"0.000000\" />\n          <RumbleDuration value=\"0\" />\n          <RumbleIntensity value=\"0.000000\" />\n          <RumbleIntensityTrigger value=\"0.000000\" />\n          <RumbleDamageIntensity value=\"1.000000\" />\n          <NetworkPlayerDamageModifier value=\"1.000000\" />\n          <NetworkPedDamageModifier value=\"1.000000\" />\n          <NetworkHeadShotPlayerDamageModifier value=\"1.000000\" />\n          <LockOnRange value=\"10.000000\" />\n          <WeaponRange value=\"1.600000\" />\n          <BulletDirectionOffsetInDegrees value=\"0.000000\" />\n          <AiSoundRange value=\"-1.000000\" />\n          <AiPotentialBlastEventRange value=\"-1.000000\" />\n          <DamageFallOffRangeMin value=\"1.600000\" />\n          <DamageFallOffRangeMax value=\"1.600000\" />\n          <DamageFallOffModifier value=\"0.300000\" />\n          <VehicleWeaponHash />\n          <DefaultCameraHash>MELEE_AIM_CAMERA</DefaultCameraHash>\n          <CoverCameraHash>MELEE_AIM_IN_COVER_CAMERA</CoverCameraHash>\n          <CoverReadyToFireCameraHash />\n          <RunAndGunCameraHash />\n          <CinematicShootingCameraHash />\n          <AlternativeOrScopedCameraHash />\n          <RunAndGunAlternativeOrScopedCameraHash />\n          <CinematicShootingAlternativeOrScopedCameraHash />\n          <CameraFov value=\"50.000000\" />\n          <ZoomFactorForAccurateMode value=\"1.000000\" />\n          <RecoilShakeHash />\n          <RecoilShakeHashFirstPerson />\n          <AccuracyOffsetShakeHash />\n          <MinTimeBetweenRecoilShakes value=\"150\" />\n          <RecoilShakeAmplitude value=\"1.000000\" />\n          <ExplosionShakeAmplitude value=\"-1.000000\" />\n          <ReticuleHudPosition x=\"0.000000\" y=\"0.000000\" />\n          <AimOffsetMin x=\"0.000000\" y=\"0.000000\" z=\"0.000000\" />\n          <AimProbeLengthMin value=\"0.000000\" />\n          <AimOffsetMax x=\"0.000000\" y=\"0.000000\" z=\"0.000000\" />\n          <AimProbeLengthMax value=\"0.000000\" />\n          <AimOffsetMinFPSIdle x=\"0.178000\" y=\"0.392000\" z=\"0.135000\" />\n          <AimOffsetMedFPSIdle x=\"0.169000\" y=\"0.312000\" z=\"0.420000\" />\n          <AimOffsetMaxFPSIdle x=\"0.187000\" y=\"0.064000\" z=\"0.649000\" />\n          <AimOffsetMinFPSLT x=\"0.009000\" y=\"0.334000\" z=\"0.555000\" />\n          <AimOffsetMaxFPSLT x=\"0.062000\" y=\"-0.164000\" z=\"0.588000\" />\n          <AimOffsetMinFPSRNG x=\"0.114000\" y=\"0.390000\" z=\"0.485000\" />\n          <AimOffsetMaxFPSRNG x=\"0.113000\" y=\"-0.263000\" z=\"0.586000\" />\n          <AimOffsetMinFPSScope x=\"0.009000\" y=\"0.421000\" z=\"0.462000\" />\n          <AimOffsetMaxFPSScope x=\"0.037000\" y=\"-0.224000\" z=\"0.639000\" />\n          <AimOffsetEndPosMinFPSIdle x=\"0.208000\" y=\"0.700000\" z=\"0.003000\" />\n          <AimOffsetEndPosMedFPSIdle x=\"0.203000\" y=\"0.604000\" z=\"0.553000\" />\n          <AimOffsetEndPosMaxFPSIdle x=\"0.207000\" y=\"-0.040000\" z=\"0.942000\" />\n          <TorsoAimOffset x=\"0.000000\" y=\"0.000000\" />\n          <TorsoCrouchedAimOffset x=\"0.000000\" y=\"0.000000\" />\n          <LeftHandIkOffset x=\"0.000000\" y=\"0.000000\" z=\"0.000000\" />\n          <ReticuleMinSizeStanding value=\"1.000000\" />\n          <ReticuleMinSizeCrouched value=\"1.000000\" />\n          <ReticuleScale value=\"1.000000\" />\n          <ReticuleStyleHash />\n          <FirstPersonReticuleStyleHash />\n          <PickupHash>PICKUP_WEAPON_KNIFE</PickupHash>\n          <MPPickupHash />\n          <HumanNameHash>WT_KNIFE</HumanNameHash>\n          <MovementModeConditionalIdle />\n          <StatName>KNIFE</StatName>\n          <KnockdownCount value=\"-1\" />\n          <KillshotImpulseScale value=\"1.000000\" />\n          <NmShotTuningSet>Normal</NmShotTuningSet>\n          <AttachPoints>\n            <Item>\n              <AttachBone>gun_root</AttachBone>\n              <Components>\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3</Name>\n                  <Default value=\"false\" />\n                </Item>\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_01</Name>\n                  <Default value=\"false\" />\n                </Item>\t\n\t\t\t\t<Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_02</Name>\n                  <Default value=\"false\" />\n                </Item>\t\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_03</Name>\n                  <Default value=\"false\" />\n                </Item>\t\t\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_04</Name>\n                  <Default value=\"false\" />\n                </Item>\t\t\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_05</Name>\n                  <Default value=\"false\" />\n                </Item>\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_06</Name>\n                  <Default value=\"false\" />\n                </Item>\t\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_07</Name>\n                  <Default value=\"false\" />\n                </Item>\t\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_08</Name>\n                  <Default value=\"false\" />\n                </Item>\t\t\n                <Item>\n                  <Name>COMPONENT_KNIFE_VARMOD_XM3_09</Name>\n                  <Default value=\"false\" />\n                </Item>\n              </Components>\n            </Item>\n          </AttachPoints>\n          <GunFeedBone />\n          <TargetSequenceGroup />\n          <WeaponFlags>AllowMeleeBlock CarriedInHand ArmourPenetrating CanLockonOnFoot CanLockonInVehicle MeleeBlade UsableOnFoot UsableUnderwater UsableClimbing UsableInCover DoesRevivableDamage AllowCloseQuarterKills HasLowCoverSwaps NoWheelStats DangerousLookingMeleeWeapon QuitTransitionToIdleIntroOnWeaponChange DisableLeftHandIkWhenOnFoot UseFPSAimIK UseFPSSecondaryMotion UseFPSSecondaryMotion</WeaponFlags>\n          <TintSpecValues ref=\"TINT_DEFAULT\" />\n          <FiringPatternAliases ref=\"NULL\" />\n          <ReloadUpperBodyFixupExpressionData ref=\"default\" />\n          <AmmoDiminishingRate value=\"0\" />\n          <AimingBreathingAdditiveWeight value=\"1.000000\" />\n          <FiringBreathingAdditiveWeight value=\"1.000000\" />\n          <StealthAimingBreathingAdditiveWeight value=\"0.000000\" />\n          <StealthFiringBreathingAdditiveWeight value=\"0.000000\" />\n          <AimingLeanAdditiveWeight value=\"1.000000\" />\n          <FiringLeanAdditiveWeight value=\"1.000000\" />\n          <StealthAimingLeanAdditiveWeight value=\"0.000000\" />\n          <StealthFiringLeanAdditiveWeight value=\"0.000000\" />\n          <ExpandPedCapsuleRadius value=\"0.000000\" />\n          <AudioCollisionHash />\n          <HudDamage value=\"15\" />\n          <HudSpeed value=\"20\" />\n          <HudCapacity value=\"0\" />\n          <HudAccuracy value=\"0\" />\n          <HudRange value=\"0\" />\n\t\t  <CamoDiffuseTexIdxs>\n\t\t\t<Item key=\"w_me_knife_01\">\n\t\t\t  <Item key=\"0\" value=\"1\" />\n\t\t\t  <Item key=\"1\" value=\"2\" />\n\t\t\t</Item>\n\t\t  </CamoDiffuseTexIdxs>\n        </Item>\n        "
+  },
+  "components": {
+    "COMPONENT_KNIFE_VARMOD_XM3": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3</Name>\n      <Model>W_ME_Knife_XM3</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_01": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_01",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_01",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_01</Name>\n      <Model>W_ME_Knife_XM3_01</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_02": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_02",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_02",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_02</Name>\n      <Model>W_ME_Knife_XM3_02</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_03": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_03",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_03",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_03</Name>\n      <Model>W_ME_Knife_XM3_03</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_04": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_04",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_04",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_04</Name>\n      <Model>W_ME_Knife_XM3_04</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_05": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_05",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_05",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_05</Name>\n      <Model>W_ME_Knife_XM3_05</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_06": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_06",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_06",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_06</Name>\n      <Model>W_ME_Knife_XM3_06</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_07": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_07",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_07",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_07</Name>\n      <Model>W_ME_Knife_XM3_07</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_08": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_08",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_08",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_08</Name>\n      <Model>W_ME_Knife_XM3_08</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    },
+    "COMPONENT_KNIFE_VARMOD_XM3_09": {
+      "name": "COMPONENT_KNIFE_VARMOD_XM3_09",
+      "ctype": "CWeaponComponentVariantModelInfo",
+      "model": "W_ME_Knife_XM3_09",
+      "raw_xml": "<Item type=\"CWeaponComponentVariantModelInfo\">\n      <Name>COMPONENT_KNIFE_VARMOD_XM3_09</Name>\n      <Model>W_ME_Knife_XM3_09</Model>\n      <LocName>WCT_INVALID</LocName>\n      <LocDesc>WCD_INVALID</LocDesc>\n      <AttachBone />\n      <AccuracyModifier type=\"NULL\" />\n      <DamageModifier type=\"NULL\" />\n      <bShownOnWheel value=\"false\" />\n      <CreateObject value=\"false\" />\n      <HudDamage value=\"0\" />\n      <HudSpeed value=\"0\" />\n      <HudCapacity value=\"0\" />\n      <HudAccuracy value=\"0\" />\n      <HudRange value=\"0\" />\n      <TintIndexOverride value=\"2\" />\n    </Item>\n    "
+    }
+  },
+  "archetypes": {
+    "w_me_knife_xm3_04": "W_ME_Knife_XM3_04",
+    "w_me_knife_01": "W_ME_knife_01",
+    "w_me_knife_xm3": "W_ME_Knife_XM3",
+    "w_me_knife_xm3_05": "W_ME_Knife_XM3_05",
+    "w_me_knife_xm3_09": "W_ME_Knife_XM3_09",
+    "w_me_knife_xm3_06": "W_ME_Knife_XM3_06",
+    "w_me_knife_xm3_03": "W_ME_Knife_XM3_03",
+    "w_me_knife_xm3_02": "W_ME_Knife_XM3_02",
+    "w_me_knife_xm3_08": "W_ME_Knife_XM3_08",
+    "w_me_knife_xm3_01": "W_ME_Knife_XM3_01",
+    "w_me_knife_xm3_07": "W_ME_Knife_XM3_07"
+  },
+  "animations": {
+    "Default": "<Item key=\"WEAPON_KNIFE\">\n          <CoverMovementClipSetHash />\n          <CoverMovementExtraClipSetHash />\n          <CoverAlternateMovementClipSetHash />\n          <CoverWeaponClipSetHash>Cover_Wpn_Melee1h</CoverWeaponClipSetHash>\n          <MotionClipSetHash>weapons@melee_1h</MotionClipSetHash>\n          <MotionFilterHash>BothArms_filter</MotionFilterHash>\n          <MotionCrouchClipSetHash />\n          <MotionStrafingClipSetHash>move_strafe_melee_unarmed</MotionStrafingClipSetHash>\n          <MotionStrafingStealthClipSetHash>move_ped_strafing_stealth</MotionStrafingStealthClipSetHash>\n          <MotionStrafingUpperBodyClipSetHash>move_strafe@knife</MotionStrafingUpperBodyClipSetHash>\n          <WeaponClipSetHash>melee@holster</WeaponClipSetHash>\n          <WeaponClipSetStreamedHash />\n          <WeaponClipSetHashInjured />\n          <WeaponClipSetHashStealth />\n          <WeaponClipSetHashHiCover />\n          <AlternativeClipSetWhenBlocked />\n          <ScopeWeaponClipSet />\n          <AlternateAimingStandingClipSetHash />\n          <AlternateAimingCrouchingClipSetHash />\n          <FiringVariationsStandingClipSetHash />\n          <FiringVariationsCrouchingClipSetHash />\n          <AimTurnStandingClipSetHash />\n          <AimTurnCrouchingClipSetHash />\n          <MeleeClipSetHash>melee@knife@streamed_core</MeleeClipSetHash>\n          <MeleeVariationClipSetHash>melee@knife@streamed_variations</MeleeVariationClipSetHash>\n          <MeleeTauntClipSetHash />\n          <MeleeSupportTauntClipSetHash />\n          <MeleeStealthClipSetHash />\n          <ShellShockedClipSetHash>reaction@shellshock@unarmed</ShellShockedClipSetHash>\n          <JumpUpperbodyClipSetHash>MOVE_JUMP@WEAPONS@1H_MELEE@KNIFE</JumpUpperbodyClipSetHash>\n          <FallUpperbodyClipSetHash />\n          <FromStrafeTransitionUpperBodyClipSetHash />\n          <SwapWeaponFilterHash>RightArm_NoSpine_filter</SwapWeaponFilterHash>\n          <SwapWeaponInLowCoverFilterHash>RightArm_NoSpine_filter</SwapWeaponInLowCoverFilterHash>\n          <AnimFireRateModifier value=\"0.000000\" />\n          <AnimBlindFireRateModifier value=\"0.000000\" />\n          <AnimWantingToShootFireRateModifier value=\"-1.000000\" />\n          <UseFromStrafeUpperBodyAimNetwork value=\"false\" />\n          <AimingDownTheBarrel value=\"true\" />\n          <WeaponSwapData ref=\"SWAP_DEFAULT\" />\n\t\t  <AimGrenadeThrowNormalClipsetHash />\n\t\t  <AimGrenadeThrowAlternateClipsetHash />\n        </Item>\n        ",
+    "FirstPerson": "<Item key=\"WEAPON_KNIFE\">\n\t\t<MovementOverrideClipSetHash>move_m@generic</MovementOverrideClipSetHash>\n        <CoverMovementClipSetHash />\n        <CoverMovementExtraClipSetHash />\n        <CoverAlternateMovementClipSetHash />\n        <CoverWeaponClipSetHash>Cover_Wpn_Melee1h</CoverWeaponClipSetHash>\n        <MotionClipSetHash>weapons@first_person@aim_idle@generic@melee@knife@shared@core</MotionClipSetHash>\n        <MotionFilterHash>BothArms_filter</MotionFilterHash>\n        <MotionCrouchClipSetHash />\n        <MotionStrafingClipSetHash>move_strafe_melee_unarmed_fps</MotionStrafingClipSetHash>\n        <MotionStrafingStealthClipSetHash>move_ped_strafing_stealth</MotionStrafingStealthClipSetHash>\n        <MotionStrafingUpperBodyClipSetHash>move_strafe@melee_knife_fps</MotionStrafingUpperBodyClipSetHash>\n        <WeaponClipSetHash>weapons@first_person@aim_idle@generic@melee@knife@shared@core</WeaponClipSetHash>\n        <WeaponClipSetStreamedHash>weapons@first_person@aim_rng@generic@pistol@pistol_str</WeaponClipSetStreamedHash>\n        <WeaponClipSetHashInjured />\n        <WeaponClipSetHashStealth>weapons@first_person@aim_stealth@generic@melee@knife@</WeaponClipSetHashStealth>\n        <WeaponClipSetHashHiCover />\n        <AlternativeClipSetWhenBlocked />\n        <ScopeWeaponClipSet />\n        <AlternateAimingStandingClipSetHash />\n        <AlternateAimingCrouchingClipSetHash />\n        <FiringVariationsStandingClipSetHash />\n        <FiringVariationsCrouchingClipSetHash />\n        <AimTurnStandingClipSetHash />\n        <AimTurnCrouchingClipSetHash />\n        <MeleeClipSetHash>melee@knife@streamed_core_fps</MeleeClipSetHash>\n        <MeleeVariationClipSetHash>melee@knife@streamed_variations</MeleeVariationClipSetHash>\n        <MeleeTauntClipSetHash />\n        <MeleeSupportTauntClipSetHash />\n        <MeleeStealthClipSetHash />\n        <ShellShockedClipSetHash>reaction@shellshock@unarmed</ShellShockedClipSetHash>\n         <JumpUpperbodyClipSetHash>MOVE_JUMP@WEAPONS@1H_MELEE@KNIFE</JumpUpperbodyClipSetHash>\n        <FallUpperbodyClipSetHash />\n        <FromStrafeTransitionUpperBodyClipSetHash />\n        <SwapWeaponFilterHash>RightArm_NoSpine_filter</SwapWeaponFilterHash>\n        <SwapWeaponInLowCoverFilterHash>RightArm_NoSpine_filter</SwapWeaponInLowCoverFilterHash>\n        <AnimFireRateModifier value=\"0.000000\" />\n        <AnimBlindFireRateModifier value=\"0.000000\" />\n        <AnimWantingToShootFireRateModifier value=\"-1.000000\" />\n        <UseFromStrafeUpperBodyAimNetwork value=\"false\" />\n        <AimingDownTheBarrel value=\"true\" />\n        <WeaponSwapData ref=\"SWAP_DEFAULT\" />\n        <AimGrenadeThrowNormalClipsetHash />\n        <AimGrenadeThrowAlternateClipsetHash />\n        <FPSTransitionFromUnholsterHash>weapons@first_person@aim_idle@p_m_zero@melee@knife@aim_trans@unholster_to_idle</FPSTransitionFromUnholsterHash>\n\t    <WeaponClipSetHashForClone>weapons@first_person@aim_idle@remote_clone@melee@one_handed@shared@core</WeaponClipSetHashForClone>\n\t    <FPSFidgetClipsetHashes>\n\t\t\t<Item>weapons@first_person@aim_idle@p_m_zero@melee@knife@fidgets@a</Item>\n\t\t\t<Item>weapons@first_person@aim_idle@p_m_zero@melee@knife@fidgets@b</Item>\n\t\t\t<Item>weapons@first_person@aim_idle@p_m_zero@melee@knife@fidgets@c</Item>\n\t\t</FPSFidgetClipsetHashes>\n       </Item>\n       "
+  }
+}

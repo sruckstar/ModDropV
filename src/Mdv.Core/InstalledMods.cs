@@ -1,0 +1,122 @@
+using Mdv.Core.Mods;
+
+namespace Mdv.Core;
+
+/// <summary>How an installed weapon reached the game.</summary>
+public enum ModKind
+{
+    /// <summary>Its own dlcpack (mods/update/x64/dlcpacks/&lt;name&gt;).</summary>
+    Pack,
+    /// <summary>A weapon inside the shared AddonWeapons[N] pack.</summary>
+    Merged,
+}
+
+/// <summary>One mod ModDrop V installed into a game, as the installed list shows it.</summary>
+/// <param name="Id">registry id, the key for <see cref="ModChange"/> (weapons: <c>pack:&lt;folder&gt;</c> or <c>merged:&lt;suffix&gt;</c>)</param>
+/// <param name="Pack">the dlcpack folder that holds it</param>
+public sealed record InstalledMod(string Id, string Name, ModKind Kind, string Pack, bool Enabled)
+{
+    public ModCategory Category { get; init; } = ModCategory.Weapon;
+    public DateTime? Installed { get; init; }
+    /// <summary>The dropped file / folder it was installed from, when recorded.</summary>
+    public string? Source { get; init; }
+    /// <summary>Set when the record came from another tool (AddonWeapons Builder).</summary>
+    public string? ImportedFrom { get; init; }
+}
+
+/// <summary>What to do with one installed mod: switch it on/off, or remove it (wins over the switch).</summary>
+public sealed record ModChange(string Id, bool Enable, bool Remove = false);
+
+/// <summary>
+/// Everything ModDrop V installed into a game, and switching it on/off or removing it. Each
+/// mod type's handler (<see cref="IModHandler"/>) lists its own mods and plans its changes;
+/// a batch of changes runs as one transaction (<see cref="InstallExecutor"/>).
+/// </summary>
+public static class ModLibrary
+{
+    public static IReadOnlyList<IModHandler> Handlers { get; } = [new WeaponHandler()];
+
+    public static IModHandler HandlerFor(ModCategory category) =>
+        Handlers.FirstOrDefault(h => h.Category == category)
+        ?? throw new NotSupportedException($"{category.DisplayName()} mods can't be installed yet.");
+
+    /// <summary>What a drop holds: the detector's report and a package for every handler that found its kind.</summary>
+    public static (DetectionReport Report, List<ModPackage> Packages) Analyze(DroppedSource source, HandlerEnv env)
+    {
+        var report = ModDetector.Detect(source);
+        var packages = Handlers.Select(h => h.Analyze(source, report, env)).OfType<ModPackage>().ToList();
+        return (report, packages);
+    }
+
+    /// <summary>Everything installed into the target game (the game is only read).</summary>
+    public static List<InstalledMod> List(InstallTarget target)
+    {
+        if (!Directory.Exists(target.ModsDir)) return [];
+        var reg = ModRegistry.Load(target.GameDir);
+        return Handlers.SelectMany(h => h.List(target, reg))
+                       .OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    /// <summary>The steps that would apply these changes (for showing before applying).</summary>
+    public static InstallPlan PlanChanges(InstallTarget target, IReadOnlyCollection<ModChange> changes)
+    {
+        if (changes.FirstOrDefault(c => !Handlers.Any(h => h.Owns(c.Id))) is { } unknown)
+            throw new ArgumentException($"Unknown installed mod id: {unknown.Id}");
+        var reg = ModRegistry.Load(target.GameDir);
+        var plan = new InstallPlan { Title = "Applying changes to installed mods" };
+        foreach (var h in Handlers)
+        {
+            var mine = changes.Where(c => h.Owns(c.Id)).ToList();
+            if (mine.Count == 0) continue;
+            var part = h.PlanChanges(target, reg, mine);
+            plan.Ops.AddRange(part.Ops);
+            plan.Warnings.AddRange(part.Warnings);
+        }
+        return plan;
+    }
+
+    /// <summary>Apply switches and removals — all of them, or (on a failure) none.</summary>
+    public static void Apply(InstallTarget target, IReadOnlyCollection<ModChange> changes, Action<string> log)
+    {
+        if (changes.Count == 0) return;
+        InstallExecutor.Run(PlanChanges(target, changes), target, log);
+    }
+
+    /// <summary>Install an analysed package through its handler's plan.</summary>
+    public static InstallContext Install(ModPackage package, InstallTarget target, Action<string> log) =>
+        InstallExecutor.Run(HandlerFor(package.Category).PlanInstall(package, target), target, log);
+}
+
+/// <summary>
+/// The installed-weapons view the app started with, kept as a shortcut over
+/// <see cref="ModLibrary"/>: standalone packs are recorded in <c>mods/ModDropV.json</c>,
+/// weapons of the shared AddonWeapons pack in the staged pack's manifest.
+/// </summary>
+public static class InstalledMods
+{
+    public const string RegistryFile = ModRegistry.FileName;
+
+    public static string RegistryPath(string gameDir) => ModRegistry.PathFor(gameDir);
+
+    /// <summary>Record a standalone pack installed outside a plan (replacing an earlier record of it).</summary>
+    public static void RegisterPack(string gameDir, string dlcName, string displayName, GameEdition edition)
+    {
+        if (MergedPack.FolderIndex(dlcName) is not null) return;       // the shared pack keeps its own record
+        var reg = ModRegistry.Load(gameDir);
+        reg.Upsert(new RegisteredMod
+        {
+            Id = WeaponIds.Pack(dlcName), Category = ModCategory.Weapon, Name = displayName,
+            Edition = WeaponHandler.EditionKey(edition), Installed = DateTime.UtcNow,
+            Owns = [$"mods/update/x64/dlcpacks/{dlcName}/"],
+            Data = new() { ["kind"] = "pack", ["pack"] = dlcName },
+        });
+        reg.Save(gameDir);
+    }
+
+    public static List<InstalledMod> List(string gameDir, string stagingDir) =>
+        ModLibrary.List(new InstallTarget(gameDir, GameEdition.Legacy, stagingDir));
+
+    public static void Apply(string gameDir, string stagingDir, GameEdition edition,
+                             IReadOnlyCollection<ModChange> changes, Action<string> log) =>
+        ModLibrary.Apply(new InstallTarget(gameDir, edition, stagingDir), changes, log);
+}

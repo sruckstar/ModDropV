@@ -1,0 +1,4409 @@
+<?xml version='1.0' encoding='utf-8'?>
+<CWeaponModelInfo__InitDataList>
+	<InitDatas>
+		
+		<Item>
+			<modelName>W_AM_Fire_Exting</modelName>
+			<txdName>W_AM_Fire_Exting</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AM_Jerrycan</modelName>
+			<txdName>W_AM_Jerrycan</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_am_digiscanner</modelName>
+			<txdName>W_AM_DigiScanner</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_am_Case</modelName>
+			<txdName>W_AM_Case</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AM_BrfCase</modelName>
+			<txdName>W_AM_BrfCase</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_am_Flare</modelName>
+			<txdName>W_AM_Flare</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AM_BaseBall</modelName>
+			<txdName>W_AM_BaseBall</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_ME_Bat</modelName>
+			<txdName>W_ME_Bat</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Crowbar</modelName>
+			<txdName>W_ME_Crowbar</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Hammer</modelName>
+			<txdName>W_ME_Hammer</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_knife_01</modelName>
+			<txdName>W_ME_knife_01</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Nightstick</modelName>
+			<txdName>W_ME_Nightstick</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_GClub</modelName>
+			<txdName>W_ME_GClub</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_PI_PISTOL</modelName>
+			<txdName>W_PI_PISTOL</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PISTOL_Mag1</modelName>
+			<txdName>W_PI_PISTOL_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PISTOL_Mag2</modelName>
+			<txdName>W_PI_PISTOL_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_APPISTOL</modelName>
+			<txdName>W_PI_APPistol</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_APPISTOL_Mag1</modelName>
+			<txdName>W_PI_APPISTOL_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_APPISTOL_Mag2</modelName>
+			<txdName>W_PI_APPISTOL_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_COMBATPISTOL</modelName>
+			<txdName>W_PI_CombatPistol</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_COMBATPISTOL_Mag1</modelName>
+			<txdName>W_PI_COMBATPISTOL_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_COMBATPISTOL_Mag2</modelName>
+			<txdName>W_PI_COMBATPISTOL_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_Stungun</modelName>
+			<txdName>W_PI_Stungun</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PISTOL50</modelName>
+			<txdName>W_PI_PISTOL50</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PISTOL50_Mag1</modelName>
+			<txdName>W_PI_PISTOL50_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PISTOL50_Mag2</modelName>
+			<txdName>W_PI_PISTOL50_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_SB_SMG</modelName>
+			<txdName>W_SB_SMG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMG_Mag1</modelName>
+			<txdName>W_SB_SMG_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMG_Mag2</modelName>
+			<txdName>W_SB_SMG_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_MICROSMG</modelName>
+			<txdName>W_SB_MicroSMG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_MICROSMG_Mag1</modelName>
+			<txdName>W_SB_MICROSMG_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_MICROSMG_Mag2</modelName>
+			<txdName>W_SB_MICROSMG_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_ASSAULTSMG</modelName>
+			<txdName>W_SB_AssaultSMG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_ASSAULTSMG_Mag1</modelName>
+			<txdName>W_SB_ASSAULTSMG_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_ASSAULTSMG_Mag2</modelName>
+			<txdName>W_SB_ASSAULTSMG_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_SG_PUMPSHOTGUN</modelName>
+			<txdName>W_SG_PumpShotgun</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_SawnOff</modelName>
+			<txdName>W_SG_SawnOff</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_ASSAULTSHOTGUN</modelName>
+			<txdName>W_SG_AssaultShotgun</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_ASSAULTSHOTGUN_Mag1</modelName>
+			<txdName>W_SG_ASSAULTSHOTGUN_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_ASSAULTSHOTGUN_Mag2</modelName>
+			<txdName>W_SG_ASSAULTSHOTGUN_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_BULLPUPSHOTGUN</modelName>
+			<txdName>W_SG_BullpupShotgun</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AR_ASSAULTRIFLE</modelName>
+			<txdName>W_AR_ASSAULTRIFLE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_ASSAULTRIFLE_Mag1</modelName>
+			<txdName>W_AR_ASSAULTRIFLE_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_ASSAULTRIFLE_Mag2</modelName>
+			<txdName>W_AR_ASSAULTRIFLE_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CARBINERIFLE</modelName>
+			<txdName>W_AR_CarbineRifle</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<ExpressionDictionaryName>W_AR_CarbineRifle</ExpressionDictionaryName>
+			<ExpressionName>w_ar_carbinerifle</ExpressionName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CARBINERIFLE_Mag1</modelName>
+			<txdName>W_AR_CarbineRifle_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CARBINERIFLE_Mag2</modelName>
+			<txdName>W_AR_CarbineRifle_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_ADVANCEDRIFLE</modelName>
+			<txdName>W_AR_AdvancedRifle</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AdvancedRifle_mag1</modelName>
+			<txdName>W_AR_AdvancedRifle_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AdvancedRifle_mag2</modelName>
+			<txdName>W_AR_AdvancedRifle_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_SR_SNIPERRIFLE</modelName>
+			<txdName>W_SR_SniperRifle</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_SNIPERRIFLE_Mag1</modelName>
+			<txdName>W_SR_SniperRifle_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HEAVYSNIPER</modelName>
+			<txdName>W_SR_HEAVYSNIPER</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HEAVYSNIPER_Mag1</modelName>
+			<txdName>W_SR_HEAVYSNIPER_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_LR_GRENADELAUNCHER</modelName>
+			<txdName>W_LR_GrenadeLauncher</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_LR_40mm</modelName>
+			<txdName>W_LR_40mm</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_LR_RPG</modelName>
+			<txdName>W_LR_RPG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_LR_RPG_Rocket</modelName>
+			<txdName>W_LR_RPG_Rocket</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_MG_MG</modelName>
+			<txdName>W_MG_MG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_MG_MG_Mag1</modelName>
+			<txdName>W_MG_MG_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_MG_MG_Mag2</modelName>
+			<txdName>W_MG_MG_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_MG_COMBATMG</modelName>
+			<txdName>W_MG_CombatMG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_MG_COMBATMG_Mag1</modelName>
+			<txdName>W_MG_CombatMG_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_MG_COMBATMG_Mag2</modelName>
+			<txdName>W_MG_CombatMG_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_MG_Minigun</modelName>
+			<txdName>W_MG_Minigun</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_EX_PE</modelName>
+			<txdName>W_EX_PE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_EX_GRENADESMOKE</modelName>
+			<txdName>W_EX_GrenadeSmoke</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_EX_GRENADEFRAG</modelName>
+			<txdName>W_EX_GRENADEFRAG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_EX_Molotov</modelName>
+			<txdName>W_EX_Molotov</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AT_Railcover_01</modelName>
+			<txdName>W_AT_Railcover_01</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_AFGrip</modelName>
+			<txdName>W_AT_AR_AFGrip</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Flsh</modelName>
+			<txdName>W_AT_PI_Flsh</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_Flsh</modelName>
+			<txdName>W_AT_AR_Flsh</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Macro</modelName>
+			<txdName>W_AT_Scope_Macro</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Small</modelName>
+			<txdName>W_AT_Scope_Small</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Medium</modelName>
+			<txdName>W_AT_Scope_Medium</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Large</modelName>
+			<txdName>W_AT_Scope_Large</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Max</modelName>
+			<txdName>W_AT_Scope_Max</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Supp</modelName>
+			<txdName>W_AT_PI_Supp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_Supp</modelName>
+			<txdName>W_AT_AR_Supp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_Supp_02</modelName>
+			<txdName>W_AT_AR_Supp_02</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SR_Supp</modelName>
+			<txdName>W_AT_SR_Supp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+
+		
+
+		
+		
+		
+		<Item>
+			<modelName>W_EX_BirdShat</modelName>
+			<txdName>W_EX_BirdShat</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		
+	<Item>
+      <modelName>w_me_bottle</modelName>
+      <txdName>w_me_bottle</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+			
+    <Item>
+      <modelName>w_pi_sns_pistol</modelName>
+      <txdName>w_pi_sns_pistol</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+    <Item>
+      <modelName>w_pi_sns_pistol_Mag1</modelName>
+      <txdName>w_pi_sns_pistol_Mag1</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+    <Item>
+      <modelName>w_pi_sns_pistol_Mag2</modelName>
+      <txdName>w_pi_sns_pistol_Mag2</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>	
+	<Item>
+			<modelName>W_AR_AssaultRifleMk2</modelName>
+			<txdName>W_AR_AssaultRifleMk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifleMk2_Mag1</modelName>
+			<txdName>W_AR_AssaultRifleMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifleMk2_Mag2</modelName>
+			<txdName>W_AR_AssaultRifleMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifleMk2_Mag_AP</modelName>
+			<txdName>W_AR_AssaultRifleMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifleMk2_Mag_FMJ</modelName>
+			<txdName>W_AR_AssaultRifleMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifleMk2_Mag_Inc</modelName>
+			<txdName>W_AR_AssaultRifleMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifleMk2_Mag_Tr</modelName>
+			<txdName>W_AR_AssaultRifleMk2_Mag_Tr</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2</modelName>
+			<txdName>W_AR_CarbineRifleMk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<ExpressionDictionaryName>W_AR_CarbineRifle</ExpressionDictionaryName>
+			<ExpressionName>w_ar_carbinerifle</ExpressionName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Mag1</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Mag2</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Mag_AP</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Mag_FMJ</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Mag_Inc</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Mag_Tr</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Mag_Tr</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+			
+		
+		<Item>
+			<modelName>W_MG_CombatMGMk2</modelName>
+			<txdName>W_MG_CombatMGMk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Mag1</modelName>
+			<txdName>W_MG_CombatMGMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Mag2</modelName>
+			<txdName>W_MG_CombatMGMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Mag_AP</modelName>
+			<txdName>W_MG_CombatMGMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>	
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Mag_FMJ</modelName>
+			<txdName>W_MG_CombatMGMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>	
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Mag_Inc</modelName>
+			<txdName>W_MG_CombatMGMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>	
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Mag_Tr</modelName>
+			<txdName>W_MG_CombatMGMk2_Mag_Tr</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_PI_PistolMk2</modelName>
+			<txdName>W_PI_PistolMk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Mag1</modelName>
+			<txdName>W_PI_PistolMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Mag2</modelName>
+			<txdName>W_PI_PistolMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Mag_FMJ</modelName>
+			<txdName>W_PI_PistolMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Mag_HP</modelName>
+			<txdName>W_PI_PistolMk2_Mag_HP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Mag_Inc</modelName>
+			<txdName>W_PI_PistolMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Mag_Tr</modelName>
+			<txdName>W_PI_PistolMk2_Mag_Tr</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_SB_SMGMk2</modelName>
+			<txdName>W_SB_SMGMk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMGMk2_Mag1</modelName>
+			<txdName>W_SB_SMGMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMGMk2_Mag2</modelName>
+			<txdName>W_SB_SMGMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMGMk2_Mag_FMJ</modelName>
+			<txdName>W_SB_SMGMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMGMk2_Mag_HP</modelName>
+			<txdName>W_SB_SMGMk2_Mag_HP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMGMk2_Mag_Inc</modelName>
+			<txdName>W_SB_SMGMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMGMk2_Mag_Tr</modelName>
+			<txdName>W_SB_SMGMk2_Mag_Tr</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_SR_HeavySniperMk2</modelName>
+			<txdName>W_SR_HeavySniperMk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HeavySniperMk2_Mag1</modelName>
+			<txdName>W_SR_HeavySniperMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HeavySniperMk2_Mag2</modelName>
+			<txdName>W_SR_HeavySniperMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HeavySniperMk2_Mag_AP</modelName>
+			<txdName>W_SR_HeavySniperMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HeavySniperMk2_Mag_AP2</modelName>
+			<txdName>W_SR_HeavySniperMk2_Mag_AP2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HeavySniperMk2_Mag_FMJ</modelName>
+			<txdName>W_SR_HeavySniperMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_HeavySniperMk2_Mag_Inc</modelName>
+			<txdName>W_SR_HeavySniperMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_EX_VehicleGrenade</modelName>
+			<txdName>W_EX_VehicleGrenade</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_EX_VehicleMine</modelName>
+			<txdName>W_EX_VehicleMine</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_EX_VehicleMissile_1</modelName>
+			<txdName>W_EX_VehicleMissile_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_EX_VehicleMissile_2</modelName>
+			<txdName>W_EX_VehicleMissile_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_EX_VehicleMissile_3</modelName>
+			<txdName>W_EX_VehicleMissile_3</txdName>
+			<ptfxAssetName>weap_gr_vehicle_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_EX_VehicleMortar</modelName>
+			<txdName>W_EX_VehicleMortar</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AT_AR_Barrel_1</modelName>
+			<txdName>W_AT_AR_Barrel_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_Barrel_2</modelName>
+			<txdName>W_AT_AR_Barrel_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_CR_Barrel_1</modelName>
+			<txdName>W_AT_CR_Barrel_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_CR_Barrel_2</modelName>
+			<txdName>W_AT_CR_Barrel_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_MG_Barrel_1</modelName>
+			<txdName>W_AT_MG_Barrel_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_MG_Barrel_2</modelName>
+			<txdName>W_AT_MG_Barrel_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SB_Barrel_1</modelName>
+			<txdName>W_AT_SB_Barrel_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SB_Barrel_2</modelName>
+			<txdName>W_AT_SB_Barrel_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SR_Barrel_1</modelName>
+			<txdName>W_AT_SR_Barrel_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SR_Barrel_2</modelName>
+			<txdName>W_AT_SR_Barrel_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_AT_ARMk2_Camo1</modelName>
+			<txdName>W_AT_ARMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo2</modelName>
+			<txdName>W_AT_ARMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo3</modelName>
+			<txdName>W_AT_ARMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo4</modelName>
+			<txdName>W_AT_ARMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo5</modelName>
+			<txdName>W_AT_ARMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo6</modelName>
+			<txdName>W_AT_ARMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo7</modelName>
+			<txdName>W_AT_ARMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo8</modelName>
+			<txdName>W_AT_ARMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo9</modelName>
+			<txdName>W_AT_ARMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo10</modelName>
+			<txdName>W_AT_ARMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_ARMk2_Camo_Ind1</modelName>
+			<txdName>W_AT_ARMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo1</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo2</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo3</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo4</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo5</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo6</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo7</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo8</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo9</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo10</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifleMk2_Camo_Ind1</modelName>
+			<txdName>W_AR_CarbineRifleMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo1</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo2</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo3</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo4</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo5</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo6</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo7</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo8</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo9</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo10</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_MG_CombatMGMk2_Camo_Ind1</modelName>
+			<txdName>W_MG_CombatMGMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo1</modelName>
+			<txdName>W_AT_SMGMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo2</modelName>
+			<txdName>W_AT_SMGMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo3</modelName>
+			<txdName>W_AT_SMGMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo4</modelName>
+			<txdName>W_AT_SMGMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo5</modelName>
+			<txdName>W_AT_SMGMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo6</modelName>
+			<txdName>W_AT_SMGMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo7</modelName>
+			<txdName>W_AT_SMGMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo8</modelName>
+			<txdName>W_AT_SMGMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo9</modelName>
+			<txdName>W_AT_SMGMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo10</modelName>
+			<txdName>W_AT_SMGMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SMGMk2_Camo_Ind1</modelName>
+			<txdName>W_AT_SMGMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo1</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo2</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo3</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo4</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo5</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo6</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo7</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo8</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo9</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Slide_Camo10</modelName>
+			<txdName>W_PI_PistolMK2_Slide_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMK2_Camo_Sl_Ind1</modelName>
+			<txdName>W_PI_PistolMK2_Camo_Sl_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo1</modelName>
+			<txdName>W_PI_PistolMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo2</modelName>
+			<txdName>W_PI_PistolMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo3</modelName>
+			<txdName>W_PI_PistolMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo4</modelName>
+			<txdName>W_PI_PistolMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo5</modelName>
+			<txdName>W_PI_PistolMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo6</modelName>
+			<txdName>W_PI_PistolMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo7</modelName>
+			<txdName>W_PI_PistolMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo8</modelName>
+			<txdName>W_PI_PistolMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo9</modelName>
+			<txdName>W_PI_PistolMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo10</modelName>
+			<txdName>W_PI_PistolMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_PistolMk2_Camo_Ind1</modelName>
+			<txdName>W_PI_PistolMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo1</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo2</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo3</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo4</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo5</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo6</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo7</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo8</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo9</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo10</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_HeavySniperMk2_Camo_Ind1</modelName>
+			<txdName>W_AT_HeavySniperMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_AT_PI_Flsh_2</modelName>
+			<txdName>W_AT_PI_Flsh_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_AT_AFGrip_2</modelName>
+			<txdName>W_AT_AFGrip_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AT_Muzzle_1</modelName>
+			<txdName>W_AT_Muzzle_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_2</modelName>
+			<txdName>W_AT_Muzzle_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_3</modelName>
+			<txdName>W_AT_Muzzle_3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_4</modelName>
+			<txdName>W_AT_Muzzle_4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_5</modelName>
+			<txdName>W_AT_Muzzle_5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_6</modelName>
+			<txdName>W_AT_Muzzle_6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_7</modelName>
+			<txdName>W_AT_Muzzle_7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_8</modelName>
+			<txdName>W_AT_Muzzle_8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_9</modelName>
+			<txdName>W_AT_Muzzle_9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Comp_1</modelName>
+			<txdName>W_AT_PI_Comp_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+	
+		
+		<Item>
+			<modelName>W_AT_PI_Rail_1</modelName>
+			<txdName>W_AT_PI_Rail_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Macro_2_Mk2</modelName>
+			<txdName>W_AT_Scope_Macro_2_Mk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Small_Mk2</modelName>
+			<txdName>W_AT_Scope_Small_Mk2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Medium_2</modelName>
+			<txdName>W_AT_Scope_Medium_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_NV</modelName>
+			<txdName>W_AT_Scope_NV</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Sights_1</modelName>
+			<txdName>W_AT_Sights_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Sights_SMG</modelName>
+			<txdName>W_AT_Sights_SMG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AT_SR_Supp3</modelName>
+			<txdName>W_AT_SR_Supp3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+	<Item>
+			<modelName>W_LR_FIREWORK</modelName>
+			<txdName>W_LR_FIREWORK</txdName>
+			<ptfxAssetName>wpn_indep_firework</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_LR_Firework_Rocket</modelName>
+			<txdName>W_LR_Firework_Rocket</txdName>
+			<ptfxAssetName>proj_indep_firework</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_ar_musket</modelName>
+			<txdName>w_ar_musket</txdName>
+			<ptfxAssetName>wpn_musket</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>p_w_ar_musket_chrg</modelName>
+			<txdName>p_w_ar_musket_chrg</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+	<Item>
+			<modelName>W_SB_PDW</modelName>
+			<txdName>W_SB_PDW</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_PDW_Mag1</modelName>
+			<txdName>W_SB_PDW_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_PDW_Mag2</modelName>
+			<txdName>W_SB_PDW_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>W_AR_AdvancedRifle_Luxe</modelName>
+			<txdName>W_AR_AdvancedRifle_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifle_Luxe</modelName>
+			<txdName>W_AR_AssaultRifle_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifle_Luxe</modelName>
+			<txdName>W_AR_CarbineRifle_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<ExpressionDictionaryName>W_AR_CarbineRifle</ExpressionDictionaryName>
+			<ExpressionName>w_ar_carbinerifle</ExpressionName>
+			<lodDist value="50" />
+		</Item>			
+		<Item>
+			<modelName>W_PI_APPistol_Luxe</modelName>
+			<txdName>W_PI_APPistol_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>	
+		<Item>
+			<modelName>W_PI_HeavyPistol_Luxe</modelName>
+			<txdName>W_PI_HeavyPistol_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>		
+		<Item>
+			<modelName>W_PI_Pistol_Luxe</modelName>
+			<txdName>W_PI_Pistol_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_Pistol50_Luxe</modelName>
+			<txdName>W_PI_Pistol50_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_MicroSMG_Luxe</modelName>
+			<txdName>W_SB_MicroSMG_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMG_Luxe</modelName>
+			<txdName>W_SB_SMG_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_Sawnoff_Luxe</modelName>
+			<txdName>W_SG_Sawnoff_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifle_Luxe</modelName>
+			<txdName>W_SR_MarksmanRifle_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_SniperRifle_Luxe</modelName>
+			<txdName>W_SR_SniperRifle_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		
+		<Item>
+			<modelName>W_AR_AdvancedRifle_LUXE_mag1</modelName>
+			<txdName>W_AR_AdvancedRifle_LUXE_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AdvancedRifle_LUXE_mag2</modelName>
+			<txdName>W_AR_AdvancedRifle_LUXE_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifle_LUXE_Mag1</modelName>
+			<txdName>W_AR_AssaultRifle_LUXE_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_AssaultRifle_LUXE_Mag2</modelName>
+			<txdName>W_AR_AssaultRifle_LUXE_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifle_LUXE_mag1</modelName>
+			<txdName>W_AR_CarbineRifle_LUXE_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_CarbineRifle_LUXE_mag2</modelName>
+			<txdName>W_AR_CarbineRifle_LUXE_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>		
+		<Item>
+			<modelName>W_PI_Pistol_LUXE_Mag1</modelName>
+			<txdName>W_PI_Pistol_LUXE_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_Pistol_LUXE_Mag2</modelName>
+			<txdName>W_PI_Pistol_LUXE_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_Pistol50_Mag1_LUXE</modelName>
+			<txdName>W_PI_Pistol50_Mag1_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_Pistol50_Mag2_LUXE</modelName>
+			<txdName>W_PI_Pistol50_Mag2_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_APPistol_Mag1_LUXE</modelName>
+			<txdName>W_PI_APPistol_Mag1_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_APPistol_Mag2_LUXE</modelName>
+			<txdName>W_PI_APPistol_Mag2_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_HeavyPistol_LUXE_Mag1</modelName>
+			<txdName>W_PI_HeavyPistol_LUXE_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_HeavyPistol_LUXE_Mag2</modelName>
+			<txdName>W_PI_HeavyPistol_LUXE_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>		
+		<Item>
+			<modelName>W_SB_MicroSMG_Mag1_LUXE</modelName>
+			<txdName>W_SB_MicroSMG_Mag1_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_MicroSMG_Mag2_LUXE</modelName>
+			<txdName>W_SB_MicroSMG_Mag2_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMG_LUXE_Mag1</modelName>
+			<txdName>W_SB_SMG_LUXE_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SB_SMG_LUXE_Mag2</modelName>
+			<txdName>W_SB_SMG_LUXE_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_SR_SniperRifle_Mag1_LUXE</modelName>
+			<txdName>W_SR_SniperRifle_Mag1_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifle_LUXE_Mag1</modelName>
+			<txdName>W_SR_MarksmanRifle_LUXE_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifle_LUXE_Mag2</modelName>
+			<txdName>W_SR_MarksmanRifle_LUXE_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AT_AR_Flsh_LUXE</modelName>
+			<txdName>W_AT_AR_Flsh_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Flsh_LUXE</modelName>
+			<txdName>W_AT_PI_Flsh_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AT_AR_AFGrip_LUXE</modelName>
+			<txdName>W_AT_AR_AFGrip_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AT_PI_Supp_LUXE</modelName>
+			<txdName>W_AT_PI_Supp_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Supp_LUXE_2</modelName>
+			<txdName>W_AT_PI_Supp_LUXE_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_Supp_LUXE</modelName>
+			<txdName>W_AT_AR_Supp_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_Supp_Luxe_02</modelName>
+			<txdName>W_AT_AR_Supp_Luxe_02</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SR_Supp_LUXE</modelName>
+			<txdName>W_AT_SR_Supp_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AT_Scope_Large_LUXE</modelName>
+			<txdName>W_AT_Scope_Large_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Macro_LUXE</modelName>
+			<txdName>W_AT_Scope_Macro_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Macro_02_LUXE</modelName>
+			<txdName>W_AT_Scope_Macro_02_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>	
+		<Item>
+			<modelName>W_AT_Scope_Max_LUXE</modelName>
+			<txdName>W_AT_Scope_Max_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Medium_LUXE</modelName>
+			<txdName>W_AT_Scope_Medium_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Small_LUXE</modelName>
+			<txdName>W_AT_Scope_Small_LUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		
+	<Item>
+			<modelName>W_Smug_Bomb_01</modelName>
+			<txdName>W_Smug_Bomb_01</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+		<Item>
+			<modelName>W_Smug_Bomb_02</modelName>
+			<txdName>W_Smug_Bomb_02</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+		<Item>
+			<modelName>W_Smug_Bomb_03</modelName>
+			<txdName>W_Smug_Bomb_03</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+		<Item>
+			<modelName>W_Smug_Bomb_04</modelName>
+			<txdName>W_Smug_Bomb_04</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_Smug_AirMissile_01</modelName>
+			<txdName>W_Smug_AirMissile_01</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+		<Item>
+			<modelName>W_Smug_AirMissile_01b</modelName>
+			<txdName>W_Smug_AirMissile_01b</txdName>
+			<ptfxAssetName>weap_sm_barrage</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+		<Item>
+			<modelName>W_Smug_AirMissile_02</modelName>
+			<txdName>W_Smug_AirMissile_02</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+		<Item>
+			<modelName>W_Smug_AirMissile_02b</modelName>
+			<txdName>W_Smug_AirMissile_02b</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+				
+	<Item>
+		<modelName>W_PI_PistolSMG_M31</modelName>
+		<txdName>W_PI_PistolSMG_M31</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+		<Item>
+		<modelName>W_PI_PistolSMG_M31_Mag1</modelName>
+		<txdName>W_PI_PistolSMG_M31_Mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+		<Item>
+		<modelName>W_PI_PistolSMG_M31_Mag2</modelName>
+		<txdName>W_PI_PistolSMG_M31_Mag2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+		
+			
+				
+
+	<Item>
+		<modelName>W_SB_MicroSMG_M31</modelName>
+		<txdName>W_SB_MicroSMG_M31</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+
+	<Item>
+		<modelName>W_LR_RPG_M31</modelName>
+		<txdName>W_LR_RPG_M31</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+	
+	<Item>
+		<modelName>W_AR_CarbineRifle_M31</modelName>
+		<txdName>W_AR_CarbineRifle_M31</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<ExpressionDictionaryName>W_AR_CarbineRifle</ExpressionDictionaryName>
+		<ExpressionName>w_ar_carbinerifle</ExpressionName>
+		<lodDist value="50" />
+	</Item>
+	
+
+  <Item>
+		<modelName>W_SR_HeavySniper_M32</modelName>
+		<txdName>W_SR_HeavySniper_M32</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+				
+	<Item>
+		<modelName>W_PI_CombatPistol_M32</modelName>
+		<txdName>W_PI_CombatPistol_M32</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+	
+	<Item>
+		<modelName>W_AR_SpecialCarbine_M32</modelName>
+		<txdName>W_AR_SpecialCarbine_M32</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+					
+				
+	<Item>
+		<modelName>W_LR_CompactSL_M32</modelName>
+		<txdName>W_LR_CompactSL_M32</txdName>
+		<ptfxAssetName>weap_sv_sl</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+					
+				
+	<Item>
+		<modelName>W_SL_BattleRifle_M32</modelName>
+		<txdName>W_SL_BattleRifle_M32</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_SL_BattleRifle_M32_Mag1</modelName>
+		<txdName>W_SL_BattleRifle_M32_Mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_SL_BattleRifle_M32_Mag2</modelName>
+		<txdName>W_SL_BattleRifle_M32_Mag2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+			
+					
+				
+	<Item>
+		<modelName>W_AM_HackDevice_M32</modelName>
+		<txdName>W_AM_HackDevice_M32</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+			
+  <Item>
+		<modelName>W_ME_Rod_M41</modelName>
+		<txdName>W_ME_Rod_M41</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	
+		
+
+	<Item>
+		<modelName>W_PI_Stungun_M41</modelName>
+		<txdName>W_PI_Stungun_M41</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+
+  <Item>
+		<modelName>W_AR_BullpupRifleM42</modelName>
+		<txdName>W_AR_BullpupRifleM42</txdName>
+		<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_AR_BullpupRifleM42_mag2</modelName>
+		<txdName>W_AR_BullpupRifleM42_mag2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	
+	<Item>
+		<modelName>W_AT_AR_Scope_Small_M42</modelName>
+		<txdName>W_AT_AR_Scope_Small_M42</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+
+	<Item>
+		<modelName>W_AT_AR_Flsh_M42</modelName>
+		<txdName>W_AT_AR_Flsh_M42</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>		
+
+  <Item>
+      <modelName>w_pi_revolver</modelName>
+      <txdName>w_pi_revolver</txdName>
+      <ptfxAssetName>weap_revolver</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+    <Item>
+      <modelName>w_pi_revolver_mag1</modelName>
+      <txdName>w_pi_revolver_mag1</txdName>
+      <ptfxAssetName>weap_revolver</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+	<Item>
+      <modelName>w_pi_revolver_g</modelName>
+      <txdName>w_pi_revolver_g</txdName>
+      <ptfxAssetName>weap_revolver</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+	<Item>
+      <modelName>w_pi_revolver_b</modelName>
+      <txdName>w_pi_revolver_b</txdName>
+      <ptfxAssetName>weap_revolver</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+	
+		
+    
+	<Item>
+      <modelName>w_me_switchblade</modelName>
+      <txdName>w_me_switchblade</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+	<Item>
+      <modelName>w_me_switchblade_b</modelName>
+      <txdName>w_me_switchblade_b</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+	<Item>
+      <modelName>w_me_switchblade_g</modelName>
+      <txdName>w_me_switchblade_g</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+	
+	<Item>
+		  <modelName>w_me_stonehatchet</modelName>
+		  <txdName>w_me_stonehatchet</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_Battle_AirMissile_01</modelName>
+			<txdName>W_Battle_AirMissile_01</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="500" />
+		</Item>
+		
+	<Item>
+		  <modelName>w_pi_heavypistol</modelName>
+		  <txdName>w_pi_heavypistol</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_pi_heavypistol_Mag1</modelName>
+		  <txdName>w_pi_heavypistol_Mag1</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_pi_heavypistol_Mag2</modelName>
+		  <txdName>w_pi_heavypistol_Mag2</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+		  <modelName>w_ar_specialcarbine</modelName>
+		  <txdName>w_ar_specialcarbine</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_specialcarbine_Mag1</modelName>
+		  <txdName>w_ar_specialcarbine_Mag1</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_specialcarbine_Mag2</modelName>
+		  <txdName>w_ar_specialcarbine_Mag2</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+	<Item>
+		  <modelName>w_ex_pipebomb</modelName>
+		  <txdName>w_ex_pipebomb</txdName>
+		  <ptfxAssetName>weap_pipebomb</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+		  <modelName>w_me_battleaxe</modelName>
+		  <txdName>w_me_battleaxe</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+		  <modelName>w_me_poolcue</modelName>
+		  <txdName>w_me_poolcue</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+		  <modelName>w_me_wrench</modelName>
+		  <txdName>w_me_wrench</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+		  <modelName>w_sb_minismg</modelName>
+		  <txdName>w_sb_minismg</txdName>
+		  <ptfxAssetName>weap_minismg</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_sb_minismg_mag1</modelName>
+			<txdName>w_sb_minismg_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>w_sb_minismg_mag2</modelName>
+			<txdName>w_sb_minismg_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+		  <modelName>w_sg_sweeper</modelName>
+		  <txdName>w_sg_sweeper</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_sg_sweeper_mag1</modelName>
+			<txdName>w_sg_sweeper_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+		  <modelName>w_lr_compactgl</modelName>
+		  <txdName>w_lr_compactgl</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_lr_compactgl_mag1</modelName>
+			<txdName>w_lr_compactgl_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+	<Item>
+			<modelName>W_EX_APMine</modelName>
+			<txdName>W_EX_APMine</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+	
+		
+		<Item>
+			<modelName>W_EX_Snowball</modelName>
+			<txdName>W_EX_Snowball</txdName>
+			<ptfxAssetName>proj_xmas_snowball</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+			<modelName>W_LR_Homing</modelName>
+			<txdName>W_LR_Homing</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>W_LR_Homing_Rocket</modelName>
+			<txdName>W_LR_Homing_Rocket</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		
+	<Item>
+			<modelName>W_AR_BullpupRifleMk2</modelName>
+			<txdName>W_AR_BullpupRifleMk2</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo1</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo2</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo3</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo4</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo5</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo6</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo7</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo8</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo9</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo10</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Camo_Ind1</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Mag1</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Mag2</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Mag_AP</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Mag_FMJ</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Mag_Inc</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BullpupRifleMk2_Mag_Tr</modelName>
+			<txdName>W_AR_BullpupRifleMk2_Mag_Tr</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AR_BP_MK2_Barrel1</modelName>
+			<txdName>W_AR_BP_Mk2_Barrel1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_BP_MK2_Barrel2</modelName>
+			<txdName>W_AR_BP_Mk2_Barrel2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		
+		<Item>
+			<modelName>W_PI_Wep1_Gun</modelName>
+			<txdName>W_PI_Wep1_Gun</txdName>
+			<ptfxAssetName>weap_xm_revolver</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>	
+		<Item>
+			<modelName>W_PI_Wep1_Mag1</modelName>
+			<txdName>W_PI_Wep1_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>	
+		
+		
+		
+		<Item>
+			<modelName>W_SR_MarksmanRifleMK2</modelName>
+			<txdName>W_SR_MarksmanRifleMK2</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo1</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo2</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo3</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo4</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo5</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo6</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo7</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo8</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo9</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo10</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Camo_Ind</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Camo_Ind</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Mag1</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Mag2</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Mag_AP</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Mag_FMJ</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Mag_Inc</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MarksmanRifleMk2_Mag_Tr</modelName>
+			<txdName>W_SR_MarksmanRifleMk2_Mag_Tr</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_SR_MR_Mk2_Barrel_1</modelName>
+			<txdName>W_SR_MR_Mk2_Barrel_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SR_MR_Mk2_Barrel_2</modelName>
+			<txdName>W_SR_MR_Mk2_Barrel_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2</modelName>
+			<txdName>W_SG_PumpShotgunMk2</txdName>
+			<ptfxAssetName>weap_xm_shotgun_rounds</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo1</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo2</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo3</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo4</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo5</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo6</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo7</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo8</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo9</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo10</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Camo_Ind1</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Mag1</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Mag_AP</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Mag_Exp</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Mag_Exp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Mag_HP</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Mag_HP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_SG_PumpShotgunMk2_Mag_Inc</modelName>
+			<txdName>W_SG_PumpShotgunMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		
+		<Item>
+			<modelName>W_PI_RevolverMk2</modelName>
+			<txdName>W_PI_RevolverMk2</txdName>
+			<ptfxAssetName>weap_revolver</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo1</modelName>
+			<txdName>W_PI_RevolverMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo2</modelName>
+			<txdName>W_PI_RevolverMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo3</modelName>
+			<txdName>W_PI_RevolverMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo4</modelName>
+			<txdName>W_PI_RevolverMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo5</modelName>
+			<txdName>W_PI_RevolverMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo6</modelName>
+			<txdName>W_PI_RevolverMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo7</modelName>
+			<txdName>W_PI_RevolverMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo8</modelName>
+			<txdName>W_PI_RevolverMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo9</modelName>
+			<txdName>W_PI_RevolverMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo10</modelName>
+			<txdName>W_PI_RevolverMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Camo_Ind</modelName>
+			<txdName>W_PI_RevolverMk2_Camo_Ind</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_PI_RevolverMk2_Mag1</modelName>
+			<txdName>W_PI_RevolverMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Mag2</modelName>
+			<txdName>W_PI_RevolverMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Mag3</modelName>
+			<txdName>W_PI_RevolverMk2_Mag3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Mag4</modelName>
+			<txdName>W_PI_RevolverMk2_Mag4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_RevolverMk2_Mag5</modelName>
+			<txdName>W_PI_RevolverMk2_Mag5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2</modelName>
+			<txdName>W_PI_SNS_PistolMK2</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo1</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo1</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo2</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo2</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo3</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo3</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo4</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo4</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo5</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo5</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo6</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo6</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo7</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo7</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo8</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo8</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo9</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo9</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo10</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo10</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Camo_Ind1</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+	    <Item>
+			<modelName>W_PI_SNS_PistolMK2_SL_Camo_Ind1</modelName>
+			<txdName>W_PI_SNS_PistolMK2_SL_Camo_Ind1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Mag1</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SNS_PistolMK2_Mag2</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+	    <Item>
+			<modelName>W_PI_SNS_PistolMK2_Mag_FMJ</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+	    <Item>
+			<modelName>W_PI_SNS_PistolMK2_Mag_HP</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Mag_HP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+	    <Item>
+			<modelName>W_PI_SNS_PistolMK2_Mag_Inc</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+	    <Item>
+			<modelName>W_PI_SNS_PistolMK2_Mag_Tr</modelName>
+			<txdName>W_PI_SNS_PistolMK2_Mag_Tr</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2</modelName>
+			<txdName>W_AR_SpecialCarbineMk2</txdName>
+			<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo1</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo2</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo3</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo4</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo5</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo5</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo6</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo6</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo7</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo7</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo8</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo8</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo9</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo9</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo10</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo10</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Camo_Ind</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Camo_Ind</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Mag1</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Mag2</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Mag_AP</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Mag_AP</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Mag_FMJ</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Mag_FMJ</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Mag_Inc</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Mag_Inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SpecialCarbineMk2_Mag_Tr</modelName>
+			<txdName>W_AR_SpecialCarbineMk2_Mag_Tr</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		<Item>
+			<modelName>W_AR_SC_Barrel_1</modelName>
+			<txdName>W_AR_SC_Barrel_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AR_SC_Barrel_2</modelName>
+			<txdName>W_AR_SC_Barrel_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		
+		<Item>
+			<modelName>W_AT_PI_Comp_2</modelName>
+			<txdName>W_AT_PI_Comp_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Comp_3</modelName>
+			<txdName>W_AT_PI_Comp_3</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Rail_2</modelName>
+			<txdName>W_AT_PI_Rail_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_SNSMk2_Flsh_1</modelName>
+			<txdName>W_AT_PI_SNSMk2_Flsh_1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Muzzle_8_XM17</modelName>
+			<txdName>W_AT_Muzzle_8_XM17</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		
+		<Item>
+			<modelName>W_EX_VehicleMissile_4</modelName>
+			<txdName>W_EX_VehicleMissile_4</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>		
+		
+	<Item>
+		  <modelName>w_pi_raygun</modelName>
+		  <txdName>w_pi_raygun</txdName>
+		  <ptfxAssetName>weap_xs_weapons</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_pi_raygun_ev</modelName>
+		  <txdName>w_pi_raygun_ev</txdName>
+		  <ptfxAssetName>weap_xs_weapons</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ex_arena_landmine_01b</modelName>
+			<txdName>w_ex_arena_landmine_01b</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_srifle</modelName>
+			<txdName>w_ar_srifle</txdName>
+			<ptfxAssetName>weap_xs_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_mg_sminigun</modelName>
+			<txdName>w_mg_sminigun</txdName>
+			<ptfxAssetName>weap_xs_weapons</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_Arena_AirMissile_01a</modelName>
+			<txdName>W_Arena_AirMissile_01a</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+	<Item>
+		<modelName>W_ME_Candy_XM3</modelName>
+		<txdName>W_ME_Candy_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_PI_Pistol_XM3</modelName>
+		<txdName>W_PI_Pistol_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_PI_Pistol_XM3_Mag1</modelName>
+		<txdName>W_PI_Pistol_XM3_Mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_PI_Pistol_XM3_Supp</modelName>
+		<txdName>W_PI_Pistol_XM3_Supp</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_AM_Papers_XM3</modelName>
+		<txdName>W_AM_Papers_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+				
+				
+			
+	<Item>
+		<modelName>W_ME_Bat_XM3</modelName>
+		<txdName>W_ME_Bat_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_01</modelName>
+		<txdName>W_ME_Bat_XM3_01</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_02</modelName>
+		<txdName>W_ME_Bat_XM3_02</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_03</modelName>
+		<txdName>W_ME_Bat_XM3_03</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_04</modelName>
+		<txdName>W_ME_Bat_XM3_04</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_05</modelName>
+		<txdName>W_ME_Bat_XM3_05</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_06</modelName>
+		<txdName>W_ME_Bat_XM3_06</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_07</modelName>
+		<txdName>W_ME_Bat_XM3_07</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_08</modelName>
+		<txdName>W_ME_Bat_XM3_08</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Bat_XM3_09</modelName>
+		<txdName>W_ME_Bat_XM3_09</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+					
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3</modelName>
+		<txdName>W_ME_Knife_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_01</modelName>
+		<txdName>W_ME_Knife_XM3_01</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_02</modelName>
+		<txdName>W_ME_Knife_XM3_02</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_03</modelName>
+		<txdName>W_ME_Knife_XM3_03</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_04</modelName>
+		<txdName>W_ME_Knife_XM3_04</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_05</modelName>
+		<txdName>W_ME_Knife_XM3_05</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_06</modelName>
+		<txdName>W_ME_Knife_XM3_06</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_07</modelName>
+		<txdName>W_ME_Knife_XM3_07</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_08</modelName>
+		<txdName>W_ME_Knife_XM3_08</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_ME_Knife_XM3_09</modelName>
+		<txdName>W_ME_Knife_XM3_09</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+
+	<Item>
+		<modelName>W_SB_MicroSMG_XM3</modelName>
+		<txdName>W_SB_MicroSMG_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+
+	<Item>
+		<modelName>W_SG_PumpShotgun_XM3</modelName>
+		<txdName>W_SG_PumpShotgun_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+	
+	<Item>
+		<modelName>W_AR_RailGun_XM3</modelName>
+		<txdName>W_AR_RailGun_XM3</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+				
+				
+	<Item>
+			<modelName>W_PI_PistolMK2_Camo_Sl_SG</modelName>
+			<txdName>W_PI_PistolMK2_Camo_Sl_SG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+	</Item>
+	
+	<Item>
+			<modelName>W_PI_PistolMK2_camo_SG</modelName>
+			<txdName>W_PI_PistolMK2_camo_SG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+	</Item>
+	
+  <Item>
+		  <modelName>w_ar_assaultrifle_boxmag</modelName>
+		  <txdName>w_ar_assaultrifle_boxmag</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_carbinerifle_boxmag</modelName>
+		  <txdName>w_ar_carbinerifle_boxmag</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_specialcarbine_boxmag</modelName>
+		  <txdName>w_ar_specialcarbine_boxmag</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sb_compactsmg_boxmag</modelName>
+		  <txdName>w_sb_compactsmg_boxmag</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sb_pdw_boxmag</modelName>
+		  <txdName>w_sb_pdw_boxmag</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sb_smg_boxmag</modelName>
+		  <txdName>w_sb_smg_boxmag</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sg_heavyshotgun_boxmag</modelName>
+		  <txdName>w_sg_heavyshotgun_boxmag</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		
+		<Item>
+		  <modelName>w_ar_assaultrifle_boxmag_luxe</modelName>
+		  <txdName>w_ar_assaultrifle_boxmag_luxe</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_carbinerifle_boxmag_luxe</modelName>
+		  <txdName>w_ar_carbinerifle_boxmag_luxe</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_specialcarbine_boxmag_luxe</modelName>
+		  <txdName>w_ar_specialcarbine_boxmag_luxe</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sb_smg_boxmag_luxe</modelName>
+		  <txdName>w_sb_smg_boxmag_luxe</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+	<Item>
+		  <modelName>w_me_flashlight</modelName>
+		  <txdName>w_me_flashlight</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_me_flashlight_flash</modelName>
+		  <txdName>w_me_flashlight_flash</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+			
+	<Item>
+		  <modelName>w_pi_flaregun</modelName>
+		  <txdName>w_pi_flaregun</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_pi_flaregun_mag1</modelName>
+		  <txdName>w_pi_flaregun_mag1</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>	
+		<Item>
+		  <modelName>w_pi_flaregun_shell</modelName>
+		  <txdName>w_pi_flaregun_shell</txdName>
+		  <ptfxAssetName>wpn_flare</ptfxAssetName>
+		  <lodDist value="100" />
+		</Item>	
+	<Item>
+		<modelName>W_PI_Wep2_Gun</modelName>
+		<txdName>W_PI_Wep2_Gun</txdName>
+		<ptfxAssetName>weap_xm_revolver</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>W_PI_Wep2_Gun_mag1</modelName>
+		<txdName>W_PI_Wep2_Gun</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_PI_Ceramic_Pistol</modelName>
+		<txdName>W_PI_Ceramic_Pistol</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>W_PI_Ceramic_Mag1</modelName>
+		<txdName>W_PI_Ceramic_Mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>W_PI_Ceramic_Supp</modelName>
+		<txdName>W_PI_Ceramic_Supp</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+
+	
+	
+	<Item>
+		<modelName>W_CH_Jerrycan</modelName>
+		<txdName>W_CH_Jerrycan</txdName>
+		<ptfxAssetName>weap_ch_weapons</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+
+		
+  <Item>
+		  <modelName>w_ar_bullpuprifle</modelName>
+		  <txdName>w_ar_bullpuprifle</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_bullpuprifle_Mag1</modelName>
+		  <txdName>w_ar_bullpuprifle_Mag1</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_ar_bullpuprifle_Mag2</modelName>
+		  <txdName>w_ar_bullpuprifle_Mag2</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+
+	<Item>
+		<modelName>w_pi_singleshoth4</modelName>
+		<txdName>w_pi_singleshoth4</txdName>
+		<ptfxAssetName>weap_ih_gpistol</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>w_pi_singleshoth4_shell</modelName>
+		<txdName>w_pi_singleshoth4_shell</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	
+	
+	<Item>
+		<modelName>w_sg_pumpshotgunh4</modelName>
+		<txdName>w_sg_pumpshotgunh4</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>w_sg_pumpshotgunh4_mag1</modelName>
+		<txdName>w_sg_pumpshotgunh4_mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	
+	
+	<Item>
+		<modelName>w_ar_bullpuprifleh4</modelName>
+		<txdName>w_ar_bullpuprifleh4</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>w_ar_bullpuprifleh4_mag1</modelName>
+		<txdName>w_ar_bullpuprifleh4_mag2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>w_ar_bullpuprifleh4_mag2</modelName>
+		<txdName>w_ar_bullpuprifleh4_mag2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>w_ar_bullpuprifleh4_sight</modelName>
+		<txdName>w_ar_bullpuprifleh4_sight</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+  <Item>
+		  <modelName>w_me_machette_lr</modelName>
+		  <txdName>w_me_machette_lr</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+		  <modelName>w_sb_compactsmg</modelName>
+		  <txdName>w_sb_compactsmg</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_sb_compactsmg_mag1</modelName>
+			<txdName>w_sb_compactsmg_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_sb_compactsmg_mag2</modelName>
+			<txdName>w_sb_compactsmg_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+			<modelName>w_ar_bullpuprifle_luxe</modelName>
+			<txdName>w_ar_bullpuprifle_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_bullpuprifle_luxe_mag1</modelName>
+			<txdName>w_ar_bullpuprifle_luxe_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_bullpuprifle_luxe_mag2</modelName>
+			<txdName>w_ar_bullpuprifle_luxe_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_specialcarbine_luxe</modelName>
+			<txdName>w_ar_specialcarbine_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_specialcarbine_luxe_mag1</modelName>
+			<txdName>w_ar_specialcarbine_luxe_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_specialcarbine_luxe_mag2</modelName>
+			<txdName>w_ar_specialcarbine_luxe_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_mg_combatmg_luxe</modelName>
+			<txdName>w_mg_combatmg_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_mg_combatmg_luxe_mag1</modelName>
+			<txdName>w_mg_combatmg_luxe_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_mg_combatmg_luxe_mag2</modelName>
+			<txdName>w_mg_combatmg_luxe_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_mg_mg_luxe</modelName>
+			<txdName>w_mg_mg_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_mg_mg_luxe_mag1</modelName>
+			<txdName>w_mg_mg_luxe_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_mg_mg_luxe_mag2</modelName>
+			<txdName>w_mg_mg_luxe_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_pi_combatpistol_luxe</modelName>
+			<txdName>w_pi_combatpistol_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_pi_combatpistol_luxe_mag1</modelName>
+			<txdName>w_pi_combatpistol_luxe_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_pi_combatpistol_luxe_mag2</modelName>
+			<txdName>w_pi_combatpistol_luxe_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_pi_sns_pistol_luxe</modelName>
+			<txdName>w_pi_sns_pistol_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_pi_sns_pistol_luxe_mag1</modelName>
+			<txdName>w_pi_sns_pistol_luxe_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_pi_sns_pistol_luxe_mag2</modelName>
+			<txdName>w_pi_sns_pistol_luxe_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_sb_assaultsmg_luxe</modelName>
+			<txdName>w_sb_assaultsmg_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_sb_assaultsmg_luxe_mag1</modelName>
+			<txdName>w_sb_assaultsmg_luxe_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_sb_assaultsmg_luxe_mag2</modelName>
+			<txdName>w_sb_assaultsmg_luxe_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>w_sg_pumpshotgun_luxe</modelName>
+			<txdName>w_sg_pumpshotgun_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+			<modelName>w_at_scope_small_02a_luxe</modelName>
+			<txdName>w_at_scope_small_02a_luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>	
+		
+	<Item>
+		  <modelName>w_ar_assaultrifle_smg</modelName>
+		  <txdName>w_ar_assaultrifle_smg</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_assaultrifle_smg_mag1</modelName>
+			<txdName>w_ar_assaultrifle_smg_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_assaultrifle_smg_mag2</modelName>
+			<txdName>w_ar_assaultrifle_smg_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+		
+		<Item>
+		  <modelName>w_sg_doublebarrel</modelName>
+		  <txdName>w_sg_doublebarrel</txdName>
+		  <ptfxAssetName>weap_dbshotgun</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sg_doublebarrel_mag1</modelName>
+		  <txdName>w_sg_doublebarrel_mag1</txdName>
+		  <ptfxAssetName>weap_dbshotgun</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+				
+	<Item>
+			<modelName>W_SG_AssaultShotgun_Luxe</modelName>
+			<txdName>W_SG_AssaultShotgun_Luxe</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SingleShot</modelName>
+			<txdName>W_PI_SingleShot</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_PI_SingleShot_Shell</modelName>
+			<txdName>W_PI_SingleShot_Shell</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>		
+	
+		
+		<Item>
+			<modelName>W_ME_Knuckle</modelName>
+			<txdName>W_ME_Knuckle</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_02</modelName>
+			<txdName>W_ME_Knuckle_02</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_BG</modelName>
+			<txdName>W_ME_Knuckle_BG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_DLR</modelName>
+			<txdName>W_ME_Knuckle_DLR</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_DMD</modelName>
+			<txdName>W_ME_Knuckle_DMD</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_HT</modelName>
+			<txdName>W_ME_Knuckle_HT</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_LV</modelName>
+			<txdName>W_ME_Knuckle_LV</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_PC</modelName>
+			<txdName>W_ME_Knuckle_PC</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_SLG</modelName>
+			<txdName>W_ME_Knuckle_SLG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>W_ME_Knuckle_VG</modelName>
+			<txdName>W_ME_Knuckle_VG</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+	<Item>
+		<modelName>W_LR_CompactML</modelName>
+		<txdName>W_LR_CompactML</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>W_LR_CompactML_Mag1</modelName>
+		<txdName>W_LR_CompactML_Mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>W_LR_ML_40mm</modelName>
+		<txdName>W_LR_ML_40mm</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	
+
+	<Item>
+		<modelName>W_SG_PumpShotgun_CHS</modelName>
+		<txdName>W_SG_PumpShotgun_CHS</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	
+
+	<Item>
+		<modelName>W_SB_MicroSMG_LAS</modelName>
+		<txdName>W_SB_MicroSMG_LAS</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+		
+
+	<Item>
+		<modelName>W_PI_APPistol_STS</modelName>
+		<txdName>W_PI_APPistol_STS</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+		
+	
+	
+	<Item>
+		<modelName>W_AM_Jerrycan_SF</modelName>
+		<txdName>W_AM_Jerrycan_SF</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	
+
+	<Item>
+		<modelName>W_AR_HeavyRifleH</modelName>
+		<txdName>W_AR_HeavyRifleH</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>W_AT_HRH_Camo1</modelName>
+		<txdName>W_AT_HRH_Camo1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>W_AR_HeavyRifleH_Sight</modelName>
+		<txdName>W_AR_HeavyRifleH_Sight</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+  <Item>
+		<modelName>W_AM_DigiScanner_REH</modelName>
+		<txdName>W_AM_DigiScanner_REH</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+		
+	
+	<Item>
+		<modelName>W_AR_CarbineRifle_REH</modelName>
+		<txdName>W_AR_CarbineRifle_REH</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_SR_PrecisionRifle_REH</modelName>
+		<txdName>W_SR_PrecisionRifle_REH</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_SR_W_SR_PrecisionRifle_REH_Mag1</modelName>
+		<txdName>W_SR_W_SR_PrecisionRifle_REH_Mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+	<Item>
+		<modelName>W_AT_AR_Flsh_REH</modelName>
+		<txdName>W_AT_AR_Flsh_REH</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="30" />
+	</Item>
+	
+  <Item>
+		  <modelName>w_pi_servicepistol_9mm</modelName>
+		  <txdName>w_pi_servicepistol</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_pi_servicepistol_auto</modelName>
+		  <txdName>w_pi_servicepistol</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_pi_servicepistol_45</modelName>
+		  <txdName>w_pi_servicepistol</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_mag1</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_mag2</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_mag3</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_auto_mag1</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_auto_mag2</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_auto_mag3</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_supp</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_comp</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_flsh</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_lsr</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_lsr2</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_sight</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_servicepistol_nightsight</modelName>
+			<txdName>w_pi_servicepistol_comp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+				
+	<Item>
+      <modelName>w_me_dagger</modelName>
+      <txdName>w_me_dagger</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+			
+    <Item>
+      <modelName>w_pi_vintage_pistol</modelName>
+      <txdName>w_pi_vintage_pistol</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+    <Item>
+      <modelName>w_pi_vintage_pistol_mag1</modelName>
+      <txdName>w_pi_vintage_pistol_mag1</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>
+    <Item>
+      <modelName>w_pi_vintage_pistol_mag2</modelName>
+      <txdName>w_pi_vintage_pistol_mag2</txdName>
+      <ptfxAssetName>null</ptfxAssetName>
+      <lodDist value="50" />
+    </Item>	
+	<Item>
+		  <modelName>w_pi_equalizer</modelName>
+		  <txdName>w_pi_equalizer</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_equalizer_mag1</modelName>
+			<txdName>w_pi_equalizer_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_equalizer_mag_ap</modelName>
+			<txdName>w_pi_equalizer_mag_ap</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_equalizer_mag_exp</modelName>
+			<txdName>w_pi_equalizer_mag_exp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_equalizer_mag_hp</modelName>
+			<txdName>w_pi_equalizer_mag_hp</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_pi_equalizer_mag_inc</modelName>
+			<txdName>w_pi_equalizer_mag_inc</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+				
+	<Item>
+		<modelName>w_ar_militaryrifle2</modelName>
+		<txdName>w_ar_militaryrifle2</txdName>
+		<ptfxAssetName>weap_gr_weapons</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>w_ar_militaryrifle2_mag1</modelName>
+		<txdName>w_ar_militaryrifle2_mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_mag2</modelName>
+		<txdName>w_ar_militaryrifle2_mag2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_mag_ap</modelName>
+		<txdName>w_ar_militaryrifle2_mag_ap</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_mag_exp</modelName>
+		<txdName>w_ar_militaryrifle2_mag_exp</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_mag_fmj</modelName>
+		<txdName>w_ar_militaryrifle2_mag_fmj</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_mag_inc</modelName>
+		<txdName>w_ar_militaryrifle2_mag_inc</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_sight</modelName>
+		<txdName>w_ar_militaryrifle2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_sight2</modelName>
+		<txdName>w_ar_militaryrifle2_sight2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_flsh</modelName>
+		<txdName>w_ar_militaryrifle2_flsh</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>		
+	<Item>
+		<modelName>w_ar_militaryrifle2_supp</modelName>
+		<txdName>w_ar_militaryrifle2_supp</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_grip</modelName>
+		<txdName>w_ar_militaryrifle2_grip</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	
+		
+		
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe</modelName>
+		<txdName>w_ar_militaryrifle2_luxe</txdName>
+		<ptfxAssetName>weap_strickler_tracer</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_mag1</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_mag1</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_mag2</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_mag2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_mag_ap</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_mag_ap</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_mag_exp</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_mag_exp</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_mag_fmj</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_mag_fmj</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_mag_inc</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_mag_inc</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_sight</modelName>
+		<txdName>w_ar_militaryrifle2_luxe</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_sight2</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_sight2</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_flsh</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_flsh</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>		
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_supp</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_supp</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+	<Item>
+		<modelName>w_ar_militaryrifle2_luxe_grip</modelName>
+		<txdName>w_ar_militaryrifle2_luxe_grip</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>	
+
+  <Item>
+		<modelName>W_AM_WeaponCaseM51</modelName>
+		<txdName>W_AM_WeaponCaseM51</txdName>
+		<ptfxAssetName>null</ptfxAssetName>
+		<lodDist value="50" />
+	</Item>
+	
+  <Item>
+		  <modelName>w_sg_heavyshotgun</modelName>
+		  <txdName>w_sg_heavyshotgun</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sg_heavyshotgun_mag1</modelName>
+		  <txdName>w_sg_heavyshotgun_mag1</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sg_heavyshotgun_mag2</modelName>
+		  <txdName>w_sg_heavyshotgun_mag2</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		
+		<Item>
+		  <modelName>w_sr_marksmanrifle</modelName>
+		  <txdName>w_sr_marksmanrifle</txdName>
+		  <ptfxAssetName>NULL</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sr_marksmanrifle_mag1</modelName>
+		  <txdName>w_sr_marksmanrifle_mag1</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+		<Item>
+		  <modelName>w_sr_marksmanrifle_mag2</modelName>
+		  <txdName>w_sr_marksmanrifle_mag2</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+	<Item>
+			<modelName>w_sb_gusenberg</modelName>
+			<txdName>w_sb_gusenberg</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_sb_gusenberg_mag1</modelName>
+			<txdName>w_sb_gusenberg_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+		<Item>
+			<modelName>w_sb_gusenberg_mag2</modelName>
+			<txdName>w_sb_gusenberg_mag2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="100" />
+		</Item>
+	<Item>
+		  <modelName>w_me_hatchet</modelName>
+		  <txdName>w_me_hatchet</txdName>
+		  <ptfxAssetName>null</ptfxAssetName>
+		  <lodDist value="50" />
+		</Item>
+
+		
+		<Item>
+			<modelName>w_ar_railgun</modelName>
+			<txdName>w_ar_railgun</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		<Item>
+			<modelName>w_ar_railgun_mag1</modelName>
+			<txdName>w_ar_railgun_mag1</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="50" />
+		</Item>
+		
+	<Item>
+			<modelName>W_AT_Scope_Macro_2</modelName>
+			<txdName>W_AT_Scope_Macro_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_Scope_Small_2</modelName>
+			<txdName>W_AT_Scope_Small_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Supp_2</modelName>
+			<txdName>W_AT_PI_Supp_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_SR_Supp_2</modelName>
+			<txdName>W_AT_SR_Supp_2</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_PI_Flsh_pdLUXE</modelName>
+			<txdName>W_AT_PI_Flsh_pdLUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+		<Item>
+			<modelName>W_AT_AR_Flsh_pdLUXE</modelName>
+			<txdName>W_AT_AR_Flsh_pdLUXE</txdName>
+			<ptfxAssetName>null</ptfxAssetName>
+			<lodDist value="30" />
+		</Item>
+
+		
+
+		
+		
+		
+		</InitDatas>
+</CWeaponModelInfo__InitDataList>

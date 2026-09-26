@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Mdv.App/Mdv.App.csproj" />
+    <Project Path="src/Mdv.Cli/Mdv.Cli.csproj" />
+    <Project Path="src/Mdv.Core/Mdv.Core.csproj" />
+  </Folder>
+</Solution>

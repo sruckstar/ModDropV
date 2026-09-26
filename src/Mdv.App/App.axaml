@@ -1,0 +1,135 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Mdv.App.App"
+             Name="ModDrop V"
+             RequestedThemeVariant="Dark">
+
+  <!-- ModDrop V: cool graphite + electric azure. Graphite builds structure, azure means
+       "act / active"; success stays green and danger red, so the three never blur.
+       Bahnschrift for display, Segoe UI for body. -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <Color x:Key="BgColor">#0F1319</Color>
+          <SolidColorBrush x:Key="BgBrush" Color="#0F1319" />
+          <SolidColorBrush x:Key="Surface1Brush" Color="#151A22" />
+          <SolidColorBrush x:Key="Surface2Brush" Color="#1B222C" />
+          <SolidColorBrush x:Key="Surface3Brush" Color="#232B37" />
+          <SolidColorBrush x:Key="InputBrush" Color="#0C1016" />
+          <SolidColorBrush x:Key="BorderBrushSoft" Color="#0DFFFFFF" />
+          <SolidColorBrush x:Key="BorderBrushNormal" Color="#14FFFFFF" />
+          <SolidColorBrush x:Key="BorderBrushStrong" Color="#26FFFFFF" />
+          <SolidColorBrush x:Key="Text1Brush" Color="#EEF2F7" />
+          <SolidColorBrush x:Key="Text2Brush" Color="#9DA7B5" />
+          <SolidColorBrush x:Key="Text3Brush" Color="#6B7584" />
+          <SolidColorBrush x:Key="AccentBrush" Color="#4DA3FF" />
+          <SolidColorBrush x:Key="AccentBrightBrush" Color="#7CBCFF" />
+          <SolidColorBrush x:Key="AccentWashBrush" Color="#1F4DA3FF" />
+          <SolidColorBrush x:Key="AccentLineBrush" Color="#5C4DA3FF" />
+          <SolidColorBrush x:Key="OnAccentBrush" Color="#06121F" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#EF6B6B" />
+          <SolidColorBrush x:Key="DangerWashBrush" Color="#21EF6B6B" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#5CC98A" />
+          <SolidColorBrush x:Key="SuccessWashBrush" Color="#1F5CC98A" />
+          <SolidColorBrush x:Key="StageBrush" Color="#F40A0D12" />
+          <SolidColorBrush x:Key="ScrimBrush" Color="#B806080B" />
+          <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#6CC6FF" />
+            <GradientStop Offset="0.52" Color="#4DA3FF" />
+            <GradientStop Offset="1" Color="#3A7FE8" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AccentGradientHover" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#86D1FF" />
+            <GradientStop Offset="0.52" Color="#62B0FF" />
+            <GradientStop Offset="1" Color="#4A8DF0" />
+          </LinearGradientBrush>
+
+          <!-- Fluent control resources -->
+          <SolidColorBrush x:Key="TextControlBackground" Color="#0C1016" />
+          <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#10151C" />
+          <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#0C1016" />
+          <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#0A0D12" />
+          <SolidColorBrush x:Key="TextControlBorderBrush" Color="#1AFFFFFF" />
+          <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#5C4DA3FF" />
+          <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#4DA3FF" />
+          <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#0DFFFFFF" />
+          <SolidColorBrush x:Key="TextControlForeground" Color="#EEF2F7" />
+          <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#EEF2F7" />
+          <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#EEF2F7" />
+          <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#566070" />
+          <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#566070" />
+          <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#566070" />
+          <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#804DA3FF" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+          <Color x:Key="BgColor">#E7ECF2</Color>
+          <SolidColorBrush x:Key="BgBrush" Color="#E7ECF2" />
+          <SolidColorBrush x:Key="Surface1Brush" Color="#F3F6FA" />
+          <SolidColorBrush x:Key="Surface2Brush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="Surface3Brush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="InputBrush" Color="#F9FBFD" />
+          <SolidColorBrush x:Key="BorderBrushSoft" Color="#14101A2A" />
+          <SolidColorBrush x:Key="BorderBrushNormal" Color="#1F101A2A" />
+          <SolidColorBrush x:Key="BorderBrushStrong" Color="#33101A2A" />
+          <SolidColorBrush x:Key="Text1Brush" Color="#141B26" />
+          <SolidColorBrush x:Key="Text2Brush" Color="#4B5667" />
+          <SolidColorBrush x:Key="Text3Brush" Color="#7D8796" />
+          <SolidColorBrush x:Key="AccentBrush" Color="#1F6FD6" />
+          <SolidColorBrush x:Key="AccentBrightBrush" Color="#3585EA" />
+          <SolidColorBrush x:Key="AccentWashBrush" Color="#1F1F6FD6" />
+          <SolidColorBrush x:Key="AccentLineBrush" Color="#661F6FD6" />
+          <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#C93F3F" />
+          <SolidColorBrush x:Key="DangerWashBrush" Color="#1AC93F3F" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#2F8A57" />
+          <SolidColorBrush x:Key="SuccessWashBrush" Color="#1A2F8A57" />
+          <SolidColorBrush x:Key="StageBrush" Color="#F4E7ECF2" />
+          <SolidColorBrush x:Key="ScrimBrush" Color="#80101A2A" />
+          <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#3389EC" />
+            <GradientStop Offset="0.55" Color="#1F6FD6" />
+            <GradientStop Offset="1" Color="#185BBE" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AccentGradientHover" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#4796F0" />
+            <GradientStop Offset="0.55" Color="#2F7CE0" />
+            <GradientStop Offset="1" Color="#1F66CA" />
+          </LinearGradientBrush>
+
+          <SolidColorBrush x:Key="TextControlBackground" Color="#F9FBFD" />
+          <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#EDF1F5" />
+          <SolidColorBrush x:Key="TextControlBorderBrush" Color="#26101A2A" />
+          <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#661F6FD6" />
+          <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#1F6FD6" />
+          <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#14101A2A" />
+          <SolidColorBrush x:Key="TextControlForeground" Color="#141B26" />
+          <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#141B26" />
+          <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#141B26" />
+          <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#9AA3B0" />
+          <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#9AA3B0" />
+          <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#9AA3B0" />
+          <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#661F6FD6" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <FontFamily x:Key="DisplayFont">Bahnschrift, Segoe UI, Arial</FontFamily>
+      <FontFamily x:Key="BodyFont">Segoe UI, Arial</FontFamily>
+      <FontFamily x:Key="MonoFont">Consolas, Cascadia Mono, Courier New</FontFamily>
+      <CornerRadius x:Key="ControlCornerRadius">7</CornerRadius>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#4DA3FF" RegionColor="#0F1319" />
+        <ColorPaletteResources x:Key="Light" Accent="#1F6FD6" RegionColor="#E7ECF2" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://ModDropV/Styles/Theme.axaml" />
+  </Application.Styles>
+</Application>

@@ -1,0 +1,43 @@
+# --- build output / binaries ---
+bin/
+obj/
+publish/
+*.exe
+*.dll
+*.pdb
+*.zip
+*.7z
+*.rar
+*.rpf
+*.nupkg
+
+# ...except the mods-folder plugins and ASI loaders the app installs into the game folder
+!data/plugins/
+!data/plugins/*.asi
+!data/plugins/*.dll
+
+# --- tests, developer tools, research prototypes and sample third-party mods (not needed to build or run the app) ---
+tests/
+tools/
+prototypes/
+mods_examples/
+TestResults/
+*.dev.slnx
+
+# --- local-only texts: the 5Mods page, the Russian developer notes and the plan ---
+5mods-description.txt
+docs/DEVELOPMENT.md
+docs/ROADMAP.md
+CLAUDE.md
+
+# --- IDE / OS / scratch ---
+.vs/
+.vscode/
+.idea/
+.claude/
+*.user
+*.suo
+*.log
+*.tmp
+Thumbs.db
+desktop.ini

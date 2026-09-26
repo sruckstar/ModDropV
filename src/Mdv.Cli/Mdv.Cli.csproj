@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>mdvctl</AssemblyName>
+    <RootNamespace>Mdv.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Mdv.Core\Mdv.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\data\**\*" Exclude="..\..\data\**\*.bak" LinkBase="data" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

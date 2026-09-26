@@ -1,0 +1,1161 @@
+{
+  "WEAPON_UNARMED": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_UNARMED.json"
+  },
+  "WEAPON_ANIMAL": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_ANIMAL.json"
+  },
+  "WEAPON_COUGAR": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_COUGAR.json"
+  },
+  "WEAPON_KNIFE": {
+    "model": "w_me_knife_01",
+    "slot": "SLOT_KNIFE",
+    "components": [
+      "COMPONENT_KNIFE_VARMOD_XM3",
+      "COMPONENT_KNIFE_VARMOD_XM3_01",
+      "COMPONENT_KNIFE_VARMOD_XM3_02",
+      "COMPONENT_KNIFE_VARMOD_XM3_03",
+      "COMPONENT_KNIFE_VARMOD_XM3_04",
+      "COMPONENT_KNIFE_VARMOD_XM3_05",
+      "COMPONENT_KNIFE_VARMOD_XM3_06",
+      "COMPONENT_KNIFE_VARMOD_XM3_07",
+      "COMPONENT_KNIFE_VARMOD_XM3_08",
+      "COMPONENT_KNIFE_VARMOD_XM3_09"
+    ],
+    "file": "WEAPON_KNIFE.json"
+  },
+  "WEAPON_NIGHTSTICK": {
+    "model": "w_me_nightstick",
+    "slot": "SLOT_NIGHTSTICK",
+    "components": [],
+    "file": "WEAPON_NIGHTSTICK.json"
+  },
+  "WEAPON_HAMMER": {
+    "model": "w_me_hammer",
+    "slot": "SLOT_HAMMER",
+    "components": [],
+    "file": "WEAPON_HAMMER.json"
+  },
+  "WEAPON_BAT": {
+    "model": "w_me_bat",
+    "slot": "SLOT_BAT",
+    "components": [
+      "COMPONENT_BAT_VARMOD_XM3",
+      "COMPONENT_BAT_VARMOD_XM3_01",
+      "COMPONENT_BAT_VARMOD_XM3_02",
+      "COMPONENT_BAT_VARMOD_XM3_03",
+      "COMPONENT_BAT_VARMOD_XM3_04",
+      "COMPONENT_BAT_VARMOD_XM3_05",
+      "COMPONENT_BAT_VARMOD_XM3_06",
+      "COMPONENT_BAT_VARMOD_XM3_07",
+      "COMPONENT_BAT_VARMOD_XM3_08",
+      "COMPONENT_BAT_VARMOD_XM3_09"
+    ],
+    "file": "WEAPON_BAT.json"
+  },
+  "WEAPON_GOLFCLUB": {
+    "model": "w_me_gclub",
+    "slot": "SLOT_GOLFCLUB",
+    "components": [],
+    "file": "WEAPON_GOLFCLUB.json"
+  },
+  "WEAPON_CROWBAR": {
+    "model": "w_me_crowbar",
+    "slot": "SLOT_CROWBAR",
+    "components": [],
+    "file": "WEAPON_CROWBAR.json"
+  },
+  "WEAPON_PISTOL": {
+    "model": "W_PI_PISTOL",
+    "slot": "SLOT_PISTOL",
+    "components": [
+      "COMPONENT_PISTOL_CLIP_01",
+      "COMPONENT_PISTOL_CLIP_02",
+      "COMPONENT_AT_PI_FLSH",
+      "COMPONENT_AT_PI_SUPP_02",
+      "COMPONENT_PISTOL_VARMOD_LUXE",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_PISTOL.json"
+  },
+  "WEAPON_COMBATPISTOL": {
+    "model": "W_PI_COMBATPISTOL",
+    "slot": "SLOT_COMBATPISTOL",
+    "components": [
+      "COMPONENT_COMBATPISTOL_CLIP_01",
+      "COMPONENT_COMBATPISTOL_CLIP_02",
+      "COMPONENT_AT_PI_FLSH",
+      "COMPONENT_AT_PI_SUPP",
+      "COMPONENT_COMBATPISTOL_VARMOD_LOWRIDER",
+      "COMPONENT_COMBATPISTOL_VARMOD_XMAS23"
+    ],
+    "file": "WEAPON_COMBATPISTOL.json"
+  },
+  "WEAPON_APPISTOL": {
+    "model": "W_PI_APPISTOL",
+    "slot": "SLOT_APPISTOL",
+    "components": [
+      "COMPONENT_APPISTOL_CLIP_01",
+      "COMPONENT_APPISTOL_CLIP_02",
+      "COMPONENT_AT_PI_FLSH",
+      "COMPONENT_AT_PI_SUPP",
+      "COMPONENT_APPISTOL_VARMOD_SECURITY"
+    ],
+    "file": "WEAPON_APPISTOL.json"
+  },
+  "WEAPON_PISTOL50": {
+    "model": "W_PI_PISTOL50",
+    "slot": "SLOT_PISTOL50",
+    "components": [
+      "COMPONENT_PISTOL50_CLIP_01",
+      "COMPONENT_PISTOL50_CLIP_02",
+      "COMPONENT_AT_PI_FLSH",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_PISTOL50_VARMOD_LUXE"
+    ],
+    "file": "WEAPON_PISTOL50.json"
+  },
+  "WEAPON_MICROSMG": {
+    "model": "w_sb_microsmg",
+    "slot": "SLOT_MICROSMG",
+    "components": [
+      "COMPONENT_MICROSMG_CLIP_01",
+      "COMPONENT_MICROSMG_CLIP_02",
+      "COMPONENT_AT_PI_FLSH",
+      "COMPONENT_AT_SCOPE_MACRO",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_MICROSMG_VARMOD_XM3",
+      "COMPONENT_MICROSMG_VARMOD_FRN"
+    ],
+    "file": "WEAPON_MICROSMG.json"
+  },
+  "WEAPON_SMG": {
+    "model": "w_sb_smg",
+    "slot": "SLOT_SMG",
+    "components": [
+      "COMPONENT_SMG_CLIP_01",
+      "COMPONENT_SMG_CLIP_02",
+      "COMPONENT_SMG_CLIP_03",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SCOPE_MACRO_02",
+      "COMPONENT_AT_PI_SUPP",
+      "COMPONENT_SMG_VARMOD_LUXE",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_SMG.json"
+  },
+  "WEAPON_ASSAULTSMG": {
+    "model": "w_sb_assaultsmg",
+    "slot": "SLOT_ASSAULTSMG",
+    "components": [
+      "COMPONENT_ASSAULTSMG_CLIP_01",
+      "COMPONENT_ASSAULTSMG_CLIP_02",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SCOPE_MACRO",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_ASSAULTSMG_VARMOD_LOWRIDER"
+    ],
+    "file": "WEAPON_ASSAULTSMG.json"
+  },
+  "WEAPON_ASSAULTRIFLE": {
+    "model": "W_AR_ASSAULTRIFLE",
+    "slot": "SLOT_ASSAULTRIFLE",
+    "components": [
+      "COMPONENT_ASSAULTRIFLE_CLIP_01",
+      "COMPONENT_ASSAULTRIFLE_CLIP_02",
+      "COMPONENT_ASSAULTRIFLE_CLIP_03",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SCOPE_MACRO",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_ASSAULTRIFLE_VARMOD_LUXE",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_ASSAULTRIFLE.json"
+  },
+  "WEAPON_CARBINERIFLE": {
+    "model": "W_AR_CARBINERIFLE",
+    "slot": "SLOT_CARBINERIFLE",
+    "components": [
+      "COMPONENT_CARBINERIFLE_CLIP_01",
+      "COMPONENT_CARBINERIFLE_CLIP_02",
+      "COMPONENT_CARBINERIFLE_CLIP_03",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_RAILCOVER_01",
+      "COMPONENT_AT_SCOPE_MEDIUM",
+      "COMPONENT_AT_AR_SUPP",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_CARBINERIFLE_VARMOD_LUXE",
+      "COMPONENT_CARBINERIFLE_VARMOD_MICH",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_CARBINERIFLE.json"
+  },
+  "WEAPON_ADVANCEDRIFLE": {
+    "model": "W_AR_ADVANCEDRIFLE",
+    "slot": "SLOT_ADVANCEDRIFLE",
+    "components": [
+      "COMPONENT_ADVANCEDRIFLE_CLIP_01",
+      "COMPONENT_ADVANCEDRIFLE_CLIP_02",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SCOPE_SMALL",
+      "COMPONENT_AT_AR_SUPP",
+      "COMPONENT_ADVANCEDRIFLE_VARMOD_LUXE"
+    ],
+    "file": "WEAPON_ADVANCEDRIFLE.json"
+  },
+  "WEAPON_MG": {
+    "model": "w_mg_mg",
+    "slot": "SLOT_MG",
+    "components": [
+      "COMPONENT_MG_CLIP_01",
+      "COMPONENT_MG_CLIP_02",
+      "COMPONENT_AT_SCOPE_SMALL_02",
+      "COMPONENT_MG_VARMOD_LOWRIDER"
+    ],
+    "file": "WEAPON_MG.json"
+  },
+  "WEAPON_COMBATMG": {
+    "model": "w_mg_combatmg",
+    "slot": "SLOT_COMBATMG",
+    "components": [
+      "COMPONENT_COMBATMG_CLIP_01",
+      "COMPONENT_COMBATMG_CLIP_02",
+      "COMPONENT_AT_SCOPE_MEDIUM",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_COMBATMG_VARMOD_LOWRIDER",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_COMBATMG.json"
+  },
+  "WEAPON_PUMPSHOTGUN": {
+    "model": "w_sg_pumpshotgun",
+    "slot": "SLOT_PUMPSHOTGUN",
+    "components": [
+      "COMPONENT_PUMPSHOTGUN_CLIP_01",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SR_SUPP",
+      "COMPONENT_PUMPSHOTGUN_VARMOD_XM3",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_PUMPSHOTGUN.json"
+  },
+  "WEAPON_SAWNOFFSHOTGUN": {
+    "model": "w_sg_sawnoff",
+    "slot": "SLOT_SAWNOFFSHOTGUN",
+    "components": [
+      "COMPONENT_SAWNOFFSHOTGUN_CLIP_01",
+      "COMPONENT_SAWNOFFSHOTGUN_VARMOD_LUXE"
+    ],
+    "file": "WEAPON_SAWNOFFSHOTGUN.json"
+  },
+  "WEAPON_ASSAULTSHOTGUN": {
+    "model": "w_sg_assaultshotgun",
+    "slot": "SLOT_ASSAULTSHOTGUN",
+    "components": [
+      "COMPONENT_ASSAULTSHOTGUN_CLIP_01",
+      "COMPONENT_ASSAULTSHOTGUN_CLIP_02",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_AR_SUPP",
+      "COMPONENT_AT_AR_AFGRIP"
+    ],
+    "file": "WEAPON_ASSAULTSHOTGUN.json"
+  },
+  "WEAPON_BULLPUPSHOTGUN": {
+    "model": "w_sg_bullpupshotgun",
+    "slot": "SLOT_BULLPUPSHOTGUN",
+    "components": [
+      "COMPONENT_BULLPUPSHOTGUN_CLIP_01",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_AT_AR_AFGRIP"
+    ],
+    "file": "WEAPON_BULLPUPSHOTGUN.json"
+  },
+  "WEAPON_STUNGUN": {
+    "model": "w_pi_stungun",
+    "slot": "SLOT_STUNGUN",
+    "components": [],
+    "file": "WEAPON_STUNGUN.json"
+  },
+  "WEAPON_SNIPERRIFLE": {
+    "model": "w_sr_sniperrifle",
+    "slot": "SLOT_SNIPERRIFLE",
+    "components": [
+      "COMPONENT_SNIPERRIFLE_CLIP_01",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_AT_SCOPE_LARGE",
+      "COMPONENT_AT_SCOPE_MAX",
+      "COMPONENT_SNIPERRIFLE_VARMOD_LUXE"
+    ],
+    "file": "WEAPON_SNIPERRIFLE.json"
+  },
+  "WEAPON_HEAVYSNIPER": {
+    "model": "w_sr_heavysniper",
+    "slot": "SLOT_HEAVYSNIPER",
+    "components": [
+      "COMPONENT_HEAVYSNIPER_CLIP_01",
+      "COMPONENT_AT_SCOPE_LARGE",
+      "COMPONENT_AT_SCOPE_MAX",
+      "COMPONENT_GUNRUN_MK2_UPGRADE",
+      "COMPONENT_HEAVYSNIPER_VARMOD_XMAS23"
+    ],
+    "file": "WEAPON_HEAVYSNIPER.json"
+  },
+  "WEAPON_REMOTESNIPER": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_REMOTESNIPER.json"
+  },
+  "WEAPON_GRENADELAUNCHER": {
+    "model": "w_lr_grenadelauncher",
+    "slot": "SLOT_GRENADELAUNCHER",
+    "components": [
+      "COMPONENT_GRENADELAUNCHER_CLIP_01",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_AT_SCOPE_SMALL"
+    ],
+    "file": "WEAPON_GRENADELAUNCHER.json"
+  },
+  "WEAPON_GRENADELAUNCHER_SMOKE": {
+    "model": "w_lr_grenadelauncher",
+    "slot": "SLOT_GRENADELAUNCHER_SMOKE",
+    "components": [
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_AT_SCOPE_SMALL"
+    ],
+    "file": "WEAPON_GRENADELAUNCHER_SMOKE.json"
+  },
+  "WEAPON_RPG": {
+    "model": "w_lr_rpg",
+    "slot": "SLOT_RPG",
+    "components": [
+      "COMPONENT_RPG_CLIP_01",
+      "COMPONENT_RPG_VARMOD_TVR"
+    ],
+    "file": "WEAPON_RPG.json"
+  },
+  "WEAPON_PASSENGER_ROCKET": {
+    "model": "w_lr_rpg",
+    "slot": "SLOT_PASSENGER_ROCKET",
+    "components": [
+      "COMPONENT_RPG_CLIP_01"
+    ],
+    "file": "WEAPON_PASSENGER_ROCKET.json"
+  },
+  "WEAPON_AIRSTRIKE_ROCKET": {
+    "model": "w_lr_rpg",
+    "slot": null,
+    "components": [
+      "COMPONENT_RPG_CLIP_01"
+    ],
+    "file": "WEAPON_AIRSTRIKE_ROCKET.json"
+  },
+  "WEAPON_STINGER": {
+    "model": "w_lr_rpg",
+    "slot": "SLOT_STINGER",
+    "components": [
+      "COMPONENT_RPG_CLIP_01"
+    ],
+    "file": "WEAPON_STINGER.json"
+  },
+  "WEAPON_MINIGUN": {
+    "model": "w_mg_minigun",
+    "slot": "SLOT_MINIGUN",
+    "components": [
+      "COMPONENT_MINIGUN_CLIP_01"
+    ],
+    "file": "WEAPON_MINIGUN.json"
+  },
+  "WEAPON_GRENADE": {
+    "model": "w_ex_grenadefrag",
+    "slot": "SLOT_GRENADE",
+    "components": [],
+    "file": "WEAPON_GRENADE.json"
+  },
+  "WEAPON_STICKYBOMB": {
+    "model": "w_ex_pe",
+    "slot": "SLOT_STICKYBOMB",
+    "components": [],
+    "file": "WEAPON_STICKYBOMB.json"
+  },
+  "WEAPON_SMOKEGRENADE": {
+    "model": "w_ex_grenadesmoke",
+    "slot": "SLOT_SMOKEGRENADE",
+    "components": [],
+    "file": "WEAPON_SMOKEGRENADE.json"
+  },
+  "WEAPON_BZGAS": {
+    "model": "w_ex_grenadesmoke",
+    "slot": "SLOT_BZGAS",
+    "components": [],
+    "file": "WEAPON_BZGAS.json"
+  },
+  "WEAPON_MOLOTOV": {
+    "model": "w_ex_molotov",
+    "slot": "SLOT_MOLOTOV",
+    "components": [],
+    "file": "WEAPON_MOLOTOV.json"
+  },
+  "WEAPON_FIREEXTINGUISHER": {
+    "model": "w_am_fire_exting",
+    "slot": "SLOT_FIREEXTINGUISHER",
+    "components": [],
+    "file": "WEAPON_FIREEXTINGUISHER.json"
+  },
+  "WEAPON_PETROLCAN": {
+    "model": "w_am_jerrycan",
+    "slot": "SLOT_PETROLCAN",
+    "components": [],
+    "file": "WEAPON_PETROLCAN.json"
+  },
+  "WEAPON_DIGISCANNER": {
+    "model": "w_am_digiscanner",
+    "slot": "SLOT_DIGISCANNER",
+    "components": [],
+    "file": "WEAPON_DIGISCANNER.json"
+  },
+  "GADGET_NIGHTVISION": {
+    "model": null,
+    "slot": "SLOT_NIGHTVISION",
+    "components": [],
+    "file": "GADGET_NIGHTVISION.json"
+  },
+  "GADGET_PARACHUTE": {
+    "model": null,
+    "slot": "SLOT_PARACHUTE",
+    "components": [],
+    "file": "GADGET_PARACHUTE.json"
+  },
+  "OBJECT": {
+    "model": null,
+    "slot": "SLOT_OBJECT",
+    "components": [
+      "POLICE_TORCH_FLASHLIGHT"
+    ],
+    "file": "OBJECT.json"
+  },
+  "WEAPON_BRIEFCASE": {
+    "model": "w_am_case",
+    "slot": "SLOT_BRIEFCASE",
+    "components": [],
+    "file": "WEAPON_BRIEFCASE.json"
+  },
+  "WEAPON_BRIEFCASE_02": {
+    "model": "w_am_brfcase",
+    "slot": "SLOT_BRIEFCASE",
+    "components": [],
+    "file": "WEAPON_BRIEFCASE_02.json"
+  },
+  "WEAPON_BALL": {
+    "model": "w_am_baseball",
+    "slot": "SLOT_BALL",
+    "components": [],
+    "file": "WEAPON_BALL.json"
+  },
+  "WEAPON_FLARE": {
+    "model": "w_am_flare",
+    "slot": "SLOT_FLARE",
+    "components": [],
+    "file": "WEAPON_FLARE.json"
+  },
+  "VEHICLE_WEAPON_ARDENT_MG": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_ARDENT_MG.json"
+  },
+  "VEHICLE_WEAPON_INSURGENT_MINIGUN": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_INSURGENT_MINIGUN.json"
+  },
+  "VEHICLE_WEAPON_MOBILEOPS_CANNON": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_MOBILEOPS_CANNON.json"
+  },
+  "VEHICLE_WEAPON_NIGHTSHARK_MG": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_NIGHTSHARK_MG.json"
+  },
+  "VEHICLE_WEAPON_TECHNICAL_MINIGUN": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_TECHNICAL_MINIGUN.json"
+  },
+  "VEHICLE_WEAPON_TANK": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_TANK.json"
+  },
+  "VEHICLE_WEAPON_SPACE_ROCKET": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_SPACE_ROCKET.json"
+  },
+  "VEHICLE_WEAPON_PLANE_ROCKET": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_PLANE_ROCKET.json"
+  },
+  "VEHICLE_WEAPON_PLAYER_LASER": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_PLAYER_LASER.json"
+  },
+  "VEHICLE_WEAPON_PLAYER_BULLET": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_PLAYER_BULLET.json"
+  },
+  "VEHICLE_WEAPON_PLAYER_BUZZARD": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_PLAYER_BUZZARD.json"
+  },
+  "VEHICLE_WEAPON_PLAYER_HUNTER": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_PLAYER_HUNTER.json"
+  },
+  "VEHICLE_WEAPON_PLAYER_LAZER": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_PLAYER_LAZER.json"
+  },
+  "VEHICLE_WEAPON_ENEMY_LASER": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_ENEMY_LASER.json"
+  },
+  "VEHICLE_WEAPON_SEARCHLIGHT": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_SEARCHLIGHT.json"
+  },
+  "VEHICLE_WEAPON_RADAR": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_RADAR.json"
+  },
+  "WEAPON_VEHICLE_ROCKET": {
+    "model": "w_lr_rpg",
+    "slot": null,
+    "components": [
+      "COMPONENT_RPG_CLIP_01"
+    ],
+    "file": "WEAPON_VEHICLE_ROCKET.json"
+  },
+  "WEAPON_BARBED_WIRE": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_BARBED_WIRE.json"
+  },
+  "WEAPON_DROWNING": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_DROWNING.json"
+  },
+  "WEAPON_DROWNING_IN_VEHICLE": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_DROWNING_IN_VEHICLE.json"
+  },
+  "WEAPON_BLEEDING": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_BLEEDING.json"
+  },
+  "WEAPON_ELECTRIC_FENCE": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_ELECTRIC_FENCE.json"
+  },
+  "WEAPON_EXPLOSION": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_EXPLOSION.json"
+  },
+  "WEAPON_FALL": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_FALL.json"
+  },
+  "WEAPON_EXHAUSTION": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_EXHAUSTION.json"
+  },
+  "WEAPON_HIT_BY_WATER_CANNON": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_HIT_BY_WATER_CANNON.json"
+  },
+  "WEAPON_RAMMED_BY_CAR": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_RAMMED_BY_CAR.json"
+  },
+  "WEAPON_RUN_OVER_BY_CAR": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_RUN_OVER_BY_CAR.json"
+  },
+  "WEAPON_HELI_CRASH": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_HELI_CRASH.json"
+  },
+  "VEHICLE_WEAPON_ROTORS": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "VEHICLE_WEAPON_ROTORS.json"
+  },
+  "WEAPON_FIRE": {
+    "model": null,
+    "slot": null,
+    "components": [],
+    "file": "WEAPON_FIRE.json"
+  },
+  "WEAPON_ANIMAL_RETRIEVER": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_ANIMAL_RETRIEVER.json"
+  },
+  "WEAPON_SMALL_DOG": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_SMALL_DOG.json"
+  },
+  "WEAPON_TIGER_SHARK": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_TIGER_SHARK.json"
+  },
+  "WEAPON_HAMMERHEAD_SHARK": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_HAMMERHEAD_SHARK.json"
+  },
+  "WEAPON_KILLER_WHALE": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_KILLER_WHALE.json"
+  },
+  "WEAPON_BOAR": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_BOAR.json"
+  },
+  "WEAPON_PIG": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_PIG.json"
+  },
+  "WEAPON_COYOTE": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_COYOTE.json"
+  },
+  "WEAPON_DEER": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_DEER.json"
+  },
+  "WEAPON_HEN": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_HEN.json"
+  },
+  "WEAPON_RABBIT": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_RABBIT.json"
+  },
+  "WEAPON_CAT": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_CAT.json"
+  },
+  "WEAPON_COW": {
+    "model": null,
+    "slot": "SLOT_UNARMED",
+    "components": [],
+    "file": "WEAPON_COW.json"
+  },
+  "WEAPON_BIRD_CRAP": {
+    "model": "w_ex_birdshat",
+    "slot": "SLOT_GRENADE",
+    "components": [],
+    "file": "WEAPON_BIRD_CRAP.json"
+  },
+  "WEAPON_GADGETPISTOL": {
+    "model": "w_pi_singleshoth4",
+    "slot": "SLOT_GADGETPISTOL",
+    "components": [
+      "COMPONENT_GADGETPISTOL_CLIP_01"
+    ],
+    "file": "WEAPON_GADGETPISTOL.json"
+  },
+  "WEAPON_NAVYREVOLVER": {
+    "model": "w_pi_wep2_gun",
+    "slot": "SLOT_NAVYREVOLVER",
+    "components": [
+      "COMPONENT_NAVYREVOLVER_CLIP_01"
+    ],
+    "file": "WEAPON_NAVYREVOLVER.json"
+  },
+  "WEAPON_PRECISIONRIFLE": {
+    "model": "W_SR_PrecisionRifle_REH",
+    "slot": "SLOT_PRECISIONRIFLE",
+    "components": [
+      "COMPONENT_PRECISIONRIFLE_CLIP_01"
+    ],
+    "file": "WEAPON_PRECISIONRIFLE.json"
+  },
+  "WEAPON_STUNGUN_MP": {
+    "model": "w_pi_stungun",
+    "slot": "SLOT_STUNGUN_MP",
+    "components": [
+      "COMPONENT_STUNGUN_VARMOD_BAIL"
+    ],
+    "file": "WEAPON_STUNGUN_MP.json"
+  },
+  "WEAPON_BULLPUPRIFLE": {
+    "model": "w_ar_bullpuprifle",
+    "slot": "SLOT_BULLPUPRIFLE",
+    "components": [
+      "COMPONENT_BULLPUPRIFLE_CLIP_01",
+      "COMPONENT_BULLPUPRIFLE_CLIP_02",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SCOPE_SMALL",
+      "COMPONENT_AT_AR_SUPP",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_BULLPUPRIFLE_VARMOD_LOW",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_BULLPUPRIFLE.json"
+  },
+  "WEAPON_COMBATPDW": {
+    "model": "W_SB_PDW",
+    "slot": "SLOT_COMBATPDW",
+    "components": [
+      "COMPONENT_COMBATPDW_CLIP_01",
+      "COMPONENT_COMBATPDW_CLIP_02",
+      "COMPONENT_COMBATPDW_CLIP_03",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_AT_SCOPE_SMALL"
+    ],
+    "file": "WEAPON_COMBATPDW.json"
+  },
+  "WEAPON_COMPACTRIFLE": {
+    "model": "w_ar_assaultrifle_smg",
+    "slot": "SLOT_COMPACTRIFLE",
+    "components": [
+      "COMPONENT_COMPACTRIFLE_CLIP_01",
+      "COMPONENT_COMPACTRIFLE_CLIP_02",
+      "COMPONENT_COMPACTRIFLE_CLIP_03"
+    ],
+    "file": "WEAPON_COMPACTRIFLE.json"
+  },
+  "WEAPON_FIREWORK": {
+    "model": "w_lr_firework",
+    "slot": "SLOT_FIREWORK",
+    "components": [
+      "COMPONENT_FIREWORK_CLIP_01"
+    ],
+    "file": "WEAPON_FIREWORK.json"
+  },
+  "WEAPON_FLAREGUN": {
+    "model": "w_pi_flaregun",
+    "slot": "SLOT_FLAREGUN",
+    "components": [
+      "COMPONENT_FLAREGUN_CLIP_01"
+    ],
+    "file": "WEAPON_FLAREGUN.json"
+  },
+  "WEAPON_FLASHLIGHT": {
+    "model": "w_me_flashlight",
+    "slot": "SLOT_FLASHLIGHT",
+    "components": [
+      "COMPONENT_FLASHLIGHT_LIGHT"
+    ],
+    "file": "WEAPON_FLASHLIGHT.json"
+  },
+  "WEAPON_GUSENBERG": {
+    "model": "w_sb_gusenberg",
+    "slot": "SLOT_GUSENBERG",
+    "components": [
+      "COMPONENT_GUSENBERG_CLIP_01",
+      "COMPONENT_GUSENBERG_CLIP_02"
+    ],
+    "file": "WEAPON_GUSENBERG.json"
+  },
+  "WEAPON_HATCHET": {
+    "model": "w_me_hatchet",
+    "slot": "SLOT_HATCHET",
+    "components": [],
+    "file": "WEAPON_HATCHET.json"
+  },
+  "WEAPON_HEAVYPISTOL": {
+    "model": "w_pi_heavypistol",
+    "slot": "SLOT_HEAVYPISTOL",
+    "components": [
+      "COMPONENT_HEAVYPISTOL_CLIP_01",
+      "COMPONENT_HEAVYPISTOL_CLIP_02",
+      "COMPONENT_AT_PI_FLSH",
+      "COMPONENT_AT_PI_SUPP",
+      "COMPONENT_HEAVYPISTOL_VARMOD_LUXE"
+    ],
+    "file": "WEAPON_HEAVYPISTOL.json"
+  },
+  "WEAPON_HEAVYSHOTGUN": {
+    "model": "w_sg_heavyshotgun",
+    "slot": "SLOT_HEAVYSHOTGUN",
+    "components": [
+      "COMPONENT_HEAVYSHOTGUN_CLIP_01",
+      "COMPONENT_HEAVYSHOTGUN_CLIP_02",
+      "COMPONENT_HEAVYSHOTGUN_CLIP_03",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_AT_AR_AFGRIP"
+    ],
+    "file": "WEAPON_HEAVYSHOTGUN.json"
+  },
+  "WEAPON_HOMINGLAUNCHER": {
+    "model": "w_lr_homing",
+    "slot": "SLOT_HOMINGLAUNCHER",
+    "components": [
+      "COMPONENT_HOMINGLAUNCHER_CLIP_01"
+    ],
+    "file": "WEAPON_HOMINGLAUNCHER.json"
+  },
+  "WEAPON_MACHETE": {
+    "model": "w_me_machette_lr",
+    "slot": "SLOT_MACHETE",
+    "components": [],
+    "file": "WEAPON_MACHETE.json"
+  },
+  "WEAPON_MACHINEPISTOL": {
+    "model": "w_sb_compactsmg",
+    "slot": "SLOT_MACHINEPISTOL",
+    "components": [
+      "COMPONENT_MACHINEPISTOL_CLIP_01",
+      "COMPONENT_MACHINEPISTOL_CLIP_02",
+      "COMPONENT_MACHINEPISTOL_CLIP_03",
+      "COMPONENT_AT_PI_SUPP"
+    ],
+    "file": "WEAPON_MACHINEPISTOL.json"
+  },
+  "WEAPON_MARKSMANPISTOL": {
+    "model": "W_PI_SingleShot",
+    "slot": "SLOT_MARKSMANPISTOL",
+    "components": [
+      "COMPONENT_MARKSMANPISTOL_CLIP_01"
+    ],
+    "file": "WEAPON_MARKSMANPISTOL.json"
+  },
+  "WEAPON_MARKSMANRIFLE": {
+    "model": "w_sr_marksmanrifle",
+    "slot": "SLOT_MARKSMANRIFLE",
+    "components": [
+      "COMPONENT_MARKSMANRIFLE_CLIP_01",
+      "COMPONENT_MARKSMANRIFLE_CLIP_02",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SCOPE_LARGE_FIXED_ZOOM",
+      "COMPONENT_AT_AR_SUPP",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_MARKSMANRIFLE_VARMOD_LUXE",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_MARKSMANRIFLE.json"
+  },
+  "WEAPON_MUSKET": {
+    "model": "w_ar_musket",
+    "slot": "SLOT_MUSKET",
+    "components": [
+      "COMPONENT_MUSKET_CLIP_01"
+    ],
+    "file": "WEAPON_MUSKET.json"
+  },
+  "WEAPON_PIPEBOMB": {
+    "model": "w_ex_pipebomb",
+    "slot": "SLOT_PIPEBOMB",
+    "components": [],
+    "file": "WEAPON_PIPEBOMB.json"
+  },
+  "WEAPON_PROXMINE": {
+    "model": "w_ex_apmine",
+    "slot": "SLOT_PROXMINE",
+    "components": [],
+    "file": "WEAPON_PROXMINE.json"
+  },
+  "WEAPON_RAILGUN": {
+    "model": "w_ar_railgun",
+    "slot": "SLOT_RAILGUN",
+    "components": [
+      "COMPONENT_RAILGUN_CLIP_01"
+    ],
+    "file": "WEAPON_RAILGUN.json"
+  },
+  "WEAPON_REVOLVER": {
+    "model": "w_pi_revolver",
+    "slot": "SLOT_REVOLVER",
+    "components": [
+      "COMPONENT_REVOLVER_CLIP_01",
+      "COMPONENT_REVOLVER_VARMOD_BOSS",
+      "COMPONENT_REVOLVER_VARMOD_GOON",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_REVOLVER.json"
+  },
+  "WEAPON_DOUBLEACTION": {
+    "model": "w_pi_wep1_gun",
+    "slot": "SLOT_DOUBLEACTION",
+    "components": [
+      "COMPONENT_DOUBLEACTION_CLIP_01"
+    ],
+    "file": "WEAPON_DOUBLEACTION.json"
+  },
+  "WEAPON_EMPLAUNCHER": {
+    "model": "w_lr_compactml",
+    "slot": "SLOT_EMPLAUNCHER",
+    "components": [
+      "COMPONENT_EMPLAUNCHER_CLIP_01"
+    ],
+    "file": "WEAPON_EMPLAUNCHER.json"
+  },
+  "WEAPON_HEAVYSNIPER_MK2": {
+    "model": "w_sr_heavysnipermk2",
+    "slot": "SLOT_HEAVYSNIPER_MK2",
+    "components": [
+      "COMPONENT_HEAVYSNIPER_MK2_CLIP_01",
+      "COMPONENT_HEAVYSNIPER_MK2_CLIP_02",
+      "COMPONENT_HEAVYSNIPER_MK2_CLIP_ARMORPIERCING",
+      "COMPONENT_HEAVYSNIPER_MK2_CLIP_EXPLOSIVE",
+      "COMPONENT_HEAVYSNIPER_MK2_CLIP_FMJ",
+      "COMPONENT_HEAVYSNIPER_MK2_CLIP_INCENDIARY",
+      "COMPONENT_AT_SCOPE_LARGE_MK2",
+      "COMPONENT_AT_SCOPE_MAX",
+      "COMPONENT_AT_SCOPE_NV",
+      "COMPONENT_AT_SCOPE_THERMAL",
+      "COMPONENT_AT_SR_SUPP_03",
+      "COMPONENT_AT_MUZZLE_08",
+      "COMPONENT_AT_MUZZLE_09",
+      "COMPONENT_AT_SR_BARREL_01",
+      "COMPONENT_AT_SR_BARREL_02",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_02",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_03",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_04",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_05",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_06",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_07",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_08",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_09",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_10",
+      "COMPONENT_HEAVYSNIPER_MK2_CAMO_IND_01"
+    ],
+    "file": "WEAPON_HEAVYSNIPER_MK2.json"
+  },
+  "WEAPON_PISTOL_MK2": {
+    "model": "w_pi_pistolmk2",
+    "slot": "SLOT_PISTOL_MK2",
+    "components": [
+      "COMPONENT_PISTOL_MK2_CLIP_01",
+      "COMPONENT_PISTOL_MK2_CLIP_02",
+      "COMPONENT_PISTOL_MK2_CLIP_FMJ",
+      "COMPONENT_PISTOL_MK2_CLIP_HOLLOWPOINT",
+      "COMPONENT_PISTOL_MK2_CLIP_INCENDIARY",
+      "COMPONENT_PISTOL_MK2_CLIP_TRACER",
+      "COMPONENT_AT_PI_RAIL",
+      "COMPONENT_AT_PI_FLSH_02",
+      "COMPONENT_AT_PI_SUPP_02",
+      "COMPONENT_AT_PI_COMP",
+      "COMPONENT_PISTOL_MK2_CAMO_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_02_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_03_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_04_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_05_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_06_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_07_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_08_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_09_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_10_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO_IND_01_SLIDE",
+      "COMPONENT_PISTOL_MK2_VARMOD_XM3_SLIDE",
+      "COMPONENT_PISTOL_MK2_CAMO",
+      "COMPONENT_PISTOL_MK2_CAMO_02",
+      "COMPONENT_PISTOL_MK2_CAMO_03",
+      "COMPONENT_PISTOL_MK2_CAMO_04",
+      "COMPONENT_PISTOL_MK2_CAMO_05",
+      "COMPONENT_PISTOL_MK2_CAMO_06",
+      "COMPONENT_PISTOL_MK2_CAMO_07",
+      "COMPONENT_PISTOL_MK2_CAMO_08",
+      "COMPONENT_PISTOL_MK2_CAMO_09",
+      "COMPONENT_PISTOL_MK2_CAMO_10",
+      "COMPONENT_PISTOL_MK2_CAMO_IND_01",
+      "COMPONENT_PISTOL_MK2_VARMOD_XM3"
+    ],
+    "file": "WEAPON_PISTOL_MK2.json"
+  },
+  "WEAPON_REVOLVER_MK2": {
+    "model": "w_pi_revolvermk2",
+    "slot": "SLOT_REVOLVER_MK2",
+    "components": [
+      "COMPONENT_REVOLVER_MK2_CLIP_01",
+      "COMPONENT_REVOLVER_MK2_CLIP_FMJ",
+      "COMPONENT_REVOLVER_MK2_CLIP_HOLLOWPOINT",
+      "COMPONENT_REVOLVER_MK2_CLIP_INCENDIARY",
+      "COMPONENT_REVOLVER_MK2_CLIP_TRACER",
+      "COMPONENT_AT_SIGHTS",
+      "COMPONENT_AT_SCOPE_MACRO_MK2",
+      "COMPONENT_AT_PI_FLSH",
+      "COMPONENT_AT_PI_COMP_03",
+      "COMPONENT_REVOLVER_MK2_CAMO",
+      "COMPONENT_REVOLVER_MK2_CAMO_02",
+      "COMPONENT_REVOLVER_MK2_CAMO_03",
+      "COMPONENT_REVOLVER_MK2_CAMO_04",
+      "COMPONENT_REVOLVER_MK2_CAMO_05",
+      "COMPONENT_REVOLVER_MK2_CAMO_06",
+      "COMPONENT_REVOLVER_MK2_CAMO_07",
+      "COMPONENT_REVOLVER_MK2_CAMO_08",
+      "COMPONENT_REVOLVER_MK2_CAMO_09",
+      "COMPONENT_REVOLVER_MK2_CAMO_10",
+      "COMPONENT_REVOLVER_MK2_CAMO_IND_01"
+    ],
+    "file": "WEAPON_REVOLVER_MK2.json"
+  },
+  "WEAPON_RAYPISTOL": {
+    "model": "w_pi_raygun",
+    "slot": "SLOT_RAYPISTOL",
+    "components": [
+      "COMPONENT_RAYPISTOL_VARMOD_XMAS18"
+    ],
+    "file": "WEAPON_RAYPISTOL.json"
+  },
+  "WEAPON_RAYCARBINE": {
+    "model": "w_ar_srifle",
+    "slot": "SLOT_RAYCARBINE",
+    "components": [],
+    "file": "WEAPON_RAYCARBINE.json"
+  },
+  "WEAPON_RAYMINIGUN": {
+    "model": "w_mg_sminigun",
+    "slot": "SLOT_RAYMINIGUN",
+    "components": [
+      "COMPONENT_MINIGUN_CLIP_01"
+    ],
+    "file": "WEAPON_RAYMINIGUN.json"
+  },
+  "WEAPON_SNOWBALL": {
+    "model": "w_ex_snowball",
+    "slot": "SLOT_SNOWBALL",
+    "components": [],
+    "file": "WEAPON_SNOWBALL.json"
+  },
+  "WEAPON_SNSPISTOL": {
+    "model": "w_pi_sns_pistol",
+    "slot": "SLOT_SNSPISTOL",
+    "components": [
+      "COMPONENT_SNSPISTOL_CLIP_01",
+      "COMPONENT_SNSPISTOL_CLIP_02",
+      "COMPONENT_SNSPISTOL_VARMOD_LOWRIDER",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_SNSPISTOL.json"
+  },
+  "WEAPON_SPECIALCARBINE": {
+    "model": "w_ar_specialcarbine",
+    "slot": "SLOT_SPECIALCARBINE",
+    "components": [
+      "COMPONENT_SPECIALCARBINE_CLIP_01",
+      "COMPONENT_SPECIALCARBINE_CLIP_02",
+      "COMPONENT_SPECIALCARBINE_CLIP_03",
+      "COMPONENT_AT_AR_FLSH",
+      "COMPONENT_AT_SCOPE_MEDIUM",
+      "COMPONENT_AT_AR_SUPP_02",
+      "COMPONENT_AT_AR_AFGRIP",
+      "COMPONENT_SPECIALCARBINE_VARMOD_LOWRIDER",
+      "COMPONENT_SPECIALCARBINE_VARMOD_XMAS23",
+      "COMPONENT_GUNRUN_MK2_UPGRADE"
+    ],
+    "file": "WEAPON_SPECIALCARBINE.json"
+  },
+  "WEAPON_SWITCHBLADE": {
+    "model": "w_me_switchblade",
+    "slot": "SLOT_SWITCHBLADE",
+    "components": [
+      "COMPONENT_SWITCHBLADE_VARMOD_BASE",
+      "COMPONENT_SWITCHBLADE_VARMOD_VAR1",
+      "COMPONENT_SWITCHBLADE_VARMOD_VAR2"
+    ],
+    "file": "WEAPON_SWITCHBLADE.json"
+  },
+  "WEAPON_VINTAGEPISTOL": {
+    "model": "w_pi_vintage_pistol",
+    "slot": "SLOT_VINTAGEPISTOL",
+    "components": [
+      "COMPONENT_VINTAGEPISTOL_CLIP_01",
+      "COMPONENT_VINTAGEPISTOL_CLIP_02",
+      "COMPONENT_AT_PI_SUPP"
+    ],
+    "file": "WEAPON_VINTAGEPISTOL.json"
+  }
+}

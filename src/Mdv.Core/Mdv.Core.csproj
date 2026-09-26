@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Mdv.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mdv.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpCompress" Version="0.50.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- CodeWalker (git submodule, external/CodeWalker): Gen9 (Enhanced) resource
+         conversion and the NG/AES crypto for the game's own encrypted archives. -->
+    <ProjectReference Include="..\..\external\CodeWalker\CodeWalker.Core\CodeWalker.Core.csproj" />
+  </ItemGroup>
+</Project>
