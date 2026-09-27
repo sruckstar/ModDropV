@@ -322,7 +322,7 @@ public static partial class GameInstaller
     }
 
     /// <summary>The game's own dlclist.xml, read out of its encrypted update\update.rpf.</summary>
-    private static string GameDlclist(string gameDir, Action<string> log)
+    internal static string GameDlclist(string gameDir, Action<string> log)
     {
         var gameUpd = Path.Combine(gameDir, "update", "update.rpf");
         if (!File.Exists(gameUpd))

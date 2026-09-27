@@ -1,5 +1,6 @@
 using Mdv.Core;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Mdv.Core.Index;
 using Mdv.Core.Rpf;
 using Mdv.Core.Util;
@@ -142,12 +143,16 @@ public static partial class DlcComposer
         AddMissingShops(spec);
         AddTypeRequests(spec);
         ReadMaps(spec);
+        CheckStreamed(spec, src);
         return spec;
     }
 
+    /// <summary>
+    /// Everything a map is made of — placements, archetypes, the pack manifest, models, collisions — goes into one archive,
+    /// as the SP map packs that work in the game keep it (Water Park): placements in an archive of their own flagged as
+    /// map data and mounted by the map changeset never showed in the game.
+    /// </summary>
     public const string MapImage = "x64/levels/gta5/map.rpf";
-    /// <summary>Placements (and the pack manifest) of a map go into an archive of their own, mounted as map data — as Rockstar's DLCs keep them.</summary>
-    public const string MapMetaImage = "x64/levels/gta5/map_metadata.rpf";
     public const string ManifestName = "_manifest.ymf";
 
     /// <summary>File types a map / props add-on is made of.</summary>
@@ -183,7 +188,44 @@ public static partial class DlcComposer
         AddImages(spec);
         AddTypeRequests(spec);
         ReadMaps(spec);
+        CheckStreamed(spec, src);
         return spec;
+    }
+
+    /// <summary>
+    /// Streamed files the game reads only as RSC7 resources that aren't one — encrypted by FiveM's asset escrow (the
+    /// resource has a .fxap), or broken. Packed as they are, they stop the game at loading (ERR_STR_PACK). A placement /
+    /// archetype file in its XML form is fine: it's built into the game's form on packing.
+    /// </summary>
+    private static void CheckStreamed(ComposeSpec spec, DroppedSource src)
+    {
+        var bad = spec.Files.Where(f => Rpf7.MustBeResource(PathUtil.SuffixLower(f.PackPath)) && !IsResource(f.Source) && !ReadableMap(f))
+                            .Select(f => Path.GetFileName(f.PackPath)).ToList();
+        if (bad.Count == 0) return;
+        var list = string.Join(", ", bad.Take(5)) + (bad.Count > 5 ? L.T($" and {bad.Count - 5} more") : "");
+        if (src.Files.Any(f => PathUtil.SuffixLower(f.Name) == ".fxap"))
+            throw new IntakeException(L.T($"This FiveM resource is locked by Cfx asset escrow (it has a .fxap file): its files ({list}) are encrypted, " +
+                                          $"only a FiveM server can open them. Story mode can't use them — the game would stop at loading " +
+                                          $"(ERR_STR_PACK). Ask its author for the open version."));
+        throw new IntakeException(L.T($"Not in the game's form: {list} — broken or encrypted. Packed as they are, they would stop the game " +
+                                      $"at loading (ERR_STR_PACK)."));
+    }
+
+    private static bool IsResource(string path) => ResourceVersion(path) >= 0;
+
+    /// <summary>A placement / archetype file that isn't a resource but reads as its XML form (built on packing).</summary>
+    private static bool ReadableMap(ComposeFile f)
+    {
+        if (!IsMapFile(f.PackPath)) return false;
+        try
+        {
+            MapMeta.Read(File.ReadAllBytes(f.Source), Path.GetFileName(f.PackPath));
+            return true;
+        }
+        catch (Exception ex) when (ex is InvalidDataException or System.Xml.XmlException)
+        {
+            return false;
+        }
     }
 
     /// <summary>What the spec's placements place and the props its archetype files define (read from the mod's files).</summary>
@@ -273,7 +315,7 @@ public static partial class DlcComposer
         foreach (var rpf in spec.Files.Select(f => ImageOf(f.PackPath)).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase))
             spec.Data.Add(rpf.Equals(StreamedPedImage, StringComparison.OrdinalIgnoreCase)
                 ? new ComposeData(rpf, "PEDSTREAM_FILE", Persistent: true)
-                : rpf.Equals(MapMetaImage, StringComparison.OrdinalIgnoreCase)
+                : rpf.Equals(MapImage, StringComparison.OrdinalIgnoreCase)
                     ? new ComposeData(rpf, "RPF_FILE", Persistent: true, Contents: "CONTENTS_DLC_MAP_DATA")
                     : new ComposeData(rpf, "RPF_FILE", Persistent: true));
     }
@@ -525,9 +567,7 @@ public static partial class DlcComposer
         var ext = PathUtil.SuffixLower(f.Name);
         if (kind is ModCategory.Map or ModCategory.Prop && (GameIndex.StreamedExts.Contains(ext) || IsMapFile(f.Name)))
         {
-            // placements and the manifest into the map data archive, the rest (archetypes, models, textures, collisions) beside it
             var name = AddonContent.MapFileName(f.Name.Split('^')[^1]).ToLowerInvariant();
-            var inMeta = name.EndsWith(".ymap", StringComparison.Ordinal) || name.EndsWith(".ymf", StringComparison.Ordinal);
             if (name.EndsWith(".ymf", StringComparison.Ordinal)) spec.Content.HasManifest = true;
             if (streamed.TryGetValue(name, out var had))
             {
@@ -536,7 +576,7 @@ public static partial class DlcComposer
                 return;
             }
             streamed[name] = f;
-            spec.Files.Add(new ComposeFile(f.FullPath, $"{(inMeta ? MapMetaImage : MapImage)}/{name}"));
+            spec.Files.Add(new ComposeFile(f.FullPath, $"{MapImage}/{name}"));
             spec.Content.Streamed.Add(name);
             if (ResourceEditions.EditionOf(PathUtil.SuffixLower(name), ResourceVersion(f.FullPath)) is { } med) spec.Content.ModelEditions.Add(med);
             return;
@@ -608,7 +648,8 @@ public static partial class DlcComposer
     /// <paramref name="device"/> (<c>dlc_mycar</c>), the files, the image archives, global.gxt2 in every
     /// language when there are labels. Legacy models are converted for Enhanced on the way.
     /// </summary>
-    public static string Compose(ComposeSpec spec, string device, string outDir, GameEdition edition, Action<string> log)
+    public static string Compose(ComposeSpec spec, string device, string outDir, GameEdition edition, Action<string> log,
+                                 Func<uint, bool>? gameTypes = null)
     {
         var tree = PathUtil.MakeTempDir();
         try
@@ -617,9 +658,9 @@ public static partial class DlcComposer
             {
                 var dst = Path.Combine(tree, f.PackPath.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
-                if (f.Source.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) && IsMapFile(f.PackPath))
+                if (IsMapFile(f.PackPath) && (f.Source.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) || !IsResource(f.Source)))
                 {
-                    // a placement / archetype file as XML (CodeWalker / OpenIV export): built into the game's form
+                    // a placement / archetype file as XML (CodeWalker / OpenIV export, sometimes saved as .ymap): built into the game's form
                     var name = Path.GetFileName(f.PackPath);
                     File.WriteAllBytes(dst, MapMeta.Write(MapMeta.Read(File.ReadAllBytes(f.Source), name), name));
                     log(L.T($"    {name}: built from its XML form."));
@@ -652,9 +693,10 @@ public static partial class DlcComposer
             var changeset = device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] + "_AUTOGEN" : device + "_AUTOGEN";
             if (spec.Content.Kind == ModCategory.Map)
             {
-                if (!spec.Content.HasManifest) WriteManifest(spec, tree, data, log);
-                TextIo.WriteText(Path.Combine(tree, "content.xml"), MapContentXml(device, data));
-                TextIo.WriteText(Path.Combine(tree, "setup2.xml"), MapSetup2Xml(device));
+                WriteManifest(spec, tree, data, gameTypes, log);
+                FixInteriors(tree, log);
+                TextIo.WriteText(Path.Combine(tree, "content.xml"), MapContentXml(device, changeset, data));
+                TextIo.WriteText(Path.Combine(tree, "setup2.xml"), MapSetup2Xml(device, changeset));
             }
             else
             {
@@ -731,10 +773,14 @@ public static partial class DlcComposer
     // ================================================================ maps
 
     /// <summary>
-    /// The pack manifest of a map made of loose files: each placement loads the archetype files that define what it
-    /// places (matched by the models' hashes). Archetype files no placement needs are requested for good instead.
+    /// The pack manifest of a map: each placement loads the archetype files that define what it places (matched by the
+    /// models' hashes). Archetype files no placement needs are requested for good instead. A manifest the mod comes with
+    /// is made for FiveM, where every DLC is loaded — it's kept, but checked against the pack and the game
+    /// (<paramref name="gameTypes"/>: the game has an archetypes file of that name hash; null — not known): entries for
+    /// placements / archetype files the pack doesn't have are dropped, as are links to archetype files neither the pack
+    /// nor the game has (a link the game can't resolve stops it at loading), and placements get the links they need.
     /// </summary>
-    private static void WriteManifest(ComposeSpec spec, string tree, List<ComposeData> data, Action<string> log)
+    private static void WriteManifest(ComposeSpec spec, string tree, List<ComposeData> data, Func<uint, bool>? gameTypes, Action<string> log)
     {
         var typeFiles = new List<(string Name, string PackPath, HashSet<uint> Defines)>();
         foreach (var f in spec.Files.Where(f => f.PackPath.EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase)))
@@ -758,66 +804,167 @@ public static partial class DlcComposer
         data.RemoveAll(d => d.Type == "DLC_ITYP_REQUEST" && needed.Contains(Path.GetFileNameWithoutExtension(d.PackPath)));
         foreach (var t in typeFiles.Where(t => !needed.Contains(t.Name) && !data.Any(d => d.PackPath.Equals(t.PackPath, StringComparison.OrdinalIgnoreCase))))
             data.Add(new ComposeData(t.PackPath, "DLC_ITYP_REQUEST"));
-        if (deps.All(d => d.Ytyps.Count == 0)) return;                      // only the game's own props: nothing to bind
-        var path = Path.Combine(tree, MapMetaImage.Replace('/', Path.DirectorySeparatorChar), ManifestName);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllBytes(path, MapMeta.Write(MapMeta.Manifest(deps), ManifestName));
-        log(L.T($"    {ManifestName} written: {string.Join(", ", deps.Where(d => d.Ytyps.Count > 0).Select(d => $"{d.Ymap} → {string.Join(" + ", d.Ytyps)}"))}."));
+        var path = Path.Combine(tree, MapImage.Replace('/', Path.DirectorySeparatorChar), ManifestName);
+        if (!File.Exists(path))
+        {
+            if (deps.All(d => d.Ytyps.Count == 0)) return;                  // only the game's own props: nothing to bind
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, MapMeta.Write(MapMeta.Manifest(deps), ManifestName));
+            log(L.T($"    {ManifestName} written: {string.Join(", ", deps.Where(d => d.Ytyps.Count > 0).Select(d => $"{d.Ymap} → {string.Join(" + ", d.Ytyps)}"))}."));
+            return;
+        }
+
+        MapMeta.Know(typeFiles.Select(t => t.Name).Concat(deps.Select(d => d.Ymap)));
+        var manifest = MapMeta.Read(File.ReadAllBytes(path), ManifestName);
+        var root = manifest.Root!;
+        var ymaps = deps.Select(d => MapMeta.Hash(d.Ymap)).ToHashSet();
+        var packTypes = typeFiles.Select(t => MapMeta.Hash(t.Name)).ToHashSet();
+        bool Resolves(uint h) => packTypes.Contains(h) || gameTypes is null || gameTypes(h);
+        static string NameOf(XElement e) => e.Value.Trim();
+        var dropped = new List<string>();
+        int added = 0;
+
+        void Check(string list, string key, Func<uint, bool> keep)
+        {
+            foreach (var item in root.Element(list)?.Elements("Item").ToList() ?? [])
+            {
+                if (item.Element(key) is not { } k || !keep(MapMeta.Hash(NameOf(k))))
+                {
+                    dropped.Add(item.Element(key) is { } n ? NameOf(n) : list);
+                    item.Remove();
+                    continue;
+                }
+                foreach (var dep in item.Element("itypDepArray")?.Elements("Item").ToList() ?? [])
+                    if (!Resolves(MapMeta.Hash(NameOf(dep))))
+                    {
+                        dropped.Add(NameOf(dep));
+                        dep.Remove();
+                    }
+            }
+        }
+        Check("imapDependencies_2", "imapName", ymaps.Contains);
+        Check("itypDependencies_2", "itypName", packTypes.Contains);
+
+        if (root.Element("imapDependencies_2") is not { } imaps)
+            root.Add(imaps = new XElement("imapDependencies_2", new XAttribute("itemType", "CImapDependencies")));
+        foreach (var (ymap, types) in deps.Where(d => d.Ytyps.Count > 0))
+        {
+            var item = imaps.Elements("Item").FirstOrDefault(i => MapMeta.Hash(NameOf(i.Element("imapName")!)) == MapMeta.Hash(ymap));
+            if (item is null)
+                imaps.Add(item = new XElement("Item", new XElement("imapName", ymap), new XElement("manifestFlags"), new XElement("itypDepArray")));
+            if (item.Element("itypDepArray") is not { } arr) item.Add(arr = new XElement("itypDepArray"));
+            foreach (var t in types.Where(t => !arr.Elements("Item").Any(i => MapMeta.Hash(NameOf(i)) == MapMeta.Hash(t))))
+            {
+                arr.Add(new XElement("Item", t));
+                added++;
+            }
+        }
+        if (dropped.Count == 0 && added == 0) return;
+        File.WriteAllBytes(path, MapMeta.Write(manifest, ManifestName));
+        if (dropped.Count > 0)
+            log(L.T($"    {ManifestName}: dropped what neither the pack nor the game has (the game would stop at loading): {string.Join(", ", dropped.Distinct().Take(8))}{(dropped.Distinct().Count() > 8 ? ", …" : "")}."));
+        if (added > 0) log(L.T($"    {ManifestName}: {added} missing link(s) from placements to their archetype files added."));
     }
 
     /// <summary>
-    /// content.xml of a map pack, laid out as the map packs players install by hand are (a level pack whose map
-    /// changeset mounts the archives in story mode): the archives, the map data one flagged as such.
+    /// The interiors (MLOs) in the pack manifest, as Rockstar's interior archives name them: <c>Interiors</c> — each
+    /// interior → its bounds files (<c>X.ybn</c>, <c>hi@X.ybn</c> of its name / physics dictionary), and the archetypes
+    /// file that defines it flagged <c>INTERIOR_DATA</c>. Written from the archetypes files themselves: the manifest a
+    /// FiveM map comes with is often stale there (moreo_cafecutev2 names an interior renamed since).
     /// </summary>
-    public static string MapContentXml(string device, IEnumerable<ComposeData> data)
+    private static void FixInteriors(string tree, Action<string> log)
+    {
+        var image = Path.Combine(tree, MapImage.Replace('/', Path.DirectorySeparatorChar));
+        if (!Directory.Exists(image)) return;
+        var types = Directory.EnumerateFiles(image, "*.ytyp").ToList();
+        var bounds = Directory.EnumerateFiles(image, "*.ybn").Select(Path.GetFileNameWithoutExtension).OfType<string>().ToList();
+        MapMeta.Know(bounds.Concat(types.Select(Path.GetFileNameWithoutExtension).OfType<string>()));
+        var interiors = new List<(string Name, List<string> Bounds)>();
+        var interiorTypes = new List<string>();
+        foreach (var t in types)
+        {
+            var doc = MapMeta.Read(File.ReadAllBytes(t), Path.GetFileName(t));
+            var mlos = (doc.Root?.Element("archetypes")?.Elements("Item") ?? [])
+                       .Where(i => (string?)i.Attribute("type") == "CMloArchetypeDef").ToList();
+            if (mlos.Count == 0) continue;
+            interiorTypes.Add(Path.GetFileNameWithoutExtension(t));
+            foreach (var mlo in mlos)
+            {
+                var name = mlo.Element("name")?.Value.Trim() ?? "";
+                var keys = new[] { name, mlo.Element("physicsDictionary")?.Value.Trim() ?? "" }
+                           .Where(s => s.Length > 0).Select(MapMeta.Hash).ToHashSet();
+                var own = bounds.Where(b => keys.Contains(MapMeta.Hash(b)) ||
+                                            b.StartsWith("hi@", StringComparison.OrdinalIgnoreCase) && keys.Contains(MapMeta.Hash(b[3..])))
+                                .OrderBy(b => b.StartsWith("hi@", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (name.Length > 0) interiors.Add((name, own));
+            }
+        }
+        if (interiorTypes.Count == 0) return;
+
+        var path = Path.Combine(image, ManifestName);
+        var manifest = File.Exists(path) ? MapMeta.Read(File.ReadAllBytes(path), ManifestName) : MapMeta.Manifest([]);
+        var root = manifest.Root!;
+        if (root.Element("itypDependencies_2") is not { } deps)
+            root.Add(deps = new XElement("itypDependencies_2", new XAttribute("itemType", "CItypDependencies")));
+        foreach (var stem in interiorTypes)
+        {
+            var item = deps.Elements("Item").FirstOrDefault(i => MapMeta.Hash(i.Element("itypName")?.Value.Trim() ?? "") == MapMeta.Hash(stem));
+            if (item is null)
+                deps.Add(item = new XElement("Item", new XElement("itypName", stem), new XElement("manifestFlags"), new XElement("itypDepArray")));
+            item.SetElementValue("manifestFlags", "INTERIOR_DATA");
+        }
+        if (root.Element("Interiors") is not { } list)
+            root.Add(list = new XElement("Interiors", new XAttribute("itemType", "CInteriorBoundsFiles")));
+        list.RemoveNodes();
+        list.Add(interiors.Where(i => i.Bounds.Count > 0).Select(i => new XElement("Item",
+            new XElement("Name", i.Name),
+            new XElement("Bounds", i.Bounds.Select(b => new XElement("Item", b))))));
+        File.WriteAllBytes(path, MapMeta.Write(manifest, ManifestName));
+        log(L.T($"    Interiors: {string.Join(", ", interiors.Select(i => i.Bounds.Count > 0 ? $"{i.Name} → {string.Join(" + ", i.Bounds)}" : i.Name))} — laid out with their collisions."));
+    }
+
+    /// <summary>
+    /// content.xml of a map pack, as Rockstar mounts the map parts of its DLCs (mpapartment's APA_GTA5_CITYE_SUNSET): a map
+    /// changeset (<c>mapChangeSetData</c>, <c>associatedMap MO_JIM_L11</c>) run with the map (<see cref="MapSetup2Xml"/>:
+    /// GROUP_MAP), so the archive comes after the DLCs' own map parts — a FiveM interior's manifest binds it to their
+    /// archetypes files (apa_int_mp_h_03, santamon_metadata_001_strm…): mounted at startup, before them, the game stopped
+    /// loading with a fatal error (moreo_cafecutev2 on Enhanced). The archive is map data and overlays the game's files: a
+    /// map that remodels a building ships the game's model / collision under its own name.
+    /// </summary>
+    public static string MapContentXml(string device, string changeset, IEnumerable<ComposeData> data)
     {
         var list = data.Select(d => (Name: $"{device}:/{d.PackPath.Replace("x64/", "%PLATFORM%/")}", d)).ToList();
         var items = string.Join("\n", list.Select(x =>
             "    <Item>\n" +
             $"      <filename>{x.Name}</filename>\n" +
             $"      <fileType>{x.d.Type}</fileType>\n" +
-            "      <overlay value=\"false\" />\n" +
+            $"      <overlay value=\"{(x.d.Type == "RPF_FILE" ? "true" : "false")}\" />\n" +
             "      <disabled value=\"true\" />\n" +
             $"      <persistent value=\"{(x.d.Persistent ? "true" : "false")}\" />\n" +
             (x.d.Contents is { } c ? $"      <contents>{c}</contents>\n" : "") +
             "    </Item>"));
-        var enable = string.Join("\n", list.Select(x => $"        <Item>{x.Name}</Item>"));
+        var enable = string.Join("\n", list.Select(x => $"            <Item>{x.Name}</Item>"));
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                "<CDataFileMgr__ContentsOfDataFileXml>\n" +
                "  <disabledFiles />\n  <includedXmlFiles />\n  <includedDataFiles />\n" +
                "  <dataFiles>\n" + items + "\n  </dataFiles>\n" +
                "  <contentChangeSets>\n    <Item>\n" +
-               $"      <changeSetName>{MapChangeset(device)}</changeSetName>\n" +
-               "      <filesToEnable>\n" + enable + "\n      </filesToEnable>\n" +
-               "      <executionConditions>\n        <activeChangesetConditions />\n" +
-               "        <genericConditions>$level=MO_JIM_L11</genericConditions>\n      </executionConditions>\n" +
-               "    </Item>\n  </contentChangeSets>\n  <patchFiles />\n" +
+               $"      <changeSetName>{changeset}</changeSetName>\n" +
+               "      <mapChangeSetData>\n        <Item>\n" +
+               "          <associatedMap>MO_JIM_L11</associatedMap>\n" +
+               "          <filesToInvalidate />\n          <filesToDisable />\n" +
+               "          <filesToEnable>\n" + enable + "\n          </filesToEnable>\n" +
+               "        </Item>\n      </mapChangeSetData>\n" +
+               "      <requiresLoadingScreen value=\"true\" />\n" +
+               "      <loadingScreenContext>LOADINGSCREEN_CONTEXT_LAST_FRAME</loadingScreenContext>\n" +
+               "    </Item>\n" +
+               "  </contentChangeSets>\n  <patchFiles />\n" +
                "</CDataFileMgr__ContentsOfDataFileXml>\n";
     }
 
-    private static string MapChangeset(string device) =>
-        "CCS_" + (device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] : device) + "_NG_STREAMING_MAP";
-
-    /// <summary>setup2.xml of a map pack: a level pack whose map changeset runs with the streaming updates.</summary>
-    public static string MapSetup2Xml(string device) =>
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-        "<SSetupData>\n" +
-        $"  <deviceName>{device}</deviceName>\n" +
-        "  <datFile>content.xml</datFile>\n" +
-        "  <timeStamp>01/01/2026 00:00:00</timeStamp>\n" +
-        $"  <nameHash>{(device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] : device)}</nameHash>\n" +
-        "  <contentChangeSets />\n" +
-        "  <contentChangeSetGroups>\n    <Item>\n" +
-        "      <NameHash>GROUP_UPDATE_STREAMING</NameHash>\n" +
-        "      <ContentChangeSets>\n" +
-        $"        <Item>{MapChangeset(device)}</Item>\n" +
-        "      </ContentChangeSets>\n    </Item>\n" +
-        "  </contentChangeSetGroups>\n" +
-        "  <startupScript />\n  <scriptCallstackSize value=\"0\" />\n" +
-        "  <type>EXTRACONTENT_LEVEL_PACK</type>\n" +
-        "  <order value=\"2\" />\n  <minorOrder value=\"0\" />\n" +
-        "  <isLevelPack value=\"true\" />\n  <dependencyPackHash />\n" +
-        "  <requiredVersion />\n  <subPackCount value=\"0\" />\n</SSetupData>\n";
+    /// <summary>setup2.xml of a map pack: an add-on (compat) pack like the others, its map changeset run with the map.</summary>
+    public static string MapSetup2Xml(string device, string changeset) =>
+        DlcAssembler.Setup2Xml(device, changeset).Replace("<NameHash>GROUP_STARTUP</NameHash>", "<NameHash>GROUP_MAP</NameHash>");
 
     /// <summary>A shop meta that registers a collection and lists no shop items (the clothes are picked in trainers / menus).</summary>
     public static string ShopMeta(string ped, string dlc, string creature) =>

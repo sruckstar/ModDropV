@@ -439,6 +439,15 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             : L.T($"Add-On installed — spawn it with a trainer by name: {string.Join(", ", names.Take(6))}{(names.Count > 6 ? ", …" : "")}.");
     }
 
+    /// <summary>Which archetypes files (name hashes) the game has, for checking a map's manifest; null without the index.</summary>
+    private static Func<uint, bool>? GameTypes(InstallTarget target)
+    {
+        if (TryIndex(target) is not { } index) return null;
+        var set = index.Find("*.ytyp", int.MaxValue).Where(h => h.Active)
+                       .Select(h => MapMeta.Hash(Path.GetFileNameWithoutExtension(h.InnerPath.Split('/')[^1]))).ToHashSet();
+        return set.Contains;
+    }
+
     private static GameIndex? TryIndex(InstallTarget target)
     {
         try
@@ -488,7 +497,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             {
                 var used = spec;
                 if (fixes.Count > 0) used = WithKitFixes(spec, fixes, tmp, ctx.Log);
-                rpf = DlcComposer.Compose(used, pkg.Device, Path.Combine(tmp, "pack"), edition, ctx.Log);
+                rpf = DlcComposer.Compose(used, pkg.Device, Path.Combine(tmp, "pack"), edition, ctx.Log,
+                                          pkg.Kind == ModCategory.Map ? GameTypes(ctx.Target) : null);
             }
             else
             {

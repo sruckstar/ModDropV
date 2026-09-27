@@ -181,8 +181,21 @@
             </Border>
           </StackPanel>
 
-          <!-- player: how the game stands; opens the library, where the full status is -->
-          <Button Grid.Column="2" Classes="pill" Classes.warn="{Binding StatusHasWarnings}" VerticalAlignment="Center"
+          <!-- player: mods out of the game for GTA Online / back in; how the game stands (opens the library) -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsPlayer}">
+          <Button Classes="pill go" Classes.online="{Binding IsOnlineMode}" VerticalAlignment="Center"
+                  IsVisible="{Binding HasStatus}" Command="{Binding ToggleOnlineCommand}" ToolTip.Tip="{Binding OnlineTip}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <Panel Width="13" Height="13" VerticalAlignment="Center">
+                <Path Data="{StaticResource IconShield}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8"
+                      StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" IsVisible="{Binding !IsOnlineMode}" />
+                <Path Data="{StaticResource IconUndo}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8"
+                      StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" IsVisible="{Binding IsOnlineMode}" />
+              </Panel>
+              <TextBlock Text="{Binding OnlineButtonText}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <Button Classes="pill" Classes.warn="{Binding StatusHasWarnings}" VerticalAlignment="Center"
                   IsVisible="{Binding HasStatus}" Command="{Binding ShowLibraryCommand}"
                   ToolTip.Tip="{l:Tr 'Game status — mods folder, loaders, ScriptHookV, DLC packs'}">
             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -193,6 +206,7 @@
               <TextBlock Text="{Binding StatusSummary}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
+          </StackPanel>
         </Grid>
       </Border>
 

@@ -20,6 +20,49 @@ public sealed class GameCrypto
 
     private GameCrypto() { }
 
+    private static string? _keySource;
+    private static bool _searched;
+
+    /// <summary>
+    /// The game folder whose executable unlocks mods' archives that come encrypted the game's
+    /// way (some tools save a dlc.rpf NG-encrypted). The keys are read only when such an archive
+    /// turns up.
+    /// </summary>
+    public static void UseGame(string? gameDir)
+    {
+        lock (Gate)
+        {
+            if (!string.IsNullOrWhiteSpace(gameDir)) _keySource = gameDir.Trim();
+        }
+    }
+
+    /// <summary>
+    /// Keys for an encrypted archive opened without any: the ones already read, else from the
+    /// game named by <see cref="UseGame"/>, else from a game found on this PC; null when there is none.
+    /// </summary>
+    internal static GameCrypto? Fallback()
+    {
+        lock (Gate)
+        {
+            if (_loaded is not null) return _loaded;
+            if (_keySource is { } dir && TryFor(dir) is { } k) return k;
+            if (_searched) return null;
+            _searched = true;
+            foreach (var g in GameLocator.Find())
+                if (TryFor(g.Path) is { } found) return found;
+            return null;
+        }
+    }
+
+    private static GameCrypto? TryFor(string gameDir)
+    {
+        try { return ForGame(gameDir); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Keys from the executable in <paramref name="gameDir"/> (either edition's).</summary>
     /// <exception cref="FileNotFoundException">no GTA5.exe / GTA5_Enhanced.exe in the folder</exception>
     /// <exception cref="InvalidOperationException">the executable doesn't hold the keys</exception>

@@ -51,6 +51,7 @@ public sealed partial class MainViewModel
     {
         int gen = ++_statusGeneration;
         var game = IsPlayer && HasGame ? GameFolder.Trim() : null;
+        IsOnlineMode = game is not null && OnlineMode.IsOn(game);
         if (game is null)
         {
             StatusRows.Clear();
@@ -83,7 +84,7 @@ public sealed partial class MainViewModel
         HasStatus = true;
         int warnings = report.Items.Count(i => i.Level == StatusLevel.Warning);
         StatusHasWarnings = warnings > 0;
-        StatusSummary = warnings == 0 ? L.T("Game ready for mods") : warnings == 1 ? L.T("1 thing to check") : L.T($"{warnings} things to check");
+        StatusSummary = IsOnlineMode ? L.T("Clean for GTA Online") : warnings == 0 ? L.T("Game ready for mods") : warnings == 1 ? L.T("1 thing to check") : L.T($"{warnings} things to check");
         _staleCopies = report.StaleCopies;
         HasStaleCopies = _staleCopies.Count > 0;
         StaleCopiesText = HasStaleCopies

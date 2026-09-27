@@ -214,7 +214,7 @@ public sealed partial class MapViewModel : FileModViewModel
     }
 
     private static string At((float X, float Y, float Z)? at) =>
-        at is { } c ? string.Format(CultureInfo.InvariantCulture, "around {0:0}, {1:0} (z {2:0})", c.X, c.Y, c.Z) : "";
+        at is { } c ? L.T($"around {c.X:0}, {c.Y:0} (z {c.Z:0})") : "";
 
     /// <summary>What it places — the add-on's placements and props, or the trainer maps.</summary>
     private void ShowItems()
@@ -232,11 +232,11 @@ public sealed partial class MapViewModel : FileModViewModel
         var c = pkg.Content;
         foreach (var m in c.Maps)
             Items.Add(new MapItemRow(m.Name,
-                string.Join(" · ", new[] { $"{m.Entities} object{(m.Entities == 1 ? "" : "s")} of {m.Archetypes.Count} kind{(m.Archetypes.Count == 1 ? "" : "s")}", At(m.Center) }
+                string.Join(" · ", new[] { L.T($"{m.Entities} object(s) of {m.Archetypes.Count} kind(s)"), At(m.Center) }
                                    .Where(s => s.Length > 0)),
-                "placement"));
+                L.T("placement")));
         if (c.Maps.Count == 0)
-            foreach (var y in c.Ymaps) Items.Add(new MapItemRow(Path.GetFileNameWithoutExtension(y.Split('/')[^1]), "", "placement"));
+            foreach (var y in c.Ymaps) Items.Add(new MapItemRow(Path.GetFileNameWithoutExtension(y.Split('/')[^1]), "", L.T("placement")));
         if (c.Archetypes.Count > 0)
             Items.Add(new MapItemRow(pkg.Kind == ModCategory.Prop ? L.T($"{c.Archetypes.Count} prop(s)") : L.T($"Its own models ({c.Archetypes.Count})"),
                 string.Join(", ", c.Archetypes.Take(12)) + (c.Archetypes.Count > 12 ? ", …" : ""),

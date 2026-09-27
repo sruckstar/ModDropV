@@ -28,6 +28,7 @@ namespace Mdv.Cli;
 /// mdvctl refresh &lt;game_dir&gt; [archive...]
 /// mdvctl compact &lt;game_dir&gt; [archive...]
 /// mdvctl textures &lt;file.ytd&gt; | &lt;game_dir&gt; &lt;game_path&gt;
+/// mdvctl online &lt;game_dir&gt; [on|off]
 /// </code>
 /// </summary>
 internal static class Program
@@ -68,6 +69,7 @@ internal static class Program
                 "install" => Install(rest),
                 "remove" => Remove(rest),
                 "switch" => Switch(rest),
+                "online" => Online(rest),
                 "cat" => Cat(rest),
                 "textures" => TexturesCmd(rest),
                 "unpack" => Unpack(rest),
@@ -172,6 +174,10 @@ internal static class Program
                   remove installed mods (ids as `installed` prints them)
               switch <game_dir> <mod_id> on|off
                   switch an installed mod on / off
+              online <game_dir> [on|off]
+                  GTA Online: `on` moves every mod (mods folder, loaders, script hooks, .asi,
+                  scripts, unsigned DLLs...) into <game_dir>\ModDropV-Stash, `off` moves them back;
+                  without a state — what `on` would move
               cat <game_dir> <game_path> [out_file]
                   a file inside the game's archives as the game reads it now (the copy in mods
                   if there is one), decompressed — to out_file, else to the console
@@ -714,6 +720,7 @@ internal static class Program
                       ["--dry-run", "--replace", "--keep-kits", "--new-slots", "--no-parts"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
+        GameCrypto.UseGame(game);
         var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
         target = target with { IndexCacheRoot = Mdv.Core.Index.GameIndexCache.DefaultRoot };
         var work = PathUtil.MakeTempDir();
@@ -969,6 +976,48 @@ internal static class Program
         }
         foreach (var step in plan.Describe()) Console.WriteLine($"  - {step}");
         return RunPlan(plan, target);
+    }
+
+    private static int Online(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 2, "game_dir");
+        var game = a.Positional[0];
+        var state = a.Positional.Count > 1 ? a.Positional[1] : null;
+        if (state is not (null or "on" or "off")) throw new UsageException("the state is on or off");
+        try
+        {
+            if (state == "on")
+            {
+                var moved = OnlineMode.PutAway(game, GameEditions.Detect(game), Console.WriteLine);
+                if (moved.Count > 0) Console.WriteLine($"Ready for GTA Online. `mdvctl online \"{game}\" off` brings the mods back.");
+                foreach (var w in OnlineMode.EditedArchives(game)) Console.WriteLine($"  [!] edited in place: {w} — verify the game files");
+            }
+            else if (state == "off")
+            {
+                var r = OnlineMode.Restore(game, Console.WriteLine);
+                if (r.Left.Count > 0) Console.WriteLine($"  [!] left in {OnlineMode.StashName}: {string.Join(", ", r.Left)}");
+            }
+            else if (OnlineMode.IsOn(game))
+            {
+                var m = OnlineMode.Manifest(game);
+                Console.WriteLine($"Mods are put away ({m?.Created:yyyy-MM-dd HH:mm}) in {OnlineMode.StashDir(game)}:");
+                foreach (var i in m?.Items ?? []) Console.WriteLine($"  {i.Kind,-10} {i.Name}{(i.Folder ? "\\" : "")}");
+            }
+            else
+            {
+                var scan = OnlineMode.Scan(game);
+                Console.WriteLine(scan.Items.Count == 0 ? "No mods in the game folder." : $"`on` would move {scan.Items.Count} item(s):");
+                foreach (var i in scan.Items) Console.WriteLine($"  {i.Kind,-10} {i.Name}{(i.IsFolder ? "\\" : "")}  ({i.Why})");
+                foreach (var w in scan.Warnings) Console.WriteLine($"  [!] {w}");
+            }
+            return 0;
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"mdvctl: {ex.Message}");
+            return 1;
+        }
     }
 
     private static int Cat(string[] argv)

@@ -15,6 +15,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        var v = typeof(MainWindow).Assembly.GetName().Version;
+        if (v != null) Title = $"ModDrop V {v.ToString(3)}";
         // Player mode takes a drop anywhere in the window; the source card shows it (and the install page opens).
         AddHandler(DragDrop.DragEnterEvent, OnDragOver);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);

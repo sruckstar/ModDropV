@@ -346,6 +346,14 @@
   <Style Selector="Button.pill.warn">
     <Setter Property="Background" Value="{DynamicResource WarnWashBrush}" />
   </Style>
+  <!-- GTA Online: mods out of the game / back in -->
+  <Style Selector="Button.pill.go">
+    <Setter Property="Background" Value="{DynamicResource AccentWashBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+  </Style>
+  <Style Selector="Button.pill.go.online">
+    <Setter Property="Background" Value="{DynamicResource SuccessWashBrush}" />
+  </Style>
   <Style Selector="Button.pill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushStrong}" />
     <Setter Property="Foreground" Value="{DynamicResource Text1Brush}" />

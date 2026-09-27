@@ -258,6 +258,7 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnGameFolderChanged(string value)
     {
         Remember(value.Trim(), Settings.LastGame, v => Settings.LastGame = v);
+        Mdv.Core.Rpf.GameCrypto.UseGame(value);
         NotifyGameChanged();
         if (IsPlayer)
         {
@@ -330,7 +331,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BuildCommand), nameof(ReviewInstallCommand), nameof(ApplyInstalledCommand),
                                 nameof(ReviewChangesCommand), nameof(ConfirmPlanCommand), nameof(UpdateCopiesCommand),
-                                nameof(SetLanguageCommand))]
+                                nameof(SetLanguageCommand), nameof(ToggleOnlineCommand))]
     public partial bool IsBuilding { get; set; }
 
     [ObservableProperty] public partial string StageStatus { get; set; } = "";

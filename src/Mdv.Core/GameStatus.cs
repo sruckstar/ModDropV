@@ -51,7 +51,8 @@ public sealed class GameStatusReport
 public static class GameStatus
 {
     public const string GameKey = "game", ModsKey = "mods", LoaderKey = "loader", AsiKey = "asi",
-                        ShvKey = "shv", ShvdnKey = "shvdn", RphKey = "rph", DlcKey = "dlc", CopiesKey = "copies";
+                        ShvKey = "shv", ShvdnKey = "shvdn", RphKey = "rph", DlcKey = "dlc", CopiesKey = "copies",
+                        OnlineKey = "online";
 
     /// <param name="dlcs">from the game's file index, once built: the number of DLC packs mounted</param>
     public static GameStatusReport Read(string gameDir, GameEdition? edition = null, MountedDlcs? dlcs = null)
@@ -71,6 +72,17 @@ public static class GameStatus
                             L.T($"Both {GameEditions.LegacyExe} and {GameEditions.EnhancedExe} are in this folder.")));
         else
             r.Items.Add(new(GameKey, L.T("Game"), $"{e.DisplayName()} {gameVersion}".TrimEnd(), StatusLevel.Ok, exe));
+
+        // mods put away for GTA Online: the rest of the lines would only say what's missing
+        if (OnlineMode.IsOn(gameDir))
+        {
+            var items = OnlineMode.Manifest(gameDir)?.Items ?? [];
+            r.Items.Add(new(OnlineKey, L.T("GTA Online"), L.T("mods put away"), StatusLevel.Ok,
+                            L.T($"{items.Count} item(s) wait in {OnlineMode.StashName}: ") +
+                            string.Join(", ", items.Select(i => i.Folder ? i.Name + "\\" : i.Name)) +
+                            L.T(". The game starts clean; bring the mods back when you're done with GTA Online.")));
+            return r;
+        }
 
         // the mods folder and what makes the game read it
         var mods = Path.Combine(gameDir, "mods");
@@ -175,7 +187,7 @@ public static class GameStatus
         }
         var stale = r.Copies.Where(c => c.Stale is not null).ToList();
         if (r.Copies.Count == 0)
-            r.Items.Add(new(CopiesKey, L.T("Copies in mods"), "none", StatusLevel.Info,
+            r.Items.Add(new(CopiesKey, L.T("Copies in mods"), L.T("none"), StatusLevel.Info,
                             L.T("Game archives are copied into mods only when a mod changes them.")));
         else if (stale.Count > 0)
             r.Items.Add(new(CopiesKey, L.T("Copies in mods"), L.T($"{stale.Count} of {r.Copies.Count} outdated"), StatusLevel.Warning,

@@ -46,6 +46,12 @@ public sealed partial class MainViewModel
             IsGameDialogOpen = true;                   // nowhere to install yet — ask for the game
             return;
         }
+        if (OnlineMode.IsOn(GameFolder.Trim()))
+        {
+            ShowResult(false, L.T("The mods are put away for GTA Online"),
+                       L.T("Bring them back first (the button at the top), then install."), null);
+            return;
+        }
         var (job, error) = PrepareJob();
         if (job is null)
         {

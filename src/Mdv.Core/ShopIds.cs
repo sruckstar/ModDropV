@@ -150,7 +150,7 @@ public static partial class ShopIds
         if (scanDir is not null) used.UnionWith(ScanGameShopIds(scanDir, excludeSlug, log));
         if (outDir is not null) used.UnionWith(ScanOutputShopIds(outDir, excludeSlug));
         int chosen = PickFreeShopId(used, @base);
-        var shown = used.Count > 0 ? string.Join(", ", used.OrderBy(i => i)) : "none";
+        var shown = used.Count > 0 ? string.Join(", ", used.OrderBy(i => i)) : L.T("none");
         log(L.T($"Auto Shop ID: picked {chosen} (already in use: {shown})."));
         return chosen;
     }

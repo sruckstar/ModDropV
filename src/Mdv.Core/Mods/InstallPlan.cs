@@ -478,6 +478,9 @@ public static class InstallExecutor
     /// <param name="run">reports the steps as they start and can stop the plan (it is then taken back as on a failure)</param>
     public static InstallContext Run(InstallPlan plan, InstallTarget target, Action<string> log, PlanRun? run = null)
     {
+        // a mods folder made now would meet the stashed one on the way back
+        if (OnlineMode.IsOn(target.GameDir))
+            throw new InvalidOperationException(L.T("The mods of this game are put away for GTA Online — bring them back first."));
         var journal = new InstallJournal(target.GameDir, log);
         var ctx = new InstallContext(target, journal, log);
         int steps = plan.Ops.Count(o => !o.Hidden), step = 0;

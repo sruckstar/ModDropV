@@ -51,6 +51,14 @@ public static class Rpf7
 
     public static bool IsResourceExt(string ext) => ResourceExts.Contains(ext.ToLowerInvariant());
 
+    /// <summary>
+    /// Streamed file types the game reads only as RSC7 resources (models, collisions, clips, particles, paths,
+    /// placements, archetypes): one that isn't stops the game's streaming at loading (ERR_STR_PACK).
+    /// </summary>
+    public static readonly string[] StreamedResourceExts = [.. ResourceExts, ".ybn", ".ycd", ".ypt", ".ynv", ".ynd", ".ymap", ".ytyp", ".yld"];
+
+    public static bool MustBeResource(string ext) => StreamedResourceExts.Contains(ext.ToLowerInvariant());
+
     public static long Align(long n, long a) => (n + a - 1) / a * a;
 
     // ------------------------------------------------------------- DEFLATE

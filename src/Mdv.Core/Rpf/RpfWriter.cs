@@ -200,7 +200,7 @@ public static class RpfPacker
 {
     /// <summary>
     /// Pack an entire folder tree into a single nested RPF7-OPEN archive (the
-    /// canonical dlc.rpf). Resources (models, and any file with an RSC7 header) keep their
+    /// canonical dlc.rpf). Resources (streamed types — <see cref="Rpf7.StreamedResourceExts"/> — and any file with an RSC7 header) keep their
     /// RSC7 header with a once-compressed body; nested <c>.rpf</c> children and <c>.awc</c>
     /// audio banks are stored raw; everything else
     /// (xml/meta/gxt2/json) is DEFLATE-compressed. Directory children are laid out
@@ -227,8 +227,8 @@ public static class RpfPacker
                 {
                     var full = k.FullName;
                     var ext = Path.GetExtension(k.Name).ToLowerInvariant();
-                    // models by their type (a broken one fails here); any other RSC7 file (.ymt, .ybn, .ycd…) by its header
-                    if (Rpf7.IsResourceExt(ext) || IsRsc7(full))
+                    // streamed resources by their type (a broken one fails here, not in the game); any other RSC7 file (.ymt…) by its header
+                    if (Rpf7.MustBeResource(ext) || IsRsc7(full))
                     {
                         Rpf7.ReadRsc7Flags(full);
                         node.Produce = () => RpfStreamBuilder.ResourceFromFile(full, edition);

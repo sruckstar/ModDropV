@@ -23,4 +23,5 @@
   <StreamGeometry x:Key="IconSpark">M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.5 2.5M15.2 15.2l2.5 2.5M6.3 17.7l2.5-2.5M15.2 8.8l2.5-2.5</StreamGeometry>
   <StreamGeometry x:Key="IconOpen">M14 4h6v6M20 4l-8.5 8.5M18 14v4.5c0 .83-.67 1.5-1.5 1.5h-11C4.67 20 4 19.33 4 18.5v-11C4 6.67 4.67 6 5.5 6H10</StreamGeometry>
   <StreamGeometry x:Key="IconGlobe">M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM3 12h18M12 3c2.5 2.6 3.6 5.6 3.6 9s-1.1 6.4-3.6 9M12 3C9.5 5.6 8.4 8.6 8.4 12s1.1 6.4 3.6 9</StreamGeometry>
+  <StreamGeometry x:Key="IconShield">M12 3l7.5 3v5.5c0 4.6-3.1 8.3-7.5 9.5-4.4-1.2-7.5-4.9-7.5-9.5V6L12 3zM8.8 12.2l2.2 2.2 4.3-4.3</StreamGeometry>
 </ResourceDictionary>

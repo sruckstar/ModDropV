@@ -61,7 +61,12 @@ public sealed partial class MainViewModel
         List<InstalledMod> mods = [];
         Dictionary<string, (List<string> Others, bool OnTop)> conflicts = [];
         string empty;
-        if (game is null)
+        if (IsPlayer && GameFolder.Trim() is { Length: > 0 } chosen && OnlineMode.IsOn(chosen))
+        {
+            game = null;                                 // the registry is in the stash with the mods
+            empty = L.T("The mods are put away for GTA Online — “Bring mods back” (at the top) shows them here again.");
+        }
+        else if (game is null)
             empty = GameFolder.Trim().Length == 0
                 ? L.T("Choose the GTA V folder to see the mods installed into it.")
                 : L.T("Nothing installed into this folder yet.");

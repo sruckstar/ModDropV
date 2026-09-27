@@ -68,7 +68,6 @@ public sealed class RpfArchive : IDisposable
     {
         _stream = stream;
         _ownsStream = owns;
-        _crypto = crypto;
         BaseOffset = baseOffset;
         Length = length;
         Name = name;
@@ -83,6 +82,8 @@ public sealed class RpfArchive : IDisposable
         if (magic != Rpf7.Magic)
             throw new RpfFormatException($"not an RPF7 archive (magic=0x{magic:x})");
         Encryption = enc;
+        if (enc is GameCrypto.EncNg or GameCrypto.EncAes) crypto ??= GameCrypto.Fallback();   // a mod's pack saved encrypted
+        _crypto = crypto;
         if (IsTocEncrypted && crypto is null)
             throw new RpfEncryptedException(
                 $"{name}: the archive is encrypted by the game (0x{enc:x}) — it can only be read " +

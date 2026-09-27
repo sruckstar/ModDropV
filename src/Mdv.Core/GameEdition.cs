@@ -14,8 +14,8 @@ public enum GameEdition
 
 public static class GameEditions
 {
-    public const string LegacyExe = "GTA5.exe";
-    public const string EnhancedExe = "GTA5_Enhanced.exe";
+    public static readonly string LegacyExe = "GTA5.exe";
+    public static readonly string EnhancedExe = "GTA5_Enhanced.exe";
 
     public static string ExeName(this GameEdition e) => e == GameEdition.Enhanced ? EnhancedExe : LegacyExe;
 

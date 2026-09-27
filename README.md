@@ -106,6 +106,10 @@ again from the Library.
   ModDrop V spots them and refreshes them with your mods' changes put back.
 - **Coming from AddonWeapons Builder?** The weapons it installed show up here, and new weapons keep going into the
   same `AddonWeapons` pack.
+- **One click to go online.** **Play GTA Online** moves every mod out of the game folder — the `mods` folder, ASI
+  loaders, ScriptHookV and ScriptHookVDotNet, `.asi` plugins, scripts, ReShade, any DLL the game doesn't come with —
+  into `ModDropV-Stash`, whoever installed them. Nothing is deleted or copied, so it takes a moment even for gigabytes;
+  **Bring mods back** puts everything where it was.
 
 ---
 
@@ -123,7 +127,8 @@ Legacy or Enhanced.
 | MP clothing | coming soon |
 
 A command-line tool, `mdvctl.exe`, ships next to the app: `mdvctl install <game_dir> <mod>` installs any mod the way
-the app does, `mdvctl status <game_dir>` shows how the game stands for mods, `mdvctl build …` builds add-on weapons.
+the app does, `mdvctl status <game_dir>` shows how the game stands for mods, `mdvctl online <game_dir> on|off` puts the mods away
+for GTA Online and back, `mdvctl build …` builds add-on weapons.
 Run it without arguments for the full list.
 
 ---
@@ -168,7 +173,9 @@ Open the Library: if the copies of game archives in `mods` are out of date, ModD
 mods' changes put back.
 
 **Can I use it in GTA Online?**
-No — mods are for story mode. Don't go online with a modded game.
+Mods are for story mode — don't go online with a modded game. Before going online, press **Play GTA Online** at the
+top: every mod, loader and script hook leaves the game folder, and **Bring mods back** returns them afterwards. If a
+tool once edited the game's own archives directly, ModDrop V says so — verify the game files in the launcher then.
 
 **Something went wrong — where do I look?**
 Press **Log** in the top bar to see what happened during the last install. The full log file is one click away —

@@ -221,7 +221,7 @@ public sealed partial class MainViewModel
     /// <summary>"12 files · 1 archive unpacked".</summary>
     private static string Summarize(DroppedSource d)
     {
-        var parts = new List<string> { d.Files.Count == 1 ? "1 file" : $"{d.Files.Count} files" };
+        var parts = new List<string> { d.Files.Count == 1 ? L.T("1 file") : L.T($"{d.Files.Count} files") };
         if (d.Archives.Count > 0) parts.Add(d.Archives.Count == 1 ? L.T("unpacked") : L.T($"{d.Archives.Count} archives unpacked"));
         return string.Join("  ·  ", parts);
     }
@@ -242,6 +242,9 @@ public sealed partial class MainViewModel
             if (a.Packages.Any(p => p.Category == d.Category)) continue;
             // what goes in as part of another mod (a map's scripts) is no mod of its own here
             if (a.Packages.OfType<AddonPackage>().Any(p => p.Extras.Any(e => e.Category == d.Category))) continue;
+            // a map pack carries its own models (an MLO's props, the game models it swaps): they are no mod of their own
+            if (d.Category is ModCategory.Prop or ModCategory.Map &&
+                a.Packages.OfType<AddonPackage>().Any(p => p.Kind is ModCategory.Map or ModCategory.Prop)) continue;
             if (a.Packages.Any(p => p.Category == ModCategory.Package)) continue;          // it is all the OIV's content
             bool main = d == a.Report.Primary;
             if (a.Problems.TryGetValue(d.Category, out var why))

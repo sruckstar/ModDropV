@@ -80,12 +80,16 @@ public static partial class GamePools
     {
         ["DrawableStore"] = 121500, ["DwdStore"] = 30750, ["FragmentStore"] = 63000, ["TxdStore"] = 120300,
         [MetaDataStore] = MetaDataStoreTarget,
+        // interiors (MLOs) of add-on maps: the game sizes these for its own (InteriorProxy 1250, InteriorInst 150, PortalInst
+        // 200) and fails loading with a null write when a map adds one (moreo_cafecutev2) — the Legacy "More Mods" values
+        ["InteriorProxy"] = 2500, ["InteriorInst"] = 300, ["PortalInst"] = 400,
     };
 
-    private static readonly Dictionary<string, int> NoSettings = [];
+    // MaxMloModelInfos 220 in the game's own file (Legacy's v37 values give 12220): raised enough for add-on interiors
+    private static readonly Dictionary<string, int> EnhancedSettings = new() { ["MaxMloModelInfos"] = 1220 };
 
     private static (Dictionary<string, int> Pools, Dictionary<string, int> Settings) Table(GameEdition edition, LimitsProfile profile) =>
-        edition == GameEdition.Enhanced ? (EnhancedPools, NoSettings)
+        edition == GameEdition.Enhanced ? (EnhancedPools, EnhancedSettings)
         : profile == LimitsProfile.Large ? (LargePools, LargeSettings) : (StandardPools, StandardSettings);
 
     private static Regex SettingRe(string name) => new($@"(<{Regex.Escape(name)}\s+value\s*=\s*"")(\d+)("")");
@@ -199,7 +203,7 @@ public static partial class GamePools
         if (missing.Count == 0) return null;
         return new RpfEditOp(GameConfig, LimitsOwner,
             edition == GameEdition.Enhanced
-                ? L.T($"Raise the game's limits in gameconfig.xml for mods ({missing.Count} values: model and texture stores, MetaDataStore)")
+                ? L.T($"Raise the game's limits in gameconfig.xml for mods ({missing.Count} values: model and texture stores, MetaDataStore, interiors)")
                 : profile == LimitsProfile.Large
                     ? L.T($"Raise the game's limits in gameconfig.xml for a big mod ({missing.Count} values: model and texture stores, add-on vehicles, peds and weapons, archives, map and world pools)")
                     : L.T($"Raise the game's limits in gameconfig.xml for mods ({missing.Count} values: model and texture stores, add-on vehicles, peds and weapons, archives)"),

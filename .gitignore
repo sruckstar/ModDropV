@@ -28,8 +28,9 @@ mods_examples/
 TestResults/
 *.dev.slnx
 
-# --- local-only texts: the 5Mods page, the Russian developer notes and the plan ---
+# --- local-only texts: the 5Mods page, the YouTube video, the Russian developer notes and the plan ---
 5mods-description.txt
+youtube-description.txt
 docs/DEVELOPMENT.md
 docs/ROADMAP.md
 CLAUDE.md
