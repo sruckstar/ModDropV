@@ -277,13 +277,13 @@ public static class Overrides
                 }
                 catch (DecoderFallbackException)
                 {
-                    result.Warnings.Add($"{path}: not valid UTF-8 — skipped.");
+                    result.Warnings.Add(L.T($"{path}: not valid UTF-8 — skipped."));
                     continue;
                 }
                 var slot = ClassifyXml(text);
                 if (slot is null)
                 {
-                    result.Warnings.Add($"{path}: unrecognised XML root — skipped.");
+                    result.Warnings.Add(L.T($"{path}: unrecognised XML root — skipped."));
                     continue;
                 }
                 if (ConfigKeys.Contains(slot) || slot == "dlctext.meta") continue;   // regenerated for the shared pack
@@ -310,14 +310,14 @@ public static class Overrides
                     }
                     catch (Exception ex)
                     {
-                        result.Warnings.Add($"{path}/{f.Name}: unreadable GXT ({ex.Message}).");
+                        result.Warnings.Add(L.T($"{path}/{f.Name}: unreadable GXT ({ex.Message})."));
                     }
                 }
             }
         }
         if (result.Assets.Count == 0)
-            result.Warnings.Add("No weapon models found in the archive (expected a nested " +
-                                "x64/models/cdimages/weapons.rpf).");
+            result.Warnings.Add(L.T("No weapon models found in the archive (expected a nested " +
+                                "x64/models/cdimages/weapons.rpf)."));
         return result;
     }
 

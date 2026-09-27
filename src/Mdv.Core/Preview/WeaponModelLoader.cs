@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
@@ -118,7 +119,7 @@ public static class WeaponModelLoader
         var weapon = ReadDrawable(files, main, model);
         if (weapon is null) return null;
         var bones = BoneTable(weapon);
-        model.Pieces.Add(MakePiece(weapon, main.Stem, $"Weapon ({main.Stem})", "weapon", null, true, true, Matrix4x4.Identity, textures));
+        model.Pieces.Add(MakePiece(weapon, main.Stem, L.T($"Weapon ({main.Stem})"), "weapon", null, true, true, Matrix4x4.Identity, textures));
 
         // Components: w_at_* / *_magN by name, and anything else named after the weapon that
         // says what it is (w_x_supp, w_x_mag_ap — packs often name them so). Variant bodies
@@ -151,7 +152,7 @@ public static class WeaponModelLoader
             bool attached = bone is not null && bones.ContainsKey(bone);
             var attach = attached ? bones[bone!] : Matrix4x4.Identity;
             bool visible = a == defaultMag && attached;
-            string label = !isComponent ? $"Model ({a.Stem})"
+            string label = !isComponent ? L.T($"Model ({a.Stem})")
                 : a.Role == "attachment" || a.Role.StartsWith("mag", StringComparison.Ordinal) ? InputScanner.ComponentLabel(a.Stem, a.Role)
                 : $"{KindNames[kind]} ({a.Stem})";
             model.Pieces.Add(MakePiece(d, a.Stem, label, kind, bone, attached, visible, attach, textures));
@@ -162,7 +163,7 @@ public static class WeaponModelLoader
         if (textures.Missing.Count > 0)
         {
             var names = textures.Missing.Order(StringComparer.OrdinalIgnoreCase).ToList();
-            model.Warnings.Add($"{names.Count} texture(s) not found, shown untextured: {string.Join(", ", names.Take(5))}{(names.Count > 5 ? "…" : "")}");
+            model.Warnings.Add(L.T($"{names.Count} texture(s) not found, shown untextured: {string.Join(", ", names.Take(5))}{(names.Count > 5 ? "…" : "")}"));
         }
         return model;
     }
@@ -185,7 +186,7 @@ public static class WeaponModelLoader
             }
             catch (Exception ex)
             {
-                model.Warnings.Add($"{name}: can't read the model ({ex.Message}).");
+                model.Warnings.Add(L.T($"{name}: can't read the model ({ex.Message})."));
             }
         }
         return null;
@@ -237,7 +238,7 @@ public static class WeaponModelLoader
                                .ThenByDescending(c => use[c])
                                .DefaultIfEmpty(0).First();
         for (int t = 0; t < count; t++)
-            model.Tints.Add(new WeaponTint(t, names[t] ?? $"Tint {t + 1}", tinted.PaletteColor(t, column) | 0xFF000000u));
+            model.Tints.Add(new WeaponTint(t, names[t] ?? L.T($"Tint {t + 1}"), tinted.PaletteColor(t, column) | 0xFF000000u));
     }
 
     /// <summary>

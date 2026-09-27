@@ -1,5 +1,6 @@
 <!-- Form slot of a mod type that isn't built / installed yet: what it will do. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              x:Class="Mdv.App.Views.Panels.ComingSoonView"
@@ -15,13 +16,13 @@
         <TextBlock Text="{Binding What}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"
                    LetterSpacing="0.6" VerticalAlignment="Center" />
         <Border Classes="badge soon" VerticalAlignment="Center">
-          <TextBlock Text="coming soon" />
+          <TextBlock Text="{l:Tr 'coming soon'}" />
         </Border>
       </StackPanel>
       <TextBlock Text="{Binding Blurb}" TextWrapping="Wrap" TextAlignment="Center" FontSize="13"
                  Foreground="{DynamicResource Text2Brush}" LineHeight="20" />
       <TextBlock Classes="desc" TextAlignment="Center" HorizontalAlignment="Center"
-                 Text="It's planned for a later version. Weapons are ready today — pick «Weapon» above." />
+                 Text="{l:Tr 'It’s planned for a later version. Weapons are ready today — pick «Weapon» above.'}" />
     </StackPanel>
   </Border>
 </UserControl>

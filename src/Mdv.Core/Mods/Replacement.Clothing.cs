@@ -1,3 +1,4 @@
+using Mdv.Core;
 using Mdv.Core.Index;
 
 namespace Mdv.Core.Mods;
@@ -5,7 +6,7 @@ namespace Mdv.Core.Mods;
 /// <summary>A ped whose clothes a mod can go on, how many of the mod's files it has, and whether it can get new slots.</summary>
 public sealed record WearerChoice(Wearer Wearer, int Fits, bool CanAddSlots)
 {
-    public override string ToString() => Wearer.Label + (Fits > 0 ? $"  ({Fits} matching)" : "");
+    public override string ToString() => Wearer.Label + (Fits > 0 ? L.T($"  ({Fits} matching)") : "");
 }
 
 /// <summary>
@@ -43,30 +44,30 @@ public sealed partial class ReplacementHandler
         if (missing.Count == 0) return;
         if (pkg.OwnYmt)
         {
-            pkg.SlotsProblem = $"the mod brings its own {w.Ymt}, so it decides the slots";
+            pkg.SlotsProblem = L.T($"the mod brings its own {w.Ymt}, so it decides the slots");
             return;
         }
         var ymt = index.Find(w.Ymt).FirstOrDefault(h => h.Winner);
         if (ymt is null)
         {
-            pkg.SlotsProblem = $"the game has no {w.Ymt}";
+            pkg.SlotsProblem = L.T($"the game has no {w.Ymt}");
             return;
         }
         if (!CanAddSlots(w, ymt, index.GameDir))
         {
-            pkg.SlotsProblem = $"{w.Label} is one of Rockstar's own collections — its drawable numbers are what other DLCs and outfits count on; " +
-                               "install the clothes as an add-on instead";
+            pkg.SlotsProblem = L.T($"{w.Label} is one of Rockstar's own collections — its drawable numbers are what other DLCs and outfits count on; " +
+                               $"install the clothes as an add-on instead");
             return;
         }
         int[] comps, props;
         try
         {
-            var data = ModsOverlay.Load(index.GameDir).Read(Norm(ymt)) ?? throw new InvalidDataException($"{w.Ymt} could not be read");
+            var data = ModsOverlay.Load(index.GameDir).Read(Norm(ymt)) ?? throw new InvalidDataException(L.T($"{w.Ymt} could not be read"));
             (comps, props) = PedVariation.Counts(PedVariation.Read(data));
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
         {
-            pkg.SlotsProblem = $"{w.Ymt} could not be read: {ex.Message}";
+            pkg.SlotsProblem = L.T($"{w.Ymt} could not be read: {ex.Message}");
             return;
         }
         pkg.SlotsYmt = Norm(ymt);
@@ -79,11 +80,11 @@ public sealed partial class ReplacementHandler
                 var name = ClothingNames.Renumber(f.Part!.Name, n);
                 f.NewNumber = n;
                 f.Target = $"{dir}/{(key.Prop ? w.PropFolder : w.Folder)}/{name}";
-                f.Candidates.Add(new ReplaceTarget(f.Target, $"new slot {(key.Prop ? "prop " + ClothingNames.Anchors[key.Slot] : ClothingNames.Components[key.Slot])} {n}", true));
+                f.Candidates.Add(new ReplaceTarget(f.Target, L.T($"new slot {(key.Prop ? "prop " + ClothingNames.Anchors[key.Slot] : ClothingNames.Components[key.Slot])} {n}"), true));
                 if (pkg.AsNew && f.Part.Kind == ClothingPartKind.Drawable)
-                    f.Note = $"new clothes for {w.Label} — it goes in as {ClothingNames.Renumber(f.Part.Name, n)}";
+                    f.Note = L.T($"new clothes for {w.Label} — it goes in as {ClothingNames.Renumber(f.Part.Name, n)}");
                 else if (n != key.Number && f.Part.Kind == ClothingPartKind.Drawable)
-                    f.Note = $"{w.Label} has no free {f.Part.Describe()} — it goes in as {ClothingNames.Renumber(f.Part.Name, n)}";
+                    f.Note = L.T($"{w.Label} has no free {f.Part.Describe()} — it goes in as {ClothingNames.Renumber(f.Part.Name, n)}");
             }
         }
     }
@@ -139,25 +140,26 @@ public sealed partial class ReplacementHandler
         int replaced = pkg.Files.Count(f => f.Target is not null && f.NewNumber is null && f.Part is { Kind: ClothingPartKind.Drawable });
         int added = pkg.NewSlotFiles.Count(f => f.Part is { Kind: ClothingPartKind.Drawable });
         var parts = new List<string>();
-        if (replaced > 0) parts.Add($"{replaced} model(s) replaced");
-        if (added > 0) parts.Add($"{added} new slot(s)");
-        return parts.Count == 0 ? $"{pkg.Files.Count(f => f.Target is not null)} file(s)" : string.Join(", ", parts);
+        if (replaced > 0) parts.Add(L.T($"{replaced} model(s) replaced"));
+        if (added > 0) parts.Add(L.T($"{added} new slot(s)"));
+        return parts.Count == 0 ? L.T($"{pkg.Files.Count(f => f.Target is not null)} file(s)") : string.Join(", ", parts);
     }
 
     /// <summary>
     /// Add the new slots to the wearer's ymt (the version the game has now — another mod may have added some since the
     /// plan was made) and put the models in under the numbers they got.
     /// </summary>
-    private static PlanOp NewSlotsOp(ReplacementPackage pkg, string id)
+    private static PlanOp NewSlotsOp(ReplacementPackage pkg, string id, List<ReplacementFile> files)
     {
-        var w = pkg.Wearer!;
-        var ymtPath = pkg.SlotsYmt!;
-        var files = pkg.NewSlotFiles.ToList();
-        var models = files.Where(f => f.Part!.Kind == ClothingPartKind.Drawable).Select(f => $"{f.Part!.Describe()} → {f.NewNumber}").Distinct().ToList();
-        return new ActionOp($"Add {models.Count} new slot(s) to {w.Label}'s {w.Ymt} ({string.Join(", ", models.Take(4))}{(models.Count > 4 ? ", …" : "")}) " +
-                            "and put the models in (in copies of the archives under mods)", ctx =>
+        var w = files[0].SlotWearer ?? pkg.Wearer!;
+        var ymtPath = files[0].SlotYmt ?? pkg.SlotsYmt!;
+        // the model as the mod numbers it (its own name — a pack's collections are renumbered into one row)
+        var models = files.Where(f => f.Part!.Kind == ClothingPartKind.Drawable)
+                          .Select(f => $"{(ClothingNames.Parse(Path.GetFileName(f.Origin)) ?? f.Part!).Describe()} → {f.NewNumber}").Distinct().ToList();
+        return new ActionOp(L.T($"Add {models.Count} new slot(s) to {w.Label}'s {w.Ymt} ({string.Join(", ", models.Take(4))}{(models.Count > 4 ? ", …" : "")}) " +
+                            $"and put the models in (in copies of the archives under mods)"), ctx =>
         {
-            var doc = PedVariation.Read(ctx.Overlay.Read(ymtPath) ?? throw new InvalidDataException($"{ymtPath} is not in the game."));
+            var doc = PedVariation.Read(ctx.Overlay.Read(ymtPath) ?? throw new InvalidDataException(L.T($"{ymtPath} is not in the game.")));
             var dir = ymtPath[..ymtPath.LastIndexOf('/')];
             var drawables = PedVariation.DrawablesOf(files.Select(f => f.Part!));
             var numbers = PedVariation.Add(doc, drawables.Select(d => d.Drawable));
@@ -170,8 +172,11 @@ public sealed partial class ReplacementHandler
                     var name = ClothingNames.Renumber(f.Part!.Name, numbers[i]);
                     ctx.Overlay.Put(id, $"{dir}/{(d.Prop ? w.PropFolder : w.Folder)}/{name}", File.ReadAllBytes(f.Source));
                 }
-                ctx.Log($"    {w.Label}: {(d.Prop ? "prop " + ClothingNames.Anchors[d.Slot] : ClothingNames.Components[d.Slot])} {numbers[i]} " +
-                        $"added ({d.Textures} texture(s)) — from the mod's {number:000}.");
+                var model = files.First(f => f.Part!.Prop == d.Prop && f.Part.Slot == d.Slot && f.Part.Number == number);
+                var origin = ClothingNames.Parse(Path.GetFileName(model.Origin)) ?? model.Part!;
+                ctx.Log(L.T($"    {w.Label}: {(d.Prop ? "prop " + ClothingNames.Anchors[d.Slot] : ClothingNames.Components[d.Slot])} {numbers[i]} " +
+                        $"added ({d.Textures} texture(s)) — from the mod's {origin.Number:000}.") +
+                        (model.TrainerOffset is { } offset ? L.T($" In a trainer: {ClothingNames.InTrainer(d.Prop, d.Slot, offset + numbers[i])}.") : ""));
             }
         });
     }

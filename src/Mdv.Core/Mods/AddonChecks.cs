@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mdv.Core.Index;
@@ -63,11 +64,6 @@ public sealed class AddonCheckReport
     public List<string> Supersedes { get; } = [];
     /// <summary>Add-on packs in mods after this one is in.</summary>
     public int AddonPacks { get; set; }
-    /// <summary>
-    /// The game's MetaDataStore size when the pack brings .ymt files and the pool needs raising in gameconfig.xml — below
-    /// <see cref="GamePools.MetaDataStoreTarget"/>, or raised already by another pack that holds it (null: leave it).
-    /// </summary>
-    public int? MetaDataStoreNow { get; set; }
     public string? Blocking => Items.FirstOrDefault(i => i.Level == CheckLevel.Block)?.Detail;
 }
 
@@ -100,12 +96,12 @@ public static class AddonChecks
         // ---- the models' edition
         var eds = content.ModelEditions;
         if (target.Edition == GameEdition.Legacy && eds.Contains(GameEdition.Enhanced))
-            r.Items.Add(new AddonCheck(CheckLevel.Block, "Built for GTA V Enhanced",
-                "Its models are in the Enhanced (gen9) format, which GTA V Legacy can't load, and they can't be converted back. " +
-                "Use the Legacy version of the mod."));
+            r.Items.Add(new AddonCheck(CheckLevel.Block, L.T("Built for GTA V Enhanced"),
+                L.T("Its models are in the Enhanced (gen9) format, which GTA V Legacy can't load, and they can't be converted back. " +
+                "Use the Legacy version of the mod.")));
         else if (target.Edition == GameEdition.Enhanced && eds.Contains(GameEdition.Legacy))
-            r.Items.Add(new AddonCheck(CheckLevel.Info, "Converted for GTA V Enhanced",
-                "Its models are Legacy ones — they are converted to the Enhanced (gen9) format while installing."));
+            r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Converted for GTA V Enhanced"),
+                L.T("Its models are Legacy ones — they are converted to the Enhanced (gen9) format while installing.")));
 
         // ---- earlier installs of the same pack; the dlcpacks folder
         var mine = reg.Mods.Where(m => handler.Owns(m.Id)).ToList();
@@ -113,8 +109,8 @@ public static class AddonChecks
                                             !pkg.PackName.Equals(m.Get("pack"), StringComparison.OrdinalIgnoreCase)))
         {
             r.Supersedes.Add(old.Id);
-            r.Items.Add(new AddonCheck(CheckLevel.Info, "Replaces the installed version",
-                $"«{old.Name}» is the same pack (dlcpacks\\{old.Get("pack")}) — it is removed and this one takes its place."));
+            r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Replaces the installed version"),
+                L.T($"«{old.Name}» is the same pack (dlcpacks\\{old.Get("pack")}) — it is removed and this one takes its place.")));
         }
         var ownFolders = new HashSet<string>(mine.Where(m => r.Supersedes.Contains(m.Id) ||
                                                              pkg.PackName.Equals(m.Get("pack"), StringComparison.OrdinalIgnoreCase))
@@ -126,19 +122,19 @@ public static class AddonChecks
         {
             var free = FreeName(pkg.PackName, n => gameFolders.Contains(n) || others.Any(o => o.Folder.Equals(n, StringComparison.OrdinalIgnoreCase)));
             r.FreePackName = free;
-            r.Items.Add(new AddonCheck(CheckLevel.Info, "Pack folder renamed",
+            r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Pack folder renamed"),
                 gameFolders.Contains(pkg.PackName)
-                    ? $"The game has a pack named «{pkg.PackName}» of its own — this one goes in as «{free}»."
-                    : $"Another pack is already in mods\\update\\x64\\dlcpacks\\{pkg.PackName} — this one goes in as «{free}»."));
+                    ? L.T($"The game has a pack named «{pkg.PackName}» of its own — this one goes in as «{free}».")
+                    : L.T($"Another pack is already in mods\\update\\x64\\dlcpacks\\{pkg.PackName} — this one goes in as «{free}».")));
         }
         else if (others.FirstOrDefault(o => o.Folder.Equals(pkg.PackName, StringComparison.OrdinalIgnoreCase)) is { } same)
-            r.Items.Add(new AddonCheck(CheckLevel.Info, "Already in the game",
-                $"This pack is already in mods\\update\\x64\\dlcpacks\\{same.Folder} (not put there by ModDrop V) — it is replaced by this copy."));
+            r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Already in the game"),
+                L.T($"This pack is already in mods\\update\\x64\\dlcpacks\\{same.Folder} (not put there by ModDrop V) — it is replaced by this copy.")));
         foreach (var o in others.Where(o => o.On && pkg.Device.Equals(o.Device, StringComparison.OrdinalIgnoreCase) &&
                                             !o.Folder.Equals(pkg.PackName, StringComparison.OrdinalIgnoreCase)))
-            r.Items.Add(new AddonCheck(CheckLevel.Warn, "Installed twice",
-                $"The same pack ({pkg.Device}) is already installed as dlcpacks\\{o.Folder} — the game would load it twice. " +
-                "Remove that copy (or keep it and skip this install)."));
+            r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Installed twice"),
+                L.T($"The same pack ({pkg.Device}) is already installed as dlcpacks\\{o.Folder} — the game would load it twice. " +
+                $"Remove that copy (or keep it and skip this install).")));
 
         // ---- spawn names
         var names = content.SpawnNames.ToList();
@@ -148,17 +144,17 @@ public static class AddonChecks
             bool ownGame = pkg.Kind == ModCategory.Vehicle ? vanilla.IsVehicle(n) : vanilla.IsPed(n);
             var other = others.FirstOrDefault(o => o.On && o.Names.Contains(n, StringComparer.OrdinalIgnoreCase));
             if (ownGame)
-                dupes.Add($"«{n}» is a {(pkg.Kind == ModCategory.Vehicle ? "vehicle" : "ped")} of the game itself — the add-on overrides it, " +
-                          "which often crashes the game or breaks the original");
+                dupes.Add(L.T($"«{n}» is a {(pkg.Kind == ModCategory.Vehicle ? "vehicle" : "ped")} of the game itself — the add-on overrides it, " +
+                          $"which often crashes the game or breaks the original"));
             else if (other is not null)
-                dupes.Add($"«{n}» is already in the add-on pack «{other.Folder}» — only one of the two loads");
+                dupes.Add(L.T($"«{n}» is already in the add-on pack «{other.Folder}» — only one of the two loads"));
             else if (index is not null && pkg.Kind == ModCategory.Vehicle && index.Find(n + ".yft").FirstOrDefault(h => h.Active && !InFolder(h, ownFolders)) is { } hit)
-                dupes.Add($"the game already has a model «{n}» ({hit.Source}) — only one of the two loads");
+                dupes.Add(L.T($"the game already has a model «{n}» ({hit.Source}) — only one of the two loads"));
         }
         if (dupes.Count > 0)
-            foreach (var d in dupes) r.Items.Add(new AddonCheck(CheckLevel.Warn, "Spawn name taken", d + "."));
+            foreach (var d in dupes) r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Spawn name taken"), d + "."));
         else if (names.Count > 0)
-            r.Items.Add(new AddonCheck(CheckLevel.Ok, names.Count == 1 ? "Spawn name is free" : "Spawn names are free",
+            r.Items.Add(new AddonCheck(CheckLevel.Ok, names.Count == 1 ? L.T("Spawn name is free") : L.T("Spawn names are free"),
                 string.Join(", ", names.Take(6)) + (names.Count > 6 ? ", …" : "")));
 
         // ---- clothing collections: a name another pack (or the game) has means one of the two doesn't load
@@ -170,13 +166,13 @@ public static class AddonChecks
             {
                 var other = others.FirstOrDefault(o => o.On && o.Collections.Contains(c.FullName, StringComparer.OrdinalIgnoreCase));
                 if (other is not null)
-                    clashes.Add($"«{c.FullName}» is already in the add-on pack «{other.Folder}» — only one of the two loads, the other's clothes are lost");
+                    clashes.Add(L.T($"«{c.FullName}» is already in the add-on pack «{other.Folder}» — only one of the two loads, the other's clothes are lost"));
                 else if (index?.Find(c.FullName + ".ymt").FirstOrDefault(h => h.Active && !InFolder(h, ownFolders)) is { } hit)
-                    clashes.Add($"the game already has a collection «{c.FullName}» ({hit.Source}) — only one of the two loads");
+                    clashes.Add(L.T($"the game already has a collection «{c.FullName}» ({hit.Source}) — only one of the two loads"));
             }
-            foreach (var d in clashes) r.Items.Add(new AddonCheck(CheckLevel.Warn, "Collection name taken", d + "."));
+            foreach (var d in clashes) r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Collection name taken"), d + "."));
             if (clashes.Count == 0 && colls.Count > 0)
-                r.Items.Add(new AddonCheck(CheckLevel.Ok, colls.Count == 1 ? "Collection name is free" : "Collection names are free",
+                r.Items.Add(new AddonCheck(CheckLevel.Ok, colls.Count == 1 ? L.T("Collection name is free") : L.T("Collection names are free"),
                     string.Join(", ", colls.Select(c => c.FullName))));
         }
 
@@ -186,13 +182,13 @@ public static class AddonChecks
         // ---- modkit ids
         var taken = new Dictionary<int, string>();
         foreach (var o in others)
-            foreach (var k in o.Kits) taken.TryAdd(k.Id, $"the add-on pack «{o.Folder}»");
+            foreach (var k in o.Kits) taken.TryAdd(k.Id, L.T($"the add-on pack «{o.Folder}»"));
         var assigned = new HashSet<int>();
         var ownIds = new HashSet<int>();
         foreach (var k in content.Kits)
         {
-            string? by = vanilla.IsKit(k.Id) ? "the game itself" : taken.GetValueOrDefault(k.Id);
-            if (by is null && !ownIds.Add(k.Id)) by = "another kit of this pack";
+            string? by = vanilla.IsKit(k.Id) ? L.T("the game itself") : taken.GetValueOrDefault(k.Id);
+            if (by is null && !ownIds.Add(k.Id)) by = L.T("another kit of this pack");
             if (by is null) continue;
             int id = 1000;
             while (vanilla.IsKit(id) || taken.ContainsKey(id) || content.Kits.Any(x => x.Id == id) || assigned.Contains(id)) id++;
@@ -200,36 +196,14 @@ public static class AddonChecks
             r.KitFixes.Add(new KitFix(k, id, by));
         }
         foreach (var f in r.KitFixes)
-            r.Items.Add(new AddonCheck(CheckLevel.Warn, "Modkit id taken",
-                $"Modkit {f.Kit.Name} has id {f.Kit.Id}, which {f.TakenBy} uses too — its tuning parts would show on the wrong " +
-                $"vehicles. {(pkg.FixKits ? $"It gets the free id {f.NewId} when installed." : $"Id {f.NewId} is free (fixing is switched off).")}"));
+            r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Modkit id taken"),
+                L.T($"Modkit {f.Kit.Name} has id {f.Kit.Id}, which {f.TakenBy} uses too — its tuning parts would show on the wrong " +
+                $"vehicles. {(pkg.FixKits ? L.T($"It gets the free id {f.NewId} when installed.") : L.T($"Id {f.NewId} is free (fixing is switched off)."))}")));
         if (content.Kits.Count > 0 && r.KitFixes.Count == 0)
-            r.Items.Add(new AddonCheck(CheckLevel.Ok, content.Kits.Count == 1 ? "Modkit id is free" : "Modkit ids are free",
+            r.Items.Add(new AddonCheck(CheckLevel.Ok, content.Kits.Count == 1 ? L.T("Modkit id is free") : L.T("Modkit ids are free"),
                 string.Join(", ", content.Kits.Select(k => k.Id).Distinct())));
 
         // ---- limits
-        // every .ymt takes a place in MetaDataStore, which the game's own files fill to the last one
-        int ymts = content.Streamed.Count(s => s.EndsWith(".ymt", StringComparison.OrdinalIgnoreCase)) +
-                   (pkg.Compose?.NewCollections.Count(n => n.Parts.Count > 0) ?? 0);
-        if (ymts > 0 && GamePools.Read(game, GamePools.MetaDataStore) is { } store)
-        {
-            bool heldByOthers = reg.Mods.Any(m => m.Get("pools") == "1" && !ownFolders.Contains(m.Get("pack") ?? ""));
-            if (store < GamePools.MetaDataStoreTarget)
-            {
-                r.MetaDataStoreNow = store;
-                r.Items.Add(new AddonCheck(CheckLevel.Info, "Game limit raised",
-                    $"The game's own .ymt files take all {store} places of its MetaDataStore (gameconfig.xml); with this pack's " +
-                    $"{(ymts == 1 ? "one" : ymts.ToString(System.Globalization.CultureInfo.InvariantCulture))} more it would crash on loading. " +
-                    $"The limit is raised to {GamePools.MetaDataStoreTarget} in the copy of gameconfig.xml under mods — removing the pack puts it back."));
-            }
-            else if (heldByOthers)
-            {
-                r.MetaDataStoreNow = store;
-                r.Items.Add(new AddonCheck(CheckLevel.Info, "Game limit",
-                    $"MetaDataStore (gameconfig.xml) is already raised to {store} for another add-on — this pack keeps it raised while it is installed."));
-            }
-        }
-
         // the others that stay in, and this one (its earlier versions aren't among the others)
         r.AddonPacks = others.Count(o => o.On && !o.Folder.Equals(pkg.PackName, StringComparison.OrdinalIgnoreCase)) + 1;
         if (r.AddonPacks >= ManyPacks)
@@ -237,18 +211,20 @@ public static class AddonChecks
             if (target.Edition == GameEdition.Legacy)
             {
                 if (!File.Exists(Path.Combine(game, "PackfileLimitAdjuster.asi")))
-                    r.Items.Add(new AddonCheck(CheckLevel.Warn, "Many add-on packs",
-                        $"{r.AddonPacks} add-on packs — past a few dozen the game hits its archive limit and crashes on loading. " +
-                        "Packfile Limit Adjuster raises it.", PackfileLimitLink));
-                if (!File.Exists(Path.Combine(game, "HeapAdjuster.asi")))
-                    r.Items.Add(new AddonCheck(CheckLevel.Info, "Memory for add-ons",
-                        "With many add-on vehicles the game can run out of streaming memory (ERR_MEM_EMBEDDEDALLOC). " +
-                        "Heap Adjuster gives it more; a gameconfig.xml made for add-on vehicles raises the vehicle limits.", HeapLink));
+                    r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Many add-on packs"),
+                        L.T($"{r.AddonPacks} add-on packs — past a few dozen the game hits its archive limit and crashes on loading. " +
+                        $"Packfile Limit Adjuster raises it."), PackfileLimitLink));
+                var heap = Path.Combine(game, "HeapAdjuster.asi");
+                if (!File.Exists(heap) || LimitAdjusters.ForEnhanced(heap))            // the Enhanced build does nothing here
+                    r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Memory for add-ons"),
+                        L.T("With many add-on vehicles the game can run out of streaming memory (ERR_MEM_EMBEDDEDALLOC). " +
+                        "Heap Adjuster gives it more (the gameconfig.xml limits ModDrop V raises itself)."), HeapLink));
             }
             else
-                r.Items.Add(new AddonCheck(CheckLevel.Info, "Many add-on packs",
-                    $"{r.AddonPacks} add-on packs — if the game crashes on loading, its limits (packfiles, streaming memory, " +
-                    "gameconfig.xml) need raising with tools made for GTA V Enhanced."));
+                r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Many add-on packs"),
+                    L.T($"{r.AddonPacks} add-on packs — ModDrop V raises the game's limits for them (gameconfig.xml, Heap Adjuster and " +
+                    $"Packfile Limit Adjuster). If the game still crashes on loading, raise the values in HeapAdjuster.ini and " +
+                    $"PackfileLimitAdjusterEnhanced.ini in the game folder.")));
         }
         return r;
     }
@@ -269,17 +245,16 @@ public static class AddonChecks
         pkg.MissingModels.Clear();
         pkg.MissingModels.AddRange(missing);
         if (missing.Count > 0)
-            r.Items.Add(new AddonCheck(CheckLevel.Warn, "Models not in the game", PlacementHandler.MissingText(missing)));
+            r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Models not in the game"), PlacementHandler.MissingText(missing)));
         else if (c.Maps.Count > 0)
-            r.Items.Add(new AddonCheck(CheckLevel.Ok, "Every model is there",
-                $"{c.Maps.Sum(m => m.Entities)} objects of {c.Maps.SelectMany(m => m.Archetypes).Distinct().Count()} kinds — from the mod or the game."));
+            r.Items.Add(new AddonCheck(CheckLevel.Ok, L.T("Every model is there"),
+                L.T($"{c.Maps.Sum(m => m.Entities)} objects of {c.Maps.SelectMany(m => m.Archetypes).Distinct().Count()} kinds — from the mod or the game.")));
         var replaced = c.Ymaps.Select(y => y.Split('/')[^1])
                         .Where(y => index.Find(y).Any(h => h.Active && !InFolder(h, ownFolders)))
                         .Select(Path.GetFileNameWithoutExtension).ToList();
         if (replaced.Count > 0)
-            r.Items.Add(new AddonCheck(CheckLevel.Info, "Changes the game's map",
-                $"{string.Join(", ", replaced.Take(5))}{(replaced.Count > 5 ? ", …" : "")} {(replaced.Count == 1 ? "is a part" : "are parts")} of the game's " +
-                "own map — the pack's version is used instead while it is installed."));
+            r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Changes the game's map"),
+                L.T($"Parts of the game's own map: {string.Join(", ", replaced.Take(5))}{(replaced.Count > 5 ? ", …" : "")} — the pack's version is used instead while it is installed.")));
     }
 
     private static bool InFolder(FileHit h, HashSet<string> folders) =>

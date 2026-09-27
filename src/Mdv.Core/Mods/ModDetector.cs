@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
@@ -21,7 +22,7 @@ public sealed class DetectionReport
 
     /// <summary>"Script / plugin (ScriptHookVDotNet script MyMod.dll), Vehicle (…)" — for messages.</summary>
     public string Summary() => Found.Count == 0
-        ? "nothing ModDrop V recognises"
+        ? L.T("nothing ModDrop V recognises")
         : string.Join("; ", Found.Select(d => $"{d.Category.DisplayName()} ({string.Join(", ", d.Evidence.Take(2))})"));
 }
 
@@ -77,7 +78,7 @@ public static partial class ModDetector
         ["CARCOLS_FILE"] = ModCategory.Vehicle,
         ["PED_METADATA_FILE"] = ModCategory.Ped,
         ["SHOP_PED_APPAREL_META_FILE"] = ModCategory.Clothing,
-        ["PED_PERSONALITY_FILE"] = ModCategory.Ped,
+        // PED_PERSONALITY_FILE is no clue: add-on weapon packs declare one too (their movement clipsets)
         ["DLC_ITYP_REQUEST"] = ModCategory.Prop,
     };
 
@@ -89,11 +90,11 @@ public static partial class ModDetector
         ["CVehicleModelInfoVariation"] = (ModCategory.Vehicle, 2, "carvariations.meta"),
         ["CVehicleModelInfoVarGlobal"] = (ModCategory.Vehicle, 2, "carcols.meta"),
         ["CPedModelInfo__InitDataList"] = (ModCategory.Ped, 4, "peds.meta"),
-        ["ShopPedApparel"] = (ModCategory.Clothing, 4, "shop meta"),
-        ["CPedVariationInfo"] = (ModCategory.Clothing, 2, "ped variations (.ymt as XML)"),
-        ["CMapTypes"] = (ModCategory.Prop, 4, "archetypes (.ytyp as XML)"),
-        ["CMapData"] = (ModCategory.Map, 4, "map placement (.ymap as XML)"),
-        ["SpoonerPlacements"] = (ModCategory.Map, 5, "Menyoo map"),
+        ["ShopPedApparel"] = (ModCategory.Clothing, 4, L.N("shop meta")),
+        ["CPedVariationInfo"] = (ModCategory.Clothing, 2, L.N("ped variations (.ymt as XML)")),
+        ["CMapTypes"] = (ModCategory.Prop, 4, L.N("archetypes (.ytyp as XML)")),
+        ["CMapData"] = (ModCategory.Map, 4, L.N("map placement (.ymap as XML)")),
+        ["SpoonerPlacements"] = (ModCategory.Map, 5, L.N("Menyoo map")),
     };
 
     /// <summary>Menu / helper libraries scripts ship with — a dependency, not a script of their own.</summary>
@@ -174,7 +175,7 @@ public static partial class ModDetector
         // a folder named like a game archive: loose files meant to replace what is inside it
         if (origin.Replace('\\', '/').Split('/').SkipLast(1).Any(seg => seg.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase))
             && (InputScanner.ResourceExt.Contains(ext) || ext is ".awc" or ".meta" or ".xml" or ".gxt2" or ".ymt"))
-            s.Add(ModCategory.Replacement, 4, $"folders mirror the game's archives ({DirOf(origin)})");
+            s.Add(ModCategory.Replacement, 4, L.T($"folders mirror the game's archives ({DirOf(origin)})"));
 
         switch (ext)
         {
@@ -186,7 +187,7 @@ public static partial class ModDetector
                 LookRpf(s, full, name);
                 return;
             case ".asi":
-                if (IsPe(full)) s.Add(ModCategory.Script, 4, $"ASI plugin {name}");
+                if (IsPe(full)) s.Add(ModCategory.Script, 4, L.T($"ASI plugin {name}"));
                 return;
             case ".dll":
                 LookDll(s, full, name);
@@ -195,22 +196,22 @@ public static partial class ModDetector
                 var code = ReadText(full);
                 if (code is not null && (code.Contains("using GTA", StringComparison.Ordinal) ||
                                          code.Contains("Imports GTA", StringComparison.OrdinalIgnoreCase)))
-                    s.Add(ModCategory.Script, 4, $"ScriptHookVDotNet script {name}");
+                    s.Add(ModCategory.Script, 4, L.T($"ScriptHookVDotNet script {name}"));
                 return;
             case ".ytyp":
-                s.Add(ModCategory.Prop, 3, $"archetypes {name}");
+                s.Add(ModCategory.Prop, 3, L.T($"archetypes {name}"));
                 return;
             case ".ymap":
-                s.Add(ModCategory.Map, 3, $"map placement {name}");
+                s.Add(ModCategory.Map, 3, L.T($"map placement {name}"));
                 return;
             case ".ymf":
-                s.Add(ModCategory.Map, 1, $"map manifest {name}");
+                s.Add(ModCategory.Map, 1, L.T($"map manifest {name}"));
                 return;
             case ".dds" or ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp":
                 LookPicture(s, name, stem, ext);
                 return;
             case ".awc" or ".rel":
-                s.Add(ModCategory.Replacement, 2, $"game audio {name}");
+                s.Add(ModCategory.Replacement, 2, L.T($"game audio {name}"));
                 return;
             case ".lua" when stem.Equals("fxmanifest", StringComparison.OrdinalIgnoreCase)
                              || stem.Equals("__resource", StringComparison.OrdinalIgnoreCase):
@@ -226,14 +227,14 @@ public static partial class ModDetector
     {
         if (name.StartsWith("w_", StringComparison.OrdinalIgnoreCase))
         {
-            s.Add(ModCategory.Weapon, 3, "weapon models (w_*)");
+            s.Add(ModCategory.Weapon, 3, L.T("weapon models (w_*)"));
             return;
         }
         bool pedPart = PedComponentRe().IsMatch(stem.Split('^')[^1]) || PedPropRe().IsMatch(stem.Split('^')[^1]);
         bool texture = ext == ".ytd" && ClothingNames.Parse(name) is { Kind: ClothingPartKind.Texture };
         if (ClothingOwnerRe().IsMatch(origin))
         {
-            s.Add(ModCategory.Clothing, texture ? 1 : 3, pedPart || texture ? $"clothing parts ({name})" : $"character files ({name})");
+            s.Add(ModCategory.Clothing, texture ? 1 : 3, pedPart || texture ? L.T($"clothing parts ({name})") : L.T($"character files ({name})"));
             return;
         }
         if (pedPart || texture)
@@ -242,51 +243,51 @@ public static partial class ModDetector
             var whose = stem.Contains('^') ? stem[..stem.LastIndexOf('^')] : Path.GetFileName(DirOf(origin));
             if (whose.EndsWith("_p", StringComparison.OrdinalIgnoreCase)) whose = whose[..^2];
             if (yftStems.Contains(whose) || PedModelRe().IsMatch(whose))
-                s.Add(ModCategory.Ped, texture ? 1 : 2, $"ped components ({name})");
+                s.Add(ModCategory.Ped, texture ? 1 : 2, L.T($"ped components ({name})"));
             else
-                s.Add(ModCategory.Clothing, texture ? 1 : 3, $"clothing parts ({name})");
+                s.Add(ModCategory.Clothing, texture ? 1 : 3, L.T($"clothing parts ({name})"));
             return;
         }
         if (PedModelRe().IsMatch(stem) || (ext == ".yft" && pedStems.Contains(stem)))
         {
-            s.Add(ModCategory.Ped, 3, $"ped model {name}");
+            s.Add(ModCategory.Ped, 3, L.T($"ped model {name}"));
             return;
         }
         if (ext == ".yft" && LiveryHandler.IsLiveryModel(name, out _))
         {
-            s.Add(ModCategory.Livery, 4, $"modkit livery model {name}");
+            s.Add(ModCategory.Livery, 4, L.T($"modkit livery model {name}"));
             return;
         }
         if (ext == ".yft")
         {
-            s.Add(ModCategory.Vehicle, 3, $"vehicle model {name}");
+            s.Add(ModCategory.Vehicle, 3, L.T($"vehicle model {name}"));
             return;
         }
         if (ext == ".ytd" && (stem.Contains("livery", StringComparison.OrdinalIgnoreCase) ||
                               stem.Contains("_sign_", StringComparison.OrdinalIgnoreCase)))
         {
-            s.Add(ModCategory.Livery, 3, $"livery texture {name}");
+            s.Add(ModCategory.Livery, 3, L.T($"livery texture {name}"));
             return;
         }
         // a game vehicle's texture dictionary with no model next to it: a repaint of that vehicle
         var owner = Regex.Replace(stem, @"\+hi$", "", RegexOptions.IgnoreCase);
         if (ext == ".ytd" && !yftStems.Contains(owner) && VanillaModels.Load(null).IsVehicle(owner))
         {
-            s.Add(ModCategory.Livery, 3, $"texture dictionary of the game's {owner} ({name})");
+            s.Add(ModCategory.Livery, 3, L.T($"texture dictionary of the game's {owner} ({name})"));
             return;
         }
-        if (ext == ".ydr") s.Add(ModCategory.Prop, 1, $"model {name}");
+        if (ext == ".ydr") s.Add(ModCategory.Prop, 1, L.T($"model {name}"));
     }
 
     /// <summary>A picture named like a texture of the game's vehicles, or like a livery, is a livery's.</summary>
     private static void LookPicture(Scores s, string name, string stem, string ext)
     {
         if (VanillaLiveries.Load(null).IsTexture(stem))
-            s.Add(ModCategory.Livery, 3, $"vehicle texture {name}");
+            s.Add(ModCategory.Livery, 3, L.T($"vehicle texture {name}"));
         else if (LiveryHandler.IsLiveryLike(stem))
-            s.Add(ModCategory.Livery, 2, $"livery picture {name}");
+            s.Add(ModCategory.Livery, 2, L.T($"livery picture {name}"));
         else if (ext == ".dds")
-            s.Add(ModCategory.Livery, 1, $"texture {name}");
+            s.Add(ModCategory.Livery, 1, L.T($"texture {name}"));
     }
 
     private static void LookRpf(Scores s, string full, string name)
@@ -296,28 +297,28 @@ public static partial class ModDetector
         var content = tree.FirstOrDefault(t => !t.IsDir && t.Path.Equals("content.xml", StringComparison.OrdinalIgnoreCase));
         if (content is null || !tree.Any(t => !t.IsDir && t.Path.Equals("setup2.xml", StringComparison.OrdinalIgnoreCase)))
         {
-            s.Add(ModCategory.Replacement, 2, $"game archive {name}");
+            s.Add(ModCategory.Replacement, 2, L.T($"game archive {name}"));
             return;
         }
         var text = TextIo.DecodeUtf8Sig(arc.ReadContent(content.Entry), strict: false);
         bool any = false;
         if (text.Contains("CONTENTS_DLC_MAP_DATA", StringComparison.OrdinalIgnoreCase))
         {
-            s.Add(ModCategory.Map, 5, $"add-on pack {name} (map)");
+            s.Add(ModCategory.Map, 5, L.T($"add-on pack {name} (map)"));
             any = true;
         }
         foreach (Match m in FileTypeRe().Matches(text))
             if (DataFileTypes.TryGetValue(m.Groups[1].Value, out var cat) && !(cat == ModCategory.Prop && any))
             {
-                s.Add(cat, 4, $"add-on pack {name} ({m.Groups[1].Value})");
+                s.Add(cat, 4, L.T($"add-on pack {name} ({m.Groups[1].Value})"));
                 any = true;
             }
         if (!any)
         {
             if (tree.Any(t => t.Path.EndsWith(".ymap", StringComparison.OrdinalIgnoreCase)))
-                s.Add(ModCategory.Map, 3, $"add-on pack {name} (map)");
+                s.Add(ModCategory.Map, 3, L.T($"add-on pack {name} (map)"));
             else
-                s.Add(ModCategory.Replacement, 1, $"add-on pack {name}");
+                s.Add(ModCategory.Replacement, 1, L.T($"add-on pack {name}"));
         }
     }
 
@@ -326,12 +327,12 @@ public static partial class ModDetector
         if (name.Equals("ScriptHookV.dll", StringComparison.OrdinalIgnoreCase) ||
             name.StartsWith("ScriptHookVDotNet", StringComparison.OrdinalIgnoreCase))
         {
-            s.Add(ModCategory.Script, 1, $"script hook {name}");
+            s.Add(ModCategory.Script, 1, L.T($"script hook {name}"));
             return;
         }
         if (ScriptLibraries.Any(l => name.StartsWith(l, StringComparison.OrdinalIgnoreCase)))
         {
-            s.Add(ModCategory.Script, 1, $"script library {name}");
+            s.Add(ModCategory.Script, 1, L.T($"script library {name}"));
             return;
         }
         using var fs = File.OpenRead(full);
@@ -340,10 +341,10 @@ public static partial class ModDetector
         var md = pe.GetMetadataReader();
         var refs = md.AssemblyReferences.Select(h => md.GetString(md.GetAssemblyReference(h).Name)).ToList();
         if (refs.Any(r => r.StartsWith("ScriptHookVDotNet", StringComparison.OrdinalIgnoreCase)))
-            s.Add(ModCategory.Script, 4, $"ScriptHookVDotNet script {name}");
+            s.Add(ModCategory.Script, 4, L.T($"ScriptHookVDotNet script {name}"));
         else if (refs.Any(r => r.Equals("RagePluginHookSDK", StringComparison.OrdinalIgnoreCase) ||
                                r.Equals("RagePluginHook", StringComparison.OrdinalIgnoreCase)))
-            s.Add(ModCategory.Script, 4, $"RAGE Plugin Hook plugin {name}");
+            s.Add(ModCategory.Script, 4, L.T($"RAGE Plugin Hook plugin {name}"));
     }
 
     private static void LookFxManifest(Scores s, string full, string name)
@@ -352,7 +353,7 @@ public static partial class ModDetector
         if (text is null) return;
         foreach (Match m in FxDataFileRe().Matches(text))
             if (DataFileTypes.TryGetValue(m.Groups[1].Value, out var cat))
-                s.Add(cat, 3, $"FiveM resource ({m.Groups[1].Value})");
+                s.Add(cat, 3, L.T($"FiveM resource ({m.Groups[1].Value})"));
     }
 
     private static void LookXml(Scores s, string full, string name)
@@ -364,12 +365,12 @@ public static partial class ModDetector
 
         if (root.Equals("package", StringComparison.OrdinalIgnoreCase) && text.Contains("<metadata", StringComparison.OrdinalIgnoreCase))
         {
-            s.Add(ModCategory.Package, 6, $"OIV package ({name})");
+            s.Add(ModCategory.Package, 6, L.T($"OIV package ({name})"));
             return;
         }
         if (Overrides.RootTags.TryGetValue(root, out var slot))
         {
-            if (WeaponSlots.Contains(slot)) s.Add(ModCategory.Weapon, 3, $"weapon config {name}");
+            if (WeaponSlots.Contains(slot)) s.Add(ModCategory.Weapon, 3, L.T($"weapon config {name}"));
             else if (slot == "content.xml")
                 foreach (Match m in FileTypeRe().Matches(text))
                     if (DataFileTypes.TryGetValue(m.Groups[1].Value, out var cat))
@@ -378,11 +379,11 @@ public static partial class ModDetector
         }
         if (RootTags.TryGetValue(root, out var hit))
         {
-            s.Add(hit.Cat, hit.Score, $"{hit.What} ({name})");
+            s.Add(hit.Cat, hit.Score, $"{L.T(hit.What)} ({name})");
             return;
         }
         if (root == "Map" && text.Contains("<Objects", StringComparison.Ordinal))
-            s.Add(ModCategory.Map, 5, $"Map Editor map ({name})");
+            s.Add(ModCategory.Map, 5, L.T($"Map Editor map ({name})"));
     }
 
     /// <summary>The first element name of an XML text (after the declaration and comments), or null.</summary>

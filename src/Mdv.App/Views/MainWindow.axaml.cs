@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -112,8 +113,8 @@ public partial class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("Mod archives") { Patterns = ["*.zip", "*.rar", "*.7z", "*.oiv", "*.rpf"] },
-                new FilePickerFileType("All files") { Patterns = ["*"] },
+                new FilePickerFileType(L.T("Mod archives")) { Patterns = ["*.zip", "*.rar", "*.7z", "*.oiv", "*.rpf"] },
+                new FilePickerFileType(L.T("All files")) { Patterns = ["*"] },
             ],
         });
         return result.Select(f => f.TryGetLocalPath()).OfType<string>().ToList();

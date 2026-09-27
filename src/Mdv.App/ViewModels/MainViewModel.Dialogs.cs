@@ -39,9 +39,9 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Header chip: which game weapons go into.</summary>
-    public string GameChipTitle => HasGame ? Edition.DisplayName() : "Choose GTA V";
+    public string GameChipTitle => HasGame ? Edition.DisplayName() : L.T("Choose GTA V");
 
-    public string GameChipDetail => HasGame ? GameFolder.Trim() : "game folder not set";
+    public string GameChipDetail => HasGame ? GameFolder.Trim() : L.T("game folder not set");
 
     private void NotifyGameChanged()
     {

@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using Mdv.Core.Index;
@@ -87,7 +88,7 @@ public sealed class InstallPlan
             // not a local drive — unknown
         }
         return new PlanFootprint(newCopies.Values.Sum() + files, [.. newCopies.Keys.Order(StringComparer.OrdinalIgnoreCase)], inArchives,
-                                 [.. archives.Order(StringComparer.OrdinalIgnoreCase)], free);
+                                 [.. archives.Order(StringComparer.OrdinalIgnoreCase)], free, files);
     }
 }
 
@@ -97,7 +98,9 @@ public sealed class InstallPlan
 /// <param name="InArchives">files it changes inside game archives</param>
 /// <param name="Archives">the game archives those are in</param>
 /// <param name="Free">free space on the game's drive (null: unknown)</param>
-public sealed record PlanFootprint(long Bytes, IReadOnlyList<string> NewCopies, int InArchives, IReadOnlyList<string> Archives, long? Free)
+/// <param name="Files">the files it brings (without the archive copies)</param>
+public sealed record PlanFootprint(long Bytes, IReadOnlyList<string> NewCopies, int InArchives, IReadOnlyList<string> Archives, long? Free,
+                                   long Files = 0)
 {
     /// <summary>The drive has less room than the plan needs (with a margin for the rewrite of archive tables).</summary>
     public bool TooBig => Free is { } f && f < Bytes + (256L << 20);
@@ -181,7 +184,7 @@ public sealed class ActionOp(string description, Action<InstallContext> run) : P
 /// <param name="pluginsDir">bundled mods-folder plugins and ASI loaders (data/plugins)</param>
 public sealed class EnsureModsLoaderOp(string pluginsDir) : PlanOp
 {
-    public override string Describe() => "Make sure the game loads the mods folder (mods-folder plugin, mods\\update\\update.rpf)";
+    public override string Describe() => L.T("Make sure the game loads the mods folder (mods-folder plugin, mods\\update\\update.rpf)");
 
     public override void Execute(InstallContext ctx) =>
         GameInstaller.PrepareGame(ctx.GameDir, ctx.Target.Edition, pluginsDir, ctx.Log, ctx.Journal);
@@ -196,7 +199,7 @@ public class CopyFileOp(string source, string gameRel) : PlanOp
     /// <summary>A file other mods share: the one it replaces isn't kept for an uninstall.</summary>
     public bool Shared { get; init; }
 
-    public override string Describe() => $"Copy {Path.GetFileName(Source)} to <game>/{GameRel}";
+    public override string Describe() => L.T($"Copy {Path.GetFileName(Source)} to <game>/{GameRel}");
 
     public override void Execute(InstallContext ctx)
     {
@@ -224,37 +227,38 @@ public class CopyFileOp(string source, string gameRel) : PlanOp
 public sealed class CopyToGameRootOp(string source, string? name = null)
     : CopyFileOp(source, name ?? Path.GetFileName(source))
 {
-    public override string Describe() => $"Copy {Path.GetFileName(Source)} into the game folder";
+    public override string Describe() => L.T($"Copy {Path.GetFileName(Source)} into the game folder");
 }
 
 /// <summary>Copy a file into the game's scripts folder (ScriptHookVDotNet scripts and their files).</summary>
 public sealed class CopyToScriptsOp(string source, string? relInScripts = null)
     : CopyFileOp(source, "scripts/" + (relInScripts ?? Path.GetFileName(source)))
 {
-    public override string Describe() => $"Copy {Path.GetFileName(Source)} into the scripts folder";
+    public override string Describe() => L.T($"Copy {Path.GetFileName(Source)} into the scripts folder");
 }
 
 /// <summary>Install a finished dlc.rpf as mods\update\x64\dlcpacks\&lt;Pack&gt; and list it in dlclist.xml.</summary>
 /// <param name="done">the last log line (what to look for in the game)</param>
-public sealed class InstallDlcPackOp(string dlcRpf, string pack, string done = "Add-On installed.", IReadOnlyList<string>? subPacks = null) : PlanOp
+public sealed class InstallDlcPackOp(string dlcRpf, string pack, string? done = null, IReadOnlyList<string>? subPacks = null) : PlanOp
 {
     /// <summary>The pack's size with its sub-packs.</summary>
     public long Size => new[] { dlcRpf }.Concat(subPacks ?? []).Where(File.Exists).Sum(f => new FileInfo(f).Length);
 
-    public override string Describe() => $"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}" +
-                                         (subPacks is { Count: > 0 } s ? $", with {string.Join(", ", s.Select(Path.GetFileName))}" : "") + ") and add it to dlclist.xml";
-    public override void Execute(InstallContext ctx) => GameInstaller.InstallToGame(ctx.GameDir, dlcRpf, pack, ctx.Log, ctx.Journal, done, subPacks);
+    public override string Describe() => subPacks is { Count: > 0 } s
+        ? L.T($"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}, with {string.Join(", ", s.Select(Path.GetFileName))}) and add it to dlclist.xml")
+        : L.T($"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}) and add it to dlclist.xml");
+    public override void Execute(InstallContext ctx) => GameInstaller.InstallToGame(ctx.GameDir, dlcRpf, pack, ctx.Log, ctx.Journal, done ?? L.T("Add-On installed."), subPacks);
 }
 
 public sealed class DlclistAddOp(string pack) : PlanOp
 {
-    public override string Describe() => $"Add dlcpacks:/{pack}/ to dlclist.xml";
+    public override string Describe() => L.T($"Add dlcpacks:/{pack}/ to dlclist.xml");
     public override void Execute(InstallContext ctx) => GameInstaller.RegisterInDlclist(ctx.GameDir, pack, ctx.Log, ctx.Journal);
 }
 
 public sealed class DlclistRemoveOp(string pack) : PlanOp
 {
-    public override string Describe() => $"Remove dlcpacks:/{pack}/ from dlclist.xml";
+    public override string Describe() => L.T($"Remove dlcpacks:/{pack}/ from dlclist.xml");
     public override void Execute(InstallContext ctx) => GameInstaller.UnregisterFromDlclist(ctx.GameDir, pack, ctx.Log, ctx.Journal);
 }
 
@@ -267,12 +271,12 @@ public sealed class RpfPutOp(string gamePath, string source, string modId) : Pla
     public string GamePath { get; } = gamePath;
     public string Source { get; } = source;
 
-    public override string Describe() => $"Replace {GamePath} with {Path.GetFileName(source)} (in a copy of its archive under mods)";
+    public override string Describe() => L.T($"Replace {GamePath} with {Path.GetFileName(source)} (in a copy of its archive under mods)");
 
     public override void Execute(InstallContext ctx)
     {
         ctx.Overlay.Put(modId, GamePath, File.ReadAllBytes(source));
-        ctx.Log($"    {Path.GetFileName(source)} -> mods/{ModsOverlay.KeyOf(GamePath)}");
+        ctx.Log(L.T($"    {Path.GetFileName(source)} -> mods/{ModsOverlay.KeyOf(GamePath)}"));
     }
 }
 
@@ -281,12 +285,12 @@ public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
 {
     public string GamePath { get; } = gamePath;
 
-    public override string Describe() => $"Delete {GamePath} (in a copy of its archive under mods)";
+    public override string Describe() => L.T($"Delete {GamePath} (in a copy of its archive under mods)");
 
     public override void Execute(InstallContext ctx)
     {
         ctx.Overlay.Delete(modId, GamePath);
-        ctx.Log($"    deleted mods/{ModsOverlay.KeyOf(GamePath)}");
+        ctx.Log(L.T($"    deleted mods/{ModsOverlay.KeyOf(GamePath)}"));
     }
 }
 
@@ -342,42 +346,42 @@ public sealed class DeleteFileOp(string gameRel) : PlanOp
 {
     public string GameRel { get; } = gameRel.Replace('\\', '/');
 
-    public override string Describe() => $"Delete <game>/{GameRel} (kept aside, it comes back when the mod is removed)";
+    public override string Describe() => L.T($"Delete <game>/{GameRel} (kept aside, it comes back when the mod is removed)");
 
     public override void Execute(InstallContext ctx)
     {
         var path = ctx.Abs(GameRel);
         if (!File.Exists(path))
         {
-            ctx.Log($"    <game>/{GameRel} is not there — nothing to delete.");
+            ctx.Log(L.T($"    <game>/{GameRel} is not there — nothing to delete."));
             return;
         }
         ctx.Journal.MoveAside(path, keep: true);
-        ctx.Log($"    deleted <game>/{GameRel}");
+        ctx.Log(L.T($"    deleted <game>/{GameRel}"));
     }
 }
 
 /// <summary>Take a mod's files out of the game's archives: the version below it (another mod's, or the game's) comes back.</summary>
 public sealed class OverlayRemoveOp(string modId, string name, bool reinstall = false) : PlanOp
 {
-    public override string Describe() => $"Take «{name}»'s files out of the game archives (what was there before comes back)";
+    public override string Describe() => L.T($"Take «{name}»'s files out of the game archives (what was there before comes back)");
 
     public override void Execute(InstallContext ctx)
     {
         int n = ctx.Overlay.RemoveMod(modId, keepCopies: reinstall);
-        ctx.Log($"    «{name}»: {n} file(s) taken out of the archive copies in mods.");
+        ctx.Log(L.T($"    «{name}»: {n} file(s) taken out of the archive copies in mods."));
     }
 }
 
 /// <summary>Put a mod's files on top of other mods' versions of the same files.</summary>
 public sealed class OverlayRaiseOp(string modId, string name) : PlanOp
 {
-    public override string Describe() => $"Give «{name}» priority over other mods changing the same files";
+    public override string Describe() => L.T($"Give «{name}» priority over other mods changing the same files");
 
     public override void Execute(InstallContext ctx)
     {
         int n = ctx.Overlay.Raise(modId);
-        ctx.Log($"    «{name}» is now on top in {n} file(s).");
+        ctx.Log(L.T($"    «{name}» is now on top in {n} file(s)."));
     }
 }
 
@@ -385,7 +389,7 @@ public sealed class OverlayRaiseOp(string modId, string name) : PlanOp
 public sealed class RefreshCopiesOp(IReadOnlyList<string> archives) : PlanOp
 {
     public override string Describe() =>
-        $"Refresh {string.Join(", ", archives.Select(a => "mods/" + a))} from the updated game and put the mods' changes back";
+        L.T($"Refresh {string.Join(", ", archives.Select(a => "mods/" + a))} from the updated game and put the mods' changes back");
 
     public override void Execute(InstallContext ctx)
     {
@@ -403,18 +407,18 @@ public sealed class XmlPatchOp(string gameRel, string xpath, XmlPatchMode mode, 
 {
     public override string Describe() => mode switch
     {
-        XmlPatchMode.Add => $"Add to {gameRel} at {xpath}",
-        XmlPatchMode.Replace => $"Replace {xpath} in {gameRel}",
-        _ => $"Remove {xpath} from {gameRel}",
+        XmlPatchMode.Add => L.T($"Add to {gameRel} at {xpath}"),
+        XmlPatchMode.Replace => L.T($"Replace {xpath} in {gameRel}"),
+        _ => L.T($"Remove {xpath} from {gameRel}"),
     };
 
     public override void Execute(InstallContext ctx)
     {
         var path = ctx.Abs(gameRel);
-        if (!File.Exists(path)) throw new FileNotFoundException($"{gameRel} is not in the game folder.", path);
+        if (!File.Exists(path)) throw new FileNotFoundException(L.T($"{gameRel} is not in the game folder."), path);
         var doc = XDocument.Parse(TextIo.ReadText(path), LoadOptions.PreserveWhitespace);
         var hits = doc.XPathSelectElements(xpath).ToList();
-        if (hits.Count == 0) throw new InvalidDataException($"{gameRel}: nothing matches {xpath}.");
+        if (hits.Count == 0) throw new InvalidDataException(L.T($"{gameRel}: nothing matches {xpath}."));
         XElement? Fragment() => xml is null ? null : XElement.Parse(xml);
         foreach (var e in hits)
         {
@@ -428,7 +432,7 @@ public sealed class XmlPatchOp(string gameRel, string xpath, XmlPatchMode mode, 
         ctx.Journal.CopyAside(path, keep: true);
         var decl = doc.Declaration is null ? "" : doc.Declaration + "\n";
         TextIo.WriteText(path, decl + doc.ToString(SaveOptions.DisableFormatting));
-        ctx.Log($"    {gameRel}: {Describe()} ({hits.Count} match(es)).");
+        ctx.Log(L.T($"    {gameRel}: {Describe()} ({hits.Count} match(es))."));
     }
 }
 
@@ -438,7 +442,7 @@ public sealed class XmlPatchOp(string gameRel, string xpath, XmlPatchMode mode, 
 /// </summary>
 public sealed class TextPatchOp(string gameRel, string? find, string replacement) : PlanOp
 {
-    public override string Describe() => find is null ? $"Add a line to {gameRel}" : $"Change \"{find}\" in {gameRel}";
+    public override string Describe() => find is null ? L.T($"Add a line to {gameRel}") : L.T($"Change \"{find}\" in {gameRel}");
 
     public override void Execute(InstallContext ctx)
     {
@@ -450,7 +454,7 @@ public sealed class TextPatchOp(string gameRel, string? find, string replacement
         else
         {
             if (!text.Contains(find, StringComparison.Ordinal))
-                throw new InvalidDataException($"{gameRel}: \"{find}\" not found.");
+                throw new InvalidDataException(L.T($"{gameRel}: \"{find}\" not found."));
             updated = text.Replace(find, replacement, StringComparison.Ordinal);
         }
         if (File.Exists(path)) ctx.Journal.CopyAside(path, keep: true);
@@ -495,8 +499,8 @@ public static class InstallExecutor
         catch (Exception ex)
         {
             log(ex is OperationCanceledException
-                ? $"[!] {plan.Title} cancelled at step {step} of {steps} — everything done so far is taken back."
-                : $"[!] {plan.Title} failed: {ex.Message}");
+                ? L.T($"[!] {plan.Title} cancelled at step {step} of {steps} — everything done so far is taken back.")
+                : L.T($"[!] {plan.Title} failed: {ex.Message}"));
             ctx.LoadedOverlay?.Discard();
             journal.Rollback();
             if (ctx.LoadedOverlay is not null)

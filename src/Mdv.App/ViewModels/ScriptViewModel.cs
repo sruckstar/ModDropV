@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -22,8 +23,7 @@ public sealed partial class DependencyRow(ScriptDependency dep) : ObservableObje
     public string Name => Dependency.Name;
     public string State => Dependency.StateText;
     public string Detail => Dependency.Detail;
-    public string NeededBy => Dependency.NeededBy.Count == 0 ? "" : "needed by " + string.Join(", ", Dependency.NeededBy.Take(3)) +
-                                                                     (Dependency.NeededBy.Count > 3 ? ", …" : "");
+    public string NeededBy => Dependency.NeededBy.Count == 0 ? "" : L.T($"needed by {string.Join(", ", Dependency.NeededBy.Take(3)) + (Dependency.NeededBy.Count > 3 ? ", …" : "")}");
     public bool IsProblem => Dependency.IsProblem;
     public bool IsOk => Dependency.State is DependencyState.Ok or DependencyState.InMod or DependencyState.Bundled;
     public bool IsPending => !IsProblem && !IsOk;
@@ -133,11 +133,11 @@ public sealed partial class ScriptViewModel : FileModViewModel
         Files.Clear();
         foreach (var f in pkg.Files.OrderBy(f => f.Shared).ThenBy(f => f.Dest.Count(c => c == '/')).ThenBy(f => f.Dest, StringComparer.OrdinalIgnoreCase))
             Files.Add(new ScriptFileRow(f.Name, f.Dest.Replace('/', '\\'), f.KindText,
-                                        f.Skip ?? (f.Shared ? "Shared with other mods — stays when this one is removed." : null)));
+                                        f.Skip ?? (f.Shared ? L.T("Shared with other mods — stays when this one is removed.") : null)));
         Summary = string.Join("  ·  ", pkg.Parts.Where(p => p.Length > 0));
         var left = pkg.Variant.LeftOut.Select(o => o[(o.Replace('\\', '/').LastIndexOf('/') + 1)..]).ToList();
-        LeftOut = left.Count == 0 ? "" : $"Not installed: {string.Join(", ", left.Take(6))}{(left.Count > 6 ? $" and {left.Count - 6} more" : "")}" +
-                                         " — readmes, screenshots and files for other versions.";
+        LeftOut = left.Count == 0 ? "" : L.T($"Not installed: {string.Join(", ", left.Take(6))}{(left.Count > 6 ? L.T($" and {left.Count - 6} more") : "")}" +
+                                         $" — readmes, screenshots and files for other versions.");
         HasLeftOut = left.Count > 0;
         CanSwitch = pkg.Files.Any(f => f.IsEntry);
 
@@ -145,10 +145,10 @@ public sealed partial class ScriptViewModel : FileModViewModel
         foreach (var d in pkg.Dependencies) Dependencies.Add(new DependencyRow(d));
         int problems = pkg.Dependencies.Count(d => d.IsProblem);
         NeedsAttention = problems > 0;
-        NeedsSummary = pkg.Dependencies.Count == 0 ? "Nothing — it runs on its own."
-            : problems > 0 ? $"{problems} of {pkg.Dependencies.Count} need{(problems == 1 ? "s" : "")} your attention — the mod won't work without {(problems == 1 ? "it" : "them")}."
-            : game.Length == 0 ? "Choose the GTA V folder to check what is installed."
-            : "Everything it needs is in place.";
+        NeedsSummary = pkg.Dependencies.Count == 0 ? L.T("Nothing — it runs on its own.")
+            : problems > 0 ? (problems == 1 ? L.T($"1 of {pkg.Dependencies.Count} needs your attention — the mod won't work without it.") : L.T($"{problems} of {pkg.Dependencies.Count} need your attention — the mod won't work without them."))
+            : game.Length == 0 ? L.T("Choose the GTA V folder to check what is installed.")
+            : L.T("Everything it needs is in place.");
         SetWarnings(pkg.Warnings);
     }
 }

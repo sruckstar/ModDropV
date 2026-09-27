@@ -1,3 +1,4 @@
+using Mdv.Core;
 using BCnEncoder.Encoder;
 using BCnEncoder.Shared;
 using CodeWalker.GameFiles;
@@ -29,7 +30,7 @@ public static class TextureImages
     public static Texture ToTexture(string path, TextureFormat? like = null)
     {
         if (Path.GetExtension(path).Equals(".dds", StringComparison.OrdinalIgnoreCase))
-            return DDSIO.GetTexture(File.ReadAllBytes(path)) ?? throw new InvalidDataException($"{Path.GetFileName(path)} is not a DDS file ModDrop V can read.");
+            return DDSIO.GetTexture(File.ReadAllBytes(path)) ?? throw new InvalidDataException(L.T($"{Path.GetFileName(path)} is not a DDS file ModDrop V can read."));
         var (rgba, w, h) = DecodeRgba(path);
         bool alpha = HasAlpha(rgba);
         var format = like switch
@@ -73,7 +74,7 @@ public static class TextureImages
     /// </summary>
     public static (byte[] Rgba, int Width, int Height) DecodeRgba(string path)
     {
-        using var src = SKBitmap.Decode(path) ?? throw new InvalidDataException($"{Path.GetFileName(path)} is not an image ModDrop V can read.");
+        using var src = SKBitmap.Decode(path) ?? throw new InvalidDataException(L.T($"{Path.GetFileName(path)} is not an image ModDrop V can read."));
         int w = src.Width, h = src.Height;
         double scale = Math.Min(1.0, (double)MaxEdge / Math.Max(w, h));
         int tw = Round4((int)Math.Round(w * scale)), th = Round4((int)Math.Round(h * scale));
@@ -87,7 +88,7 @@ public static class TextureImages
             canvas.DrawBitmap(src, 0, 0, paint);
         }
         else if (!src.ScalePixels(dst, new SKSamplingOptions(SKCubicResampler.Mitchell)))
-            throw new InvalidDataException($"{Path.GetFileName(path)} could not be resized.");
+            throw new InvalidDataException(L.T($"{Path.GetFileName(path)} could not be resized."));
         return (dst.Bytes, tw, th);
     }
 

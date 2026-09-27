@@ -1,4 +1,4 @@
-<!-- Clothing panel, side slot: the checks against the game (add-on), how it goes in, what to look at. -->
+<!-- Clothing panel, side slot: the checks against the game (an add-on pack), how it goes in, what to look at. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
@@ -8,7 +8,7 @@
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
       <TextBlock Classes="h" Text="{Binding SideHeading}" />
 
-      <StackPanel Grid.Row="1" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding ShowAddon}">
+      <StackPanel Grid.Row="1" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">
         <TextBlock Classes="desc" Text="{Binding CheckStatus}" TextWrapping="Wrap" />
         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsChecking}" Height="3" MinHeight="3" />
       </StackPanel>
@@ -16,7 +16,7 @@
       <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
         <StackPanel Spacing="10">
           <TextBlock Classes="desc" Text="{Binding Summary}" TextWrapping="Wrap" />
-          <ItemsControl ItemsSource="{Binding Checks}" IsVisible="{Binding ShowAddon}">
+          <ItemsControl ItemsSource="{Binding Checks}" IsVisible="{Binding ShowPack}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <StackPanel Spacing="8" />

@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
@@ -36,15 +37,15 @@ public static class MapMeta
             }
             catch (Exception ex) when (ex is not InvalidDataException)
             {
-                throw new InvalidDataException($"{name} could not be read: {ex.Message}", ex);
+                throw new InvalidDataException(L.T($"{name} could not be read: {ex.Message}"), ex);
             }
-            throw new InvalidDataException($"{name} could not be read.");
+            throw new InvalidDataException(L.T($"{name} could not be read."));
         }
         if (data.Length < 16 || BitConverter.ToUInt32(data) != Rpf.Rpf7.Rsc7Magic)
         {
             // an XML form of it already (CodeWalker / OpenIV export)
             var text = Util.TextIo.DecodeUtf8Sig(data, strict: false);
-            return AddonContent.ParseXml(text) ?? throw new InvalidDataException($"{name} is neither a map file nor its XML form.");
+            return AddonContent.ParseXml(text) ?? throw new InvalidDataException(L.T($"{name} is neither a map file nor its XML form."));
         }
         var raw = data;
         var entry = RpfFile.CreateResourceFileEntry(ref raw, 0);
@@ -70,14 +71,14 @@ public static class MapMeta
                 ".ytyp" => MetaXml.GetXml(Load<YtypFile>(raw, entry), out _),
                 ".ymf" => MetaXml.GetXml(Load<YmfFile>(raw, entry), out _),
                 ".ymt" => MetaXml.GetXml(Load<YmtFile>(raw, entry), out _),
-                _ => throw new InvalidDataException($"{name}: not a map file."),
+                _ => throw new InvalidDataException(L.T($"{name}: not a map file.")),
             };
         }
         catch (Exception ex) when (ex is not InvalidDataException)
         {
-            throw new InvalidDataException($"{name} could not be read: {ex.Message}", ex);
+            throw new InvalidDataException(L.T($"{name} could not be read: {ex.Message}"), ex);
         }
-        if (string.IsNullOrEmpty(xml)) throw new InvalidDataException($"{name} could not be read.");
+        if (string.IsNullOrEmpty(xml)) throw new InvalidDataException(L.T($"{name} could not be read."));
         return XDocument.Parse(xml);
     }
 
@@ -97,7 +98,7 @@ public static class MapMeta
         var x = new XmlDocument();
         x.LoadXml(doc.ToString(SaveOptions.DisableFormatting));
         var format = name.EndsWith(".ymf", StringComparison.OrdinalIgnoreCase) ? MetaFormat.PSO : MetaFormat.RSC;
-        return XmlMeta.GetData(x, format, name) ?? throw new InvalidDataException($"{name} could not be built.");
+        return XmlMeta.GetData(x, format, name) ?? throw new InvalidDataException(L.T($"{name} could not be built."));
     }
 
     /// <summary>Is the data a map file's XML form (CodeWalker / OpenIV export) rather than the binary file?</summary>

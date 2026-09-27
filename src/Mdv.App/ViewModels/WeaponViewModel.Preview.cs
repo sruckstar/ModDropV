@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using Mdv.App.Services;
@@ -27,10 +28,10 @@ public sealed partial class PreviewPieceViewModel : ObservableObject
     public string? Bone => Piece.Attached ? Piece.Bone : null;
 
     /// <summary>Where it hangs, or why it floats at the weapon's origin.</summary>
-    public string Where => Piece.Note ?? (Piece.Kind == "weapon" ? $"{Piece.Triangles:#,0} triangles"
-        : Piece.Attached ? $"on {Piece.Bone}"
-        : Piece.Bone is null ? "separate model — shown at the origin"
-        : $"no {Piece.Bone} on the weapon — shown at the origin");
+    public string Where => Piece.Note ?? (Piece.Kind == "weapon" ? L.T($"{Piece.Triangles:#,0} triangles")
+        : Piece.Attached ? L.T($"on {Piece.Bone}")
+        : Piece.Bone is null ? L.T("separate model — shown at the origin")
+        : L.T($"no {Piece.Bone} on the weapon — shown at the origin"));
 
     [ObservableProperty] public partial bool IsOn { get; set; }
 
@@ -54,7 +55,7 @@ public sealed partial class PreviewTintViewModel : ObservableObject
     public string Name => Tint.Name;
     public IBrush Swatch { get; }
     /// <summary>The name with the index scripts and trainers set it by.</summary>
-    public string Label => $"{Tint.Name} · tint {Tint.Index}";
+    public string Label => L.T($"{Tint.Name} · tint {Tint.Index}");
 
     [ObservableProperty] public partial bool IsOn { get; set; }
 
@@ -122,7 +123,7 @@ public sealed partial class WeaponViewModel
         {
             if (PreviewModel is not { } m) return "";
             var tris = m.Pieces.Where(p => PreviewVisible?.Contains(p.Id) ?? p.DefaultVisible).Sum(p => p.Triangles);
-            return string.Format(CultureInfo.InvariantCulture, "{0:#,0} triangles shown · {1} texture(s) · {2} part(s)",
+            return string.Format(CultureInfo.InvariantCulture, L.T("{0:#,0} triangles shown · {1} texture(s) · {2} part(s)"),
                                  tris, m.TextureCount, m.Pieces.Count);
         }
     }

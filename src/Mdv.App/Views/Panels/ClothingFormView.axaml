@@ -1,6 +1,8 @@
-<!-- Clothing panel, form slot: Add-On or Replace; the collections, the ped loose models are packed for and the dlcpacks
-     folder — or whose clothes they replace, "as new clothes", and where each file goes. -->
+<!-- Clothing panel, form slot: Add-On or Replace; as an add-on the ped loose models are for and where each model's new
+     slot is (the end of the game's last collection) — or whose clothes they replace, "as new clothes", and where each
+     file goes. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              xmlns:mods="using:Mdv.Core.Mods"
@@ -9,19 +11,19 @@
   <Border Classes="card" Padding="16,13,6,13">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,0,10,0">
-        <TextBlock Classes="h" Text="CLOTHING" />
+        <TextBlock Classes="h" Text="{l:Tr 'CLOTHING'}" />
         <TextBlock Grid.Column="1" Classes="desc" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                    Text="{Binding Name}" />
         <Border Grid.Column="2" Classes="badge">
-          <TextBlock Text="clothing" />
+          <TextBlock Text="{l:Tr 'clothing'}" />
         </Border>
       </Grid>
       <TextBlock Grid.Row="1" Classes="desc" Text="{Binding SourceText}" TextWrapping="Wrap" Margin="0,0,10,0" />
 
       <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding ShowInstallAs}">
-        <TextBlock Classes="label" Text="INSTALL AS" Margin="0" />
+        <TextBlock Classes="label" Text="{l:Tr 'INSTALL AS'}" Margin="0" />
         <RadioButton Classes="found" GroupName="clothing-as" IsChecked="{Binding InstallAsAddon}" IsEnabled="{Binding CanAddon}"
-                     ToolTip.Tip="The story characters can't have add-on collections — their clothes are replaced or added as new slots">
+                     ToolTip.Tip="{l:Tr 'The story characters can’t have add-on collections — their clothes are replaced or added as new slots'}">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
             <Panel Width="16" Height="16" VerticalAlignment="Center">
               <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
@@ -41,10 +43,11 @@
         </RadioButton>
       </StackPanel>
 
-      <!-- add-on: loose models become a collection of the MP male or female -->
-      <StackPanel Grid.Row="3" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding ShowAddon}">
+      <!-- add-on: loose models are new clothes of the MP male or female; replace: whose clothes they take the place of -->
+      <StackPanel Grid.Row="3" Spacing="6" Margin="0,0,10,0">
+        <StackPanel Spacing="6" IsVisible="{Binding ShowAddon}">
         <StackPanel Spacing="6" IsVisible="{Binding HasLoose}">
-          <TextBlock Classes="label" Text="NEW CLOTHES FOR" Margin="0" />
+          <TextBlock Classes="label" Text="{l:Tr 'NEW CLOTHES FOR'}" Margin="0" />
           <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
             <RadioButton Classes="found" GroupName="clothing-gender" IsChecked="{Binding LooseIsMale}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
@@ -52,7 +55,7 @@
                   <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
                   <Ellipse Classes="radio-dot" Width="8" Height="8" />
                 </Panel>
-                <TextBlock Grid.Column="1" Text="MP male (mp_m_freemode_01)" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{l:Tr 'MP male (mp_m_freemode_01)'}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
               </Grid>
             </RadioButton>
             <RadioButton Grid.Column="1" Classes="found" GroupName="clothing-gender" IsChecked="{Binding LooseIsFemale}">
@@ -61,14 +64,27 @@
                   <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
                   <Ellipse Classes="radio-dot" Width="8" Height="8" />
                 </Panel>
-                <TextBlock Grid.Column="1" Text="MP female (mp_f_freemode_01)" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{l:Tr 'MP female (mp_f_freemode_01)'}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center" />
               </Grid>
             </RadioButton>
           </Grid>
         </StackPanel>
+        </StackPanel>
+        <StackPanel Spacing="6" IsVisible="{Binding InstallAsReplace}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <TextBlock Classes="kv-key" Text="{l:Tr 'Worn by'}" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Wearers}" SelectedItem="{Binding SelectedWearer}" HorizontalAlignment="Stretch"
+                      MaxDropDownHeight="360"
+                      ToolTip.Tip="{l:Tr 'Whose clothes the files replace: a story character, an MP ped’s own set or one of its collections'}" />
+          </Grid>
+          <CheckBox IsChecked="{Binding AsNew}"
+                    ToolTip.Tip="{l:Tr 'Each model gets a new slot in the ped’s ymt (its files are renamed to the new number) — the ped’s own clothes stay'}">
+            <TextBlock Text="{l:Tr 'Add them as new clothes (new slots) — keep the ped’s own'}" FontSize="12.5" TextWrapping="Wrap" />
+          </CheckBox>
+        </StackPanel>
       </StackPanel>
 
-      <ScrollViewer Grid.Row="4" Padding="0,0,10,0" IsVisible="{Binding ShowAddon}">
+      <ScrollViewer Grid.Row="4" Padding="0,0,10,0" IsVisible="{Binding ShowPack}">
         <ItemsControl ItemsSource="{Binding Items}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
@@ -86,7 +102,7 @@
                                IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                   <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <TextBlock Text="collection" FontSize="10" HorizontalAlignment="Right" Foreground="{DynamicResource Text3Brush}" />
+                    <TextBlock Text="{l:Tr 'collection'}" FontSize="10" HorizontalAlignment="Right" Foreground="{DynamicResource Text3Brush}" />
                     <SelectableTextBlock Text="{Binding Spawn}" FontFamily="{StaticResource MonoFont}" FontSize="12"
                                          Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Right" />
                   </StackPanel>
@@ -97,18 +113,8 @@
         </ItemsControl>
       </ScrollViewer>
 
-      <ScrollViewer Grid.Row="3" Grid.RowSpan="2" Padding="0,0,10,0" IsVisible="{Binding InstallAsReplace}">
+      <ScrollViewer Grid.Row="4" Padding="0,0,10,0" IsVisible="{Binding ShowFiles}">
         <StackPanel Spacing="6">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-            <TextBlock Classes="kv-key" Text="Worn by" VerticalAlignment="Center" />
-            <ComboBox Grid.Column="1" ItemsSource="{Binding Wearers}" SelectedItem="{Binding SelectedWearer}" HorizontalAlignment="Stretch"
-                      MaxDropDownHeight="360"
-                      ToolTip.Tip="Whose clothes the files replace: a story character, an MP ped's own set or one of its collections" />
-          </Grid>
-          <CheckBox IsChecked="{Binding AsNew}"
-                    ToolTip.Tip="Each model gets a new slot in the ped's ymt (its files are renamed to the new number) — the ped's own clothes stay">
-            <TextBlock Text="Add them as new clothes (new slots) — keep the ped's own" FontSize="12.5" TextWrapping="Wrap" />
-          </CheckBox>
           <TextBlock Classes="desc" Text="{Binding ReplaceStatus}" TextWrapping="Wrap" />
           <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsResolving}" Height="3" MinHeight="3" />
           <ItemsControl ItemsSource="{Binding Files}">
@@ -139,7 +145,7 @@
                       </DataTemplate>
                     </ComboBox.ItemTemplate>
                   </ComboBox>
-                  <TextBlock Text="Not one of this ped's files, and no slot for it — it is skipped." FontSize="11.5"
+                  <TextBlock Text="{l:Tr 'Not one of this ped’s files, and no slot for it — it is skipped.'}" FontSize="11.5"
                              IsVisible="{Binding Missing}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" />
                   <TextBlock Text="{Binding Note}" FontSize="11.5" TextWrapping="Wrap" IsVisible="{Binding HasNote}"
                              Foreground="{DynamicResource WarnBrush}" />
@@ -151,11 +157,11 @@
         </StackPanel>
       </ScrollViewer>
 
-      <StackPanel Grid.Row="5" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowAddon}">
+      <StackPanel Grid.Row="5" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <TextBlock Classes="kv-key" Text="Pack folder" VerticalAlignment="Center" />
+          <TextBlock Classes="kv-key" Text="{l:Tr 'Pack folder'}" VerticalAlignment="Center" />
           <TextBox Grid.Column="1" Classes="path" Text="{Binding PackName}" MaxLength="32"
-                   ToolTip.Tip="The folder under mods\update\x64\dlcpacks — latin letters, digits and _ only" />
+                   ToolTip.Tip="{l:Tr 'The folder under mods\\update\\x64\\dlcpacks — latin letters, digits and _ only'}" />
         </Grid>
         <TextBlock Text="{Binding PackDetail}" FontSize="10.5" FontFamily="{StaticResource MonoFont}"
                    Foreground="{DynamicResource Text3Brush}" TextWrapping="Wrap" />

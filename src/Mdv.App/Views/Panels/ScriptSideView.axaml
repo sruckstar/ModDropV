@@ -1,12 +1,13 @@
 <!-- Script panel, side slot: what the mod needs from the game (hooks, libraries) and how it stands. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              x:Class="Mdv.App.Views.Panels.ScriptSideView"
              x:DataType="vm:ScriptViewModel">
   <Border Classes="card" Padding="16,13,6,13">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-      <TextBlock Classes="h" Text="WHAT IT NEEDS" />
+      <TextBlock Classes="h" Text="{l:Tr 'WHAT IT NEEDS'}" />
       <TextBlock Grid.Row="1" Classes="desc" Text="{Binding NeedsSummary}" TextWrapping="Wrap" Margin="0,0,10,0" />
       <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
         <StackPanel Spacing="10">
@@ -45,7 +46,7 @@
                       <StackPanel Orientation="Horizontal" Spacing="7">
                         <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                               StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
-                        <TextBlock Text="Get it" />
+                        <TextBlock Text="{l:Tr 'Get it'}" />
                       </StackPanel>
                     </Button>
                   </StackPanel>
@@ -56,9 +57,9 @@
           <Border Classes="note">
             <StackPanel Spacing="4">
               <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}"
-                         Text="Plugins go into the game folder, .NET scripts into scripts\, RAGE plugins into plugins\. Libraries other mods use too are only added when missing or older, and stay when this mod is removed." />
+                         Text="{l:Tr 'Plugins go into the game folder, .NET scripts into scripts\\, RAGE plugins into plugins\\. Libraries other mods use too are only added when missing or older, and stay when this mod is removed.'}" />
               <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" IsVisible="{Binding CanSwitch}"
-                         Text="Switching it off in the Library renames its plugins and scripts to *.disabled — the game skips them." />
+                         Text="{l:Tr 'Switching it off in the Library renames its plugins and scripts to *.disabled — the game skips them.'}" />
             </StackPanel>
           </Border>
           <ItemsControl ItemsSource="{Binding Warnings}">

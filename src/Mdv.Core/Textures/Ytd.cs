@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Runtime.InteropServices;
 using CodeWalker.GameFiles;
 using CodeWalker.Utils;
@@ -73,9 +74,9 @@ public static class Ytd
     /// </summary>
     public static byte[] Edit(byte[] ytd, IReadOnlyList<TextureEdit> edits, string name = "file.ytd", Action<string>? log = null)
     {
-        var edition = EditionOf(ytd) ?? throw new InvalidDataException($"{name} is not a texture dictionary ModDrop V can edit (version {ResourceEditions.Version(ytd)}).");
+        var edition = EditionOf(ytd) ?? throw new InvalidDataException(L.T($"{name} is not a texture dictionary ModDrop V can edit (version {ResourceEditions.Version(ytd)})."));
         var file = Load(ytd, name);
-        var dict = file.TextureDict ?? throw new InvalidDataException($"{name} holds no texture dictionary.");
+        var dict = file.TextureDict ?? throw new InvalidDataException(L.T($"{name} holds no texture dictionary."));
         var textures = Textures(file).ToList();
         foreach (var edit in edits)
         {
@@ -92,8 +93,8 @@ public static class Ytd
             }
             else tex.Usage = TextureUsage.DIFFUSE;
             textures.Add(tex);
-            log?.Invoke($"    {name}: {(old is null ? "added" : "replaced")} {tex.Name} ({tex.Width}×{tex.Height} {FormatName(tex.Format)}, " +
-                        $"from {Path.GetFileName(edit.Source)}).");
+            log?.Invoke(L.T($"    {name}: {(old is null ? "added" : "replaced")} {tex.Name} ({tex.Width}×{tex.Height} {FormatName(tex.Format)}, " +
+                        $"from {Path.GetFileName(edit.Source)})."));
         }
         dict.BuildFromTextureList(textures);
         return ResourceEditions.Write(edition, file.Save);
@@ -105,9 +106,9 @@ public static class Ytd
         var raw = File.ReadAllBytes(ytdPath);
         var name = Path.GetFileName(ytdPath);
         if (EditionOf(raw) == GameEdition.Enhanced && into == GameEdition.Legacy)
-            throw new InvalidOperationException($"{name} is a GTA V Enhanced (gen9) dictionary — its textures can't go into GTA V Legacy.");
+            throw new InvalidOperationException(L.T($"{name} is a GTA V Enhanced (gen9) dictionary — its textures can't go into GTA V Legacy."));
         return Textures(Load(raw, name)).FirstOrDefault(t => string.Equals(t.Name, texture, StringComparison.OrdinalIgnoreCase))
-               ?? throw new InvalidDataException($"{name} has no texture {texture}.");
+               ?? throw new InvalidDataException(L.T($"{name} has no texture {texture}."));
     }
 
     private static IEnumerable<Texture> Textures(YtdFile f) => f.TextureDict?.Textures?.data_items?.Where(t => t is not null) ?? [];
@@ -125,7 +126,7 @@ public static class Ytd
         }
         catch (Exception ex) when (ex is not InvalidDataException)
         {
-            throw new InvalidDataException($"{name} could not be read as a texture dictionary: {ex.Message}", ex);
+            throw new InvalidDataException(L.T($"{name} could not be read as a texture dictionary: {ex.Message}"), ex);
         }
     }
 }

@@ -67,15 +67,15 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
     [ObservableProperty] public partial string SourceNotice { get; set; } = "";
     [ObservableProperty] public partial bool HasSourceNotice { get; set; }
     [ObservableProperty] public partial bool IsScanning { get; set; }
-    [ObservableProperty] public partial string RouteTitle { get; set; } = "No source selected";
+    [ObservableProperty] public partial string RouteTitle { get; set; } = L.T("No source selected");
     [ObservableProperty] public partial string RouteDetail { get; set; } = ModderEmptyDetail;
 
-    private const string ModderEmptyDetail =
+    private static string ModderEmptyDetail => L.T(
         "Pick the folder with the weapon's Replace files (.ydr / .ytd), a folder with your own " +
-        "metas, or a folder holding a finished dlc.rpf.";
-    private const string PlayerEmptyDetail =
+        "metas, or a folder holding a finished dlc.rpf.");
+    private static string PlayerEmptyDetail => L.T(
         "Drop the weapon's folder or archive (.zip / .rar / .7z) — models, textures and the mod's " +
-        "own configs are found inside automatically.";
+        "own configs are found inside automatically.");
     [ObservableProperty] public partial string RouteBadge { get; set; } = "—";
 
     /// <summary>File name of a finished dlc.rpf found in the source folder.</summary>
@@ -97,7 +97,7 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
     [RelayCommand]
     private async Task BrowseInput()
     {
-        var path = await Shell.Pick("Folder with the Replace files");
+        var path = await Shell.Pick(L.T("Folder with the Replace files"));
         if (path is not null) InputFolder = path;
     }
 
@@ -131,7 +131,7 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
         folder = folder.Trim();
         if (folder.Length == 0 || !Directory.Exists(folder))
         {
-            ResetAnalysis(folder.Length == 0 ? null : "Folder not found.");
+            ResetAnalysis(folder.Length == 0 ? null : L.T("Folder not found."));
             return;
         }
 
@@ -151,7 +151,7 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
         IsScanning = false;
         if (a is null)
         {
-            ResetAnalysis("Could not read the folder.");
+            ResetAnalysis(L.T("Could not read the folder."));
             return;
         }
 
@@ -215,7 +215,7 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
         Components.Clear();
         HasComponents = false;
         RouteBadge = "—";
-        RouteTitle = error is null ? "No source selected" : "Source unavailable";
+        RouteTitle = error is null ? L.T("No source selected") : L.T("Source unavailable");
         RouteDetail = error ?? (IsPlayer ? PlayerEmptyDetail : ModderEmptyDetail);
         UpdateSourceNotice();
     }
@@ -228,14 +228,14 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
         {
             var shown = IsPlayer && Intake?.PrebuiltRpf is { } p ? p.Origin : PrebuiltRpf;
             text = IsPlayer
-                ? $"Found a finished pack «{shown}». It is installed as-is — no models are converted. " +
-                  "Tick «Single AddonWeapons pack» to unpack it and fold its models and metas into the shared DLC instead."
-                : $"Found a finished pack «{PrebuiltRpf}». It is copied to the output as-is — no models are converted.";
+                ? L.T($"Found a finished pack «{shown}». It is installed as-is — no models are converted. " +
+                  $"Tick «Single AddonWeapons pack» to unpack it and fold its models and metas into the shared DLC instead.")
+                : L.T($"Found a finished pack «{PrebuiltRpf}». It is copied to the output as-is — no models are converted.");
         }
         else if (SuppliedMetas is { Count: > 0 })
         {
-            text = $"Found your own config: {string.Join(", ", SuppliedMetas)}. These are shipped as-is instead of " +
-                   "being generated from templates, and the models keep their original names.";
+            text = L.T($"Found your own config: {string.Join(", ", SuppliedMetas)}. These are shipped as-is instead of " +
+                   $"being generated from templates, and the models keep their original names.");
         }
         SourceNotice = text;
         HasSourceNotice = text.Length > 0;
@@ -298,8 +298,8 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
         var header = new List<string>();
         if (IsPlayer && Intake is { } src)
         {
-            header.Add($"Source: {string.Join(", ", src.Sources.Select(Path.GetFileName))} — {IntakeSummary(src)}");
-            foreach (var c in src.Configs) header.Add($"    config shipped as-is: {c.Name}  <- {c.Origin}");
+            header.Add(L.T($"Source: {string.Join(", ", src.Sources.Select(Path.GetFileName))} — {IntakeSummary(src)}"));
+            foreach (var c in src.Configs) header.Add(L.T($"    config shipped as-is: {c.Name}  <- {c.Origin}"));
         }
         WeaponPackage? package = null;
         if (IsPlayer)
@@ -307,7 +307,7 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
             package = new WeaponPackage { Name = o.Name, Options = o, Intake = Intake };
             package.Warnings.AddRange(Warnings);                 // what the analysis flagged, shown with the plan
         }
-        return (new PanelJob(IsPlayer ? "Installing into GTA V…" : "Building Add-On…", log => Run(o, log))
+        return (new PanelJob(IsPlayer ? L.T("Installing into GTA V…") : L.T("Building Add-On…"), log => Run(o, log))
         {
             Package = package,
             LogHeader = header,
@@ -318,13 +318,13 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
     internal static string IntakeSummary(IntakeResult r)
     {
         var parts = new List<string>();
-        if (r.PrebuiltRpf is not null) parts.Add("finished dlc.rpf");
+        if (r.PrebuiltRpf is not null) parts.Add(L.T("finished dlc.rpf"));
         else
         {
-            parts.Add(r.Models.Count == 1 ? "1 model / texture" : $"{r.Models.Count} models / textures");
-            if (r.Configs.Count > 0) parts.Add(r.Configs.Count == 1 ? "1 config" : $"{r.Configs.Count} configs");
+            parts.Add(r.Models.Count == 1 ? L.T("1 model / texture") : L.T($"{r.Models.Count} models / textures"));
+            if (r.Configs.Count > 0) parts.Add(r.Configs.Count == 1 ? L.T("1 config") : L.T($"{r.Configs.Count} configs"));
         }
-        if (r.Ignored.Count > 0) parts.Add($"{r.Ignored.Count} skipped");
+        if (r.Ignored.Count > 0) parts.Add(L.T($"{r.Ignored.Count} skipped"));
         return string.Join("  ·  ", parts);
     }
 
@@ -333,15 +333,15 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
     {
         var result = Pipeline.BuildAddon(opts, log);
         if (result is null)
-            return new PanelOutcome(false, "Build not finished", "Base weapon could not be determined — see the log.");
+            return new PanelOutcome(false, L.T("Build not finished"), L.T("Base weapon could not be determined — see the log."));
         if (result.InstalledTo is not null)
-            return new PanelOutcome(true, $"Installed into {opts.Edition!.Value.DisplayName()}",
-                                    $"Mod built and installed into the game:\n{result.InstalledTo}", result.InstalledTo);
+            return new PanelOutcome(true, L.T($"Installed into {opts.Edition!.Value.DisplayName()}"),
+                                    L.T($"Mod built and installed into the game:\n{result.InstalledTo}"), result.InstalledTo);
         if (!result.Packed)
-            return new PanelOutcome(true, "Done — loose folders",
-                                    "Add-On built unpacked. Pack the *.rpf folders with CodeWalker (see manifest.json).",
+            return new PanelOutcome(true, L.T("Done — loose folders"),
+                                    L.T("Add-On built unpacked. Pack the *.rpf folders with CodeWalker (see manifest.json)."),
                                     result.Root);
-        return new PanelOutcome(true, "Done", $"Add-On built:\n{result.Root}", result.Root);
+        return new PanelOutcome(true, L.T("Done"), L.T($"Add-On built:\n{result.Root}"), result.Root);
     }
 
     /// <summary>Validate the form into build options (mirrors the original backend checks).</summary>
@@ -350,19 +350,19 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
         var input = ActiveInput.Trim();
         if (IsPlayer)
         {
-            if (Shell.IsPreparing) return (null, "The dropped weapon is still being unpacked — wait a moment.");
+            if (Shell.IsPreparing) return (null, L.T("The dropped weapon is still being unpacked — wait a moment."));
             if (Intake is null)
-                return (null, Shell.DropError ?? "Drop the weapon — its folder or a .zip / .rar / .7z archive — into the Source area first.");
-            if (!Directory.Exists(input)) return (null, "The unpacked copy of the weapon is gone — drop it again.");
+                return (null, Shell.DropError ?? L.T("Drop the weapon — its folder or a .zip / .rar / .7z archive — into the Source area first."));
+            if (!Directory.Exists(input)) return (null, L.T("The unpacked copy of the weapon is gone — drop it again."));
         }
         else
         {
-            if (input.Length == 0) return (null, "No Replace-files folder selected.");
-            if (!Directory.Exists(input)) return (null, "Replace-files folder not found.");
+            if (input.Length == 0) return (null, L.T("No Replace-files folder selected."));
+            if (!Directory.Exists(input)) return (null, L.T("Replace-files folder not found."));
         }
 
         if (!TryInt(Price, out var price) || !TryInt(AmmoPrice, out var ammo))
-            return (null, "Price and ammo price must be numbers.");
+            return (null, L.T("Price and ammo price must be numbers."));
 
         var compPrices = new Dictionary<string, int>();
         foreach (var c in Components)
@@ -370,7 +370,7 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
             var raw = c.Price.Trim();
             if (raw.Length == 0) continue;
             if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v))
-                return (null, $"Price of component «{c.Stem}» must be an integer.");
+                return (null, L.T($"Price of component «{c.Stem}» must be an integer."));
             compPrices[c.Stem] = v;
         }
 
@@ -382,7 +382,7 @@ public sealed partial class WeaponViewModel : ModPanelViewModel
         string? modelName = IsPlayer ? null : ModelName.Trim();
         if (string.IsNullOrEmpty(modelName)) modelName = null;
         if (modelName is not null && Namer.SanitizeModelName(modelName).Length == 0)
-            return (null, "The model name may only contain latin letters, digits and underscores (e.g. w_pi_mygun).");
+            return (null, L.T("The model name may only contain latin letters, digits and underscores (e.g. w_pi_mygun)."));
 
         string outDir;
         bool packRpf;

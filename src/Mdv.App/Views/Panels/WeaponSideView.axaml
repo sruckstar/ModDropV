@@ -1,5 +1,6 @@
 <!-- Weapon panel, side slot: the analysis of the source, with the 3D preview on top. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              xmlns:c="using:Mdv.App.Controls"
@@ -8,7 +9,7 @@
   <Border Classes="card" Padding="16,13,6,13">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,10,0">
-        <TextBlock Classes="h" Text="ANALYSIS" />
+        <TextBlock Classes="h" Text="{l:Tr 'ANALYSIS'}" />
         <Border Grid.Column="1" Classes="badge">
           <TextBlock Text="{Binding RouteBadge}" />
         </Border>
@@ -22,10 +23,10 @@
           <c:WeaponModelView Model="{Binding PreviewModel}" VisiblePieces="{Binding PreviewVisible}"
                              Textured="{Binding PreviewTextured}" Tint="{Binding PreviewTint}"
                              ResetCount="{Binding PreviewResetCount}"
-                             ToolTip.Tip="Drag to turn · wheel to zoom · double-click to frame" />
+                             ToolTip.Tip="{l:Tr 'Drag to turn · wheel to zoom · double-click to frame'}" />
           <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center"
                       IsVisible="{Binding IsLoadingPreview}">
-            <TextBlock Classes="desc" Text="Loading the model…" HorizontalAlignment="Center" />
+            <TextBlock Classes="desc" Text="{l:Tr 'Loading the model…'}" HorizontalAlignment="Center" />
             <ProgressBar IsIndeterminate="True" Width="120" Height="3" MinHeight="3" MinWidth="0" />
           </StackPanel>
           <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
@@ -34,11 +35,11 @@
           </Border>
           <Button Classes="ghost small" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
                   Padding="8,3" MinHeight="26" Command="{Binding OpenPreviewCommand}"
-                  IsVisible="{Binding HasPreview}" ToolTip.Tip="Open the 3D preview">
+                  IsVisible="{Binding HasPreview}" ToolTip.Tip="{l:Tr 'Open the 3D preview'}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                     StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
-              <TextBlock Text="Inspect" />
+              <TextBlock Text="{l:Tr 'Inspect'}" />
             </StackPanel>
           </Button>
         </Panel>

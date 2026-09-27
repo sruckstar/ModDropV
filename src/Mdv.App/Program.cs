@@ -1,3 +1,4 @@
+using Mdv.Core;
 using Avalonia;
 using Mdv.App.Services;
 
@@ -23,8 +24,8 @@ internal static class Program
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             if (e.ExceptionObject is Exception ex)
-                Diagnostics.Fatal("ModDrop V stopped because of an unexpected error.",
-                                  "Please send the log file to the developer.", ex);
+                Diagnostics.Fatal(L.T("ModDrop V stopped because of an unexpected error."),
+                                  L.T("Please send the log file to the developer."), ex);
         };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
@@ -41,8 +42,8 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Diagnostics.Fatal("ModDrop V could not start.",
-                              "Please send the log file to the developer.", ex);
+            Diagnostics.Fatal(L.T("ModDrop V could not start."),
+                              L.T("Please send the log file to the developer."), ex);
             return 1;
         }
     }

@@ -325,8 +325,8 @@ public sealed partial class DlcAssembler
         }
         else
         {
-            manifest["pack_to_rpf"] = "Build with pack_rpf=True to get a single dlc.rpf, " +
-                                      "or pack the tree via CodeWalker.";
+            manifest["pack_to_rpf"] = L.T("Build with pack_rpf=True to get a single dlc.rpf, " +
+                                      "or pack the tree via CodeWalker.");
         }
         TextIo.WriteText(Path.Combine(root, "manifest.json"), TextIo.ToJson(manifest));
 

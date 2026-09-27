@@ -1,3 +1,4 @@
+using Mdv.Core;
 using Mdv.Core.Util;
 
 namespace Mdv.Core.Mods;
@@ -16,7 +17,7 @@ public sealed partial class AddonPackHandler
     private void AttachMapParts(AddonPackage pkg, DroppedSource source, DetectionReport report, HandlerEnv env, string? packDir)
     {
         if (Category == ModCategory.Map) pkg.Placement = PlacementHandler.Read(source, pkg.Name);
-        if (pkg.Placement is { } pl) pkg.Parts.Add($"also as {string.Join(" / ", pl.Files.Select(f => f.Tool == PlacementTool.Menyoo ? "a Menyoo map" : "a Map Editor map").Distinct())} ({string.Join(", ", pl.Files.Select(f => f.Name))})");
+        if (pkg.Placement is { } pl) pkg.Parts.Add(L.T($"also as {string.Join(" / ", pl.Files.Select(f => f.Tool == PlacementTool.Menyoo ? L.T("a Menyoo map") : L.T("a Map Editor map")).Distinct())} ({string.Join(", ", pl.Files.Select(f => f.Name))})"));
 
         // what else the mod has the player install: game files it replaces, its scripts
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -31,9 +32,9 @@ public sealed partial class AddonPackHandler
         var picked = ReplacementHandler.Pick(rest, out bool dlc);
         if (!dlc && picked.Count > 0)
         {
-            var rp = ReplacementHandler.Build(picked, pkg.Name + " — game files", pkg.Source);
+            var rp = ReplacementHandler.Build(picked, pkg.Name + L.T(" — game files"), pkg.Source);
             rp.Parts.Clear();
-            rp.Parts.Add($"replaces {string.Join(", ", rp.Files.Select(f => f.Name))} in the game");
+            rp.Parts.Add(L.T($"replaces {string.Join(", ", rp.Files.Select(f => f.Name))} in the game"));
             pkg.Extras.Add(rp);
         }
         if (new ScriptHandler().Analyze(source, report, env) is ScriptPackage sp && sp.Files.Any(f => f.IsEntry))
@@ -44,8 +45,8 @@ public sealed partial class AddonPackHandler
         }
         foreach (var e in pkg.Extras)
             pkg.Parts.Add(e is ScriptPackage s
-                ? $"with its scripts ({string.Join(", ", s.Files.Where(f => f.IsEntry).Select(f => f.Name))})"
-                : $"with game file changes ({string.Join(", ", ((ReplacementPackage)e).Files.Select(f => f.Name))})");
+                ? L.T($"with its scripts ({string.Join(", ", s.Files.Where(f => f.IsEntry).Select(f => f.Name))})")
+                : L.T($"with game file changes ({string.Join(", ", ((ReplacementPackage)e).Files.Select(f => f.Name))})"));
     }
 
     /// <summary>
@@ -82,7 +83,7 @@ public sealed partial class AddonPackHandler
                 Name = name, Source = src, Compose = spec, DataDir = env.DataDir, PackName = packName, PackNameFrom = from,
             };
             pkg.Warnings.AddRange(spec.Warnings);
-            Describe(pkg, Category == ModCategory.Map ? "loose map files — packed into a dlc.rpf" : "loose props with their archetypes — packed into a dlc.rpf");
+            Describe(pkg, Category == ModCategory.Map ? L.T("loose map files — packed into a dlc.rpf") : L.T("loose props with their archetypes — packed into a dlc.rpf"));
             AttachMapParts(pkg, source, report, env, null);
             return pkg;
         }
@@ -90,9 +91,9 @@ public sealed partial class AddonPackHandler
             return placements;
         if (Category == ModCategory.Prop && spec is null && report.Primary?.Category == ModCategory.Prop &&
             source.Files.Any(f => PathUtil.SuffixLower(f.Name) == ".ydr"))
-            throw new IntakeException("Props that come as models only (.ydr) with no archetypes file (.ytyp) — the game can't spawn them. " +
+            throw new IntakeException(L.T("Props that come as models only (.ydr) with no archetypes file (.ytyp) — the game can't spawn them. " +
                                       "If they replace the game's own props, their names must match the game's; add-on props need a .ytyp " +
-                                      "(ModDrop V's modder tools will write one in a later version).");
+                                      "(ModDrop V's modder tools will write one in a later version)."));
         return null;
     }
 
@@ -102,13 +103,13 @@ public sealed partial class AddonPackHandler
         if (pkg.Kind == ModCategory.Prop)
         {
             var props = pkg.Content.Archetypes;
-            return props.Count == 0 ? "Props installed."
-                : $"Props installed — spawn them with Menyoo's Object Spooner or Map Editor by name: {string.Join(", ", props.Take(6))}{(props.Count > 6 ? ", …" : "")}.";
+            return props.Count == 0 ? L.T("Props installed.")
+                : L.T($"Props installed — spawn them with Menyoo's Object Spooner or Map Editor by name: {string.Join(", ", props.Take(6))}{(props.Count > 6 ? ", …" : "")}.");
         }
         var at = pkg.Content.Maps.FirstOrDefault(m => m.Center is not null)?.Center;
         return at is { } c
-            ? $"Map installed — it loads with the game in story mode, around {c.X:0}, {c.Y:0} (z {c.Z:0})."
-            : "Map installed — it loads with the game in story mode.";
+            ? L.T($"Map installed — it loads with the game in story mode, around {c.X:0}, {c.Y:0} (z {c.Z:0}).")
+            : L.T("Map installed — it loads with the game in story mode.");
     }
 
     /// <summary>The parts of the mod (game files, scripts) the player keeps on, each installed with it as a mod of its own.</summary>

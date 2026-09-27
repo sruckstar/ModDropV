@@ -121,7 +121,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ToggleTheme() => IsDark = !IsDark;
 
-    public string BuildButtonText => IsPlayer ? "Install into GTA V" : "Build Add-On";
+    public string BuildButtonText => IsPlayer ? L.T("Install into GTA V") : L.T("Build Add-On");
 
     /// <summary>The footer's button: the player sees the install plan first, the modder builds right away.</summary>
     public IAsyncRelayCommand PrimaryCommand => IsPlayer ? ReviewInstallCommand : BuildCommand;
@@ -235,12 +235,12 @@ public sealed partial class MainViewModel : ObservableObject
             if (GameEditions.Detect(folder) is { } e)
             {
                 IsEnhanced = e == GameEdition.Enhanced;
-                hint = $"Detected {e.DisplayName()} ({e.ExeName()}).";
+                hint = L.T($"Detected {e.DisplayName()} ({e.ExeName()}).");
             }
             else if (GameEditions.IsAmbiguous(folder))
-                hint = $"Both {GameEditions.LegacyExe} and {GameEditions.EnhancedExe} are here — choose the game version.";
+                hint = L.T($"Both {GameEditions.LegacyExe} and {GameEditions.EnhancedExe} are here — choose the game version.");
             else
-                hint = $"No {GameEditions.LegacyExe} / {GameEditions.EnhancedExe} in this folder — is it the GTA V folder?";
+                hint = L.T($"No {GameEditions.LegacyExe} / {GameEditions.EnhancedExe} in this folder — is it the GTA V folder?");
         }
         GameEditionHint = hint;
         HasGameEditionHint = hint.Length > 0;
@@ -280,12 +280,12 @@ public sealed partial class MainViewModel : ObservableObject
     internal (string? Game, string? Error) CheckGame()
     {
         var game = GameFolder.Trim();
-        if (game.Length == 0) return (null, "No GTA V game folder selected.");
-        if (!Directory.Exists(game)) return (null, "The selected game folder doesn't exist.");
+        if (game.Length == 0) return (null, L.T("No GTA V game folder selected."));
+        if (!Directory.Exists(game)) return (null, L.T("The selected game folder doesn't exist."));
         bool isGame = GameEditions.Detect(game) is not null || GameEditions.IsAmbiguous(game);
         if (!isGame && !Directory.Exists(Path.Combine(game, "mods")))
-            return (null, $"The selected folder doesn't look like GTA V: no {GameEditions.LegacyExe} / " +
-                          $"{GameEditions.EnhancedExe} and no «mods» directory.");
+            return (null, L.T($"The selected folder doesn't look like GTA V: no {GameEditions.LegacyExe} / " +
+                          $"{GameEditions.EnhancedExe} and no «mods» directory."));
         Settings.LastGame = game;
         Settings.Save();
         return (game, null);
@@ -295,14 +295,14 @@ public sealed partial class MainViewModel : ObservableObject
     internal (string? Output, string? Error) CheckOutput()
     {
         var output = OutputFolder.Trim();
-        if (output.Length == 0) return (null, "No output folder selected.");
+        if (output.Length == 0) return (null, L.T("No output folder selected."));
         try
         {
             Directory.CreateDirectory(output);
         }
         catch (Exception ex)
         {
-            return (null, $"Cannot create the output folder: {ex.Message}");
+            return (null, L.T($"Cannot create the output folder: {ex.Message}"));
         }
         Settings.LastOutput = output;
         Settings.Save();
@@ -312,14 +312,14 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task BrowseOutput()
     {
-        var path = await Pick("Output folder");
+        var path = await Pick(L.T("Output folder"));
         if (path is not null) OutputFolder = path;
     }
 
     [RelayCommand]
     private async Task BrowseGame()
     {
-        var path = await Pick("GTA V game folder");
+        var path = await Pick(L.T("GTA V game folder"));
         if (path is not null) GameFolder = path;
     }
 
@@ -329,7 +329,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BuildCommand), nameof(ReviewInstallCommand), nameof(ApplyInstalledCommand),
-                                nameof(ReviewChangesCommand), nameof(ConfirmPlanCommand), nameof(UpdateCopiesCommand))]
+                                nameof(ReviewChangesCommand), nameof(ConfirmPlanCommand), nameof(UpdateCopiesCommand),
+                                nameof(SetLanguageCommand))]
     public partial bool IsBuilding { get; set; }
 
     [ObservableProperty] public partial string StageStatus { get; set; } = "";
@@ -344,7 +345,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CancelRunCommand))]
     public partial bool CanCancelRun { get; set; }
-    [ObservableProperty] public partial string CancelRunText { get; set; } = "Cancel";
+    [ObservableProperty] public partial string CancelRunText { get; set; } = L.T("Cancel");
 
     /// <summary>Follow a plan while it runs (null: a job with no plan of its own).</summary>
     internal void Follow(PlanRun? run)
@@ -355,7 +356,7 @@ public sealed partial class MainViewModel : ObservableObject
         StageSteps = 0;
         StageStepText = "";
         CanCancelRun = run is not null;
-        CancelRunText = "Cancel";
+        CancelRunText = L.T("Cancel");
         if (run is null) return;
         run.Progress += p => Dispatcher.UIThread.Post(() =>
         {
@@ -363,7 +364,7 @@ public sealed partial class MainViewModel : ObservableObject
             StageSteps = p.Steps;
             StageStep = p.Step;
             HasStageSteps = p.Steps > 1;
-            StageStepText = $"Step {p.Step} of {p.Steps}: {p.What}";
+            StageStepText = L.T($"Step {p.Step} of {p.Steps}: {p.What}");
         });
     }
 
@@ -374,8 +375,8 @@ public sealed partial class MainViewModel : ObservableObject
         if (_run is not { } run || run.Cancelled) return;
         run.Cancel();
         CanCancelRun = false;
-        CancelRunText = "Stopping…";
-        StageHint = "Stopping — taking back what was done";
+        CancelRunText = L.T("Stopping…");
+        StageHint = L.T("Stopping — taking back what was done");
         AppLog.Info("run: cancel asked");
     }
     /// <summary>Incremented every time the build reaches a new phase (the stage animation reacts to it).</summary>
@@ -384,7 +385,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string LogText { get; set; } = "";
     [ObservableProperty] public partial bool HasLog { get; set; }
     [ObservableProperty] public partial bool LogIsError { get; set; }
-    [ObservableProperty] public partial string CopyLogLabel { get; set; } = "Copy";
+    [ObservableProperty] public partial string CopyLogLabel { get; set; } = L.T("Copy");
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowFooter))]
@@ -410,7 +411,7 @@ public sealed partial class MainViewModel : ObservableObject
         var (job, error) = PrepareJob();
         if (job is null)
         {
-            ShowResult(false, "Couldn't start", error ?? "Unknown error.", null);
+            ShowResult(false, "Couldn't start", error ?? L.T("Unknown error."), null);
             return;
         }
         await RunJobAsync(job);
@@ -420,8 +421,8 @@ public sealed partial class MainViewModel : ObservableObject
     private (PanelJob? Job, string? Error) PrepareJob()
     {
         if (ActivePanel is { } panel) return panel.Prepare();
-        if (IsPreparing) return (null, "The drop is still being unpacked — wait a moment.");
-        return (null, DropError ?? "Drop a mod — its folder or a .zip / .rar / .7z archive — into the Source area first.");
+        if (IsPreparing) return (null, L.T("The drop is still being unpacked — wait a moment."));
+        return (null, DropError ?? L.T("Drop a mod — its folder or a .zip / .rar / .7z archive — into the Source area first."));
     }
 
     /// <summary>Run a panel's job behind the build stage; the result goes to the banner, the details to the log.</summary>
@@ -430,7 +431,7 @@ public sealed partial class MainViewModel : ObservableObject
         StartLog(job.LogHeader);
         IsBuilding = true;
         StageStatus = job.Stage;
-        StageHint = "Getting ready";
+        StageHint = L.T("Getting ready");
         Follow(job.Control);
         AppLog.Info($"build started: mode={(IsPlayer ? "player" : "modder")} panel={ActivePanel?.Category}");
         try
@@ -442,13 +443,13 @@ public sealed partial class MainViewModel : ObservableObject
         catch (OperationCanceledException)
         {
             AppLog.Info("build cancelled");
-            ShowResult(false, "Cancelled — nothing changed", "Every step done so far was taken back; the game is as it was.", null);
+            ShowResult(false, L.T("Cancelled — nothing changed"), L.T("Every step done so far was taken back; the game is as it was."), null);
         }
         catch (Exception ex)
         {
             AppLog.Error("build failed", ex);
             FailLog(ex);
-            ShowResult(false, "Build failed", $"{ex.Message}\n\nSee the log for details.", null);
+            ShowResult(false, L.T("Build failed"), L.T($"{ex.Message}\n\nSee the log for details."), null);
         }
         finally
         {
@@ -496,16 +497,16 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Map pipeline / installer log lines to the caption shown on the build stage.</summary>
     internal static string? PhaseOf(string msg)
     {
-        if (msg.StartsWith("Building template library", StringComparison.Ordinal)) return "Building the template library";
-        if (msg.StartsWith("Scan:", StringComparison.Ordinal)) return "Scanning models";
-        if (msg.StartsWith("Components:", StringComparison.Ordinal)) return "Writing meta files";
-        if (msg.StartsWith("Unpacking", StringComparison.Ordinal)) return "Unpacking the archive";
-        if (msg.StartsWith("Merged into", StringComparison.Ordinal)) return "Loading the shared pack";
-        if (msg.StartsWith("WEAPON hash", StringComparison.Ordinal)) return "Assembling the dlcpack";
-        if (msg.StartsWith("Self-checking", StringComparison.Ordinal)) return "Verifying resources";
-        if (msg.StartsWith("Converting", StringComparison.Ordinal)) return "Converting models to gen9";
-        if (msg.StartsWith("    Copying update", StringComparison.Ordinal)) return "Setting up the mods folder";
-        if (msg.StartsWith("Installing", StringComparison.Ordinal)) return "Installing into the game";
+        if (msg.StartsWith("Building template library", StringComparison.Ordinal)) return L.T("Building the template library");
+        if (msg.StartsWith("Scan:", StringComparison.Ordinal)) return L.T("Scanning models");
+        if (msg.StartsWith("Components:", StringComparison.Ordinal)) return L.T("Writing meta files");
+        if (msg.StartsWith("Unpacking", StringComparison.Ordinal)) return L.T("Unpacking the archive");
+        if (msg.StartsWith("Merged into", StringComparison.Ordinal)) return L.T("Loading the shared pack");
+        if (msg.StartsWith("WEAPON hash", StringComparison.Ordinal)) return L.T("Assembling the dlcpack");
+        if (msg.StartsWith("Self-checking", StringComparison.Ordinal)) return L.T("Verifying resources");
+        if (msg.StartsWith("Converting", StringComparison.Ordinal)) return L.T("Converting models to gen9");
+        if (msg.StartsWith("    Copying update", StringComparison.Ordinal)) return L.T("Setting up the mods folder");
+        if (msg.StartsWith("Installing", StringComparison.Ordinal)) return L.T("Installing into the game");
         return null;
     }
 
@@ -516,7 +517,7 @@ public sealed partial class MainViewModel : ObservableObject
             _log.AppendLine();
             _log.AppendLine(ex.ToString());
         }
-        if (_log.Length == 0) _log.AppendLine("Unknown error.");
+        if (_log.Length == 0) _log.AppendLine(L.T("Unknown error."));
         LogText = _log.ToString();
         HasLog = true;
         LogIsError = true;
@@ -566,9 +567,9 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AppLog.Error("clipboard failed", ex);
         }
-        CopyLogLabel = ok ? "Copied ✓" : "Error";
+        CopyLogLabel = ok ? L.T("Copied ✓") : L.T("Error");
         await Task.Delay(1500);
-        CopyLogLabel = "Copy";
+        CopyLogLabel = L.T("Copy");
     }
 
     [RelayCommand]

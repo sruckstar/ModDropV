@@ -33,8 +33,8 @@ public sealed class StoreInfo
         if (Name is not null) f.Add("name");
         if (Description is not null) f.Add("description");
         if (Price is not null) f.Add("price");
-        if (AmmoPrice is not null) f.Add("ammo price");
-        if (components && ComponentPrices.Count > 0) f.Add("component prices");
+        if (AmmoPrice is not null) f.Add(L.T("ammo price"));
+        if (components && ComponentPrices.Count > 0) f.Add(L.T("component prices"));
         return string.Join(", ", f);
     }
 }

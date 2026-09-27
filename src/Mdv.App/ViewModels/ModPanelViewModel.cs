@@ -1,3 +1,4 @@
+using Mdv.Core;
 using Mdv.Core.Mods;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -56,5 +57,5 @@ public sealed class ComingSoonViewModel(MainViewModel shell, ModCategory categor
     public string Blurb { get; } = blurb;
 
     public override (PanelJob? Job, string? Error) Prepare() =>
-        (null, $"{What} can't be built yet — they're coming in a later version of ModDrop V.");
+        (null, L.T($"{What} can't be built yet — they're coming in a later version of ModDrop V."));
 }

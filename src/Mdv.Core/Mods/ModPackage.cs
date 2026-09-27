@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
@@ -28,32 +29,32 @@ public static class ModCategories
 {
     public static string DisplayName(this ModCategory c) => c switch
     {
-        ModCategory.Weapon => "Weapon",
-        ModCategory.Vehicle => "Vehicle",
-        ModCategory.Ped => "Ped",
-        ModCategory.Livery => "Vehicle livery",
-        ModCategory.Script => "Script / plugin",
-        ModCategory.Clothing => "Clothing",
-        ModCategory.Prop => "Props / objects",
-        ModCategory.Map => "Map",
-        ModCategory.Replacement => "File replacement",
-        ModCategory.Package => "OIV package",
+        ModCategory.Weapon => L.T("Weapon"),
+        ModCategory.Vehicle => L.T("Vehicle"),
+        ModCategory.Ped => L.T("Ped"),
+        ModCategory.Livery => L.T("Vehicle livery"),
+        ModCategory.Script => L.T("Script / plugin"),
+        ModCategory.Clothing => L.T("Clothing"),
+        ModCategory.Prop => L.T("Props / objects"),
+        ModCategory.Map => L.T("Map"),
+        ModCategory.Replacement => L.T("File replacement"),
+        ModCategory.Package => L.T("OIV package"),
         _ => c.ToString(),
     };
 
     /// <summary>"Weapons", "Scripts" — a list or filter of this kind.</summary>
     public static string PluralName(this ModCategory c) => c switch
     {
-        ModCategory.Weapon => "Weapons",
-        ModCategory.Vehicle => "Vehicles",
-        ModCategory.Ped => "Peds",
-        ModCategory.Livery => "Liveries",
-        ModCategory.Script => "Scripts",
-        ModCategory.Clothing => "Clothing",
-        ModCategory.Prop => "Props",
-        ModCategory.Map => "Maps",
-        ModCategory.Replacement => "Replacements",
-        ModCategory.Package => "OIV packages",
+        ModCategory.Weapon => L.T("Weapons"),
+        ModCategory.Vehicle => L.T("Vehicles"),
+        ModCategory.Ped => L.T("Peds"),
+        ModCategory.Livery => L.T("Liveries"),
+        ModCategory.Script => L.T("Scripts"),
+        ModCategory.Clothing => L.T("Clothing"),
+        ModCategory.Prop => L.T("Props"),
+        ModCategory.Map => L.T("Maps"),
+        ModCategory.Replacement => L.T("Replacements"),
+        ModCategory.Package => L.T("OIV packages"),
         _ => c.ToString(),
     };
 
@@ -66,6 +67,13 @@ public static class ModCategories
         ModCategory.Package => "oiv",
         _ => c.ToString().ToLowerInvariant(),
     };
+
+    /// <summary><see cref="ShortName"/> in the interface language (the plain one is the CLI's --kind).</summary>
+    public static string ShortLabel(this ModCategory c) => L.T(c.ShortName());
+
+    // the short names, for the translation catalogs
+    private static readonly string[] ShortNames =
+        [L.N("weapon"), L.N("vehicle"), L.N("ped"), L.N("livery"), L.N("script"), L.N("clothing"), L.N("prop"), L.N("map"), L.N("replace"), L.N("oiv")];
 }
 
 /// <summary>Where an installed mod came from: the dropped file / folder name and a content hash.</summary>
@@ -144,6 +152,8 @@ public sealed record InstallTarget(string GameDir, GameEdition Edition, string S
 public sealed record HandlerEnv(string DataDir)
 {
     public string TemplatesDir => Path.Combine(DataDir, "templates");
+    /// <summary>The edition of the game it will go to, when known: picks between a mod's Legacy and Enhanced versions.</summary>
+    public GameEdition? Edition { get; init; }
 }
 
 /// <summary>

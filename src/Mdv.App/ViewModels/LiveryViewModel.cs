@@ -158,9 +158,9 @@ public sealed partial class LiveryViewModel : FileModViewModel
     [ObservableProperty] public partial string Status { get; set; } = "";
 
     public string Note =>
-        "The pictures go into the vehicle's own texture dictionaries (compressed like the textures they replace), in copies " +
+        L.T("The pictures go into the vehicle's own texture dictionaries (compressed like the textures they replace), in copies " +
         "of the game's archives under mods — or into the add-on's pack. Switch the livery off or remove it in the Library " +
-        "and the vehicle's previous textures come back.";
+        "and the vehicle's previous textures come back.");
 
     private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -177,7 +177,7 @@ public sealed partial class LiveryViewModel : FileModViewModel
         var v = value.Trim().ToLowerInvariant();
         if (v == _pkg.Vehicle || !_vehicles.Any(x => x.Model == v)) return;
         _pkg.Vehicle = v;
-        _pkg.VehicleFrom = "your choice";
+        _pkg.VehicleFrom = L.T("your choice");
         foreach (var t in _pkg.Textures) t.Slot = null;
         _ = ResolveAsync();
     }
@@ -191,8 +191,8 @@ public sealed partial class LiveryViewModel : FileModViewModel
     protected override string? NotReady()
     {
         if (_pkg is null) return null;
-        if (IsResolving) return "The livery is still being looked up in the game — wait a moment.";
-        if (_pkg.Vehicle is null) return "Pick the vehicle the livery is for.";
+        if (IsResolving) return L.T("The livery is still being looked up in the game — wait a moment.");
+        if (_pkg.Vehicle is null) return L.T("Pick the vehicle the livery is for.");
         return null;
     }
 
@@ -238,8 +238,8 @@ public sealed partial class LiveryViewModel : FileModViewModel
         _loading = false;
         var addon = _vehicles.FirstOrDefault(v => v.Model == pkg.Vehicle && v.Pack is not null);
         VehicleNote = pkg.Vehicle is null
-            ? pkg.Guesses.Count > 0 ? "Not clear which vehicle it is for — pick one." : "The mod doesn't say which vehicle it is for — pick one."
-            : $"{(addon is null ? "The game's own" : $"An installed add-on ({addon.Label}, dlcpacks\\{addon.Pack})")} — by {pkg.VehicleFrom}.";
+            ? pkg.Guesses.Count > 0 ? L.T("Not clear which vehicle it is for — pick one.") : L.T("The mod doesn't say which vehicle it is for — pick one.")
+            : L.T($"{(addon is null ? L.T("The game's own") : L.T($"An installed add-on ({addon.Label}, dlcpacks\\{addon.Pack})"))} — by {pkg.VehicleFrom}.");
         Alternatives.Clear();
         foreach (var g in pkg.Guesses.Where(g => g != pkg.Vehicle).Take(8)) Alternatives.Add(g);
         HasAlternatives = Alternatives.Count > 0;
@@ -256,15 +256,15 @@ public sealed partial class LiveryViewModel : FileModViewModel
         var game = Shell.GameFolder.Trim();
         if (game.Length == 0 || !Directory.Exists(game) || pkg.Vehicle is null)
         {
-            Status = pkg.Vehicle is null ? "Pick the vehicle — its textures are read from the game."
-                : "Choose the GTA V folder — the vehicle's textures are read from the game.";
+            Status = pkg.Vehicle is null ? L.T("Pick the vehicle — its textures are read from the game.")
+                : L.T("Choose the GTA V folder — the vehicle's textures are read from the game.");
             ShowRows(null);
             SetWarnings(pkg.Warnings);
             _ = Preview.LoadAsync(null);
             return;
         }
         IsResolving = true;
-        Status = $"Reading the {pkg.Vehicle}'s textures from the game…";
+        Status = L.T($"Reading the {pkg.Vehicle}'s textures from the game…");
         var target = MainViewModel.TargetFor(game, Shell.Edition);
         LiveryResolution? r = null;
         string? error = null;
@@ -275,17 +275,17 @@ public sealed partial class LiveryViewModel : FileModViewModel
         catch (Exception ex)
         {
             AppLog.Error("resolving the livery failed", ex);
-            error = $"The game's files could not be read: {ex.Message}";
+            error = L.T($"The game's files could not be read: {ex.Message}");
         }
         if (gen != _generation) return;
         IsResolving = false;
         ShowRows(r);
         int placed = pkg.Textures.Count(t => t.Slot is not null);
         Status = error ?? (r is null ? "" : r.Dictionaries.Count == 0 && pkg.Textures.Count > 0
-            ? $"The game has no texture dictionary of the {pkg.Vehicle}."
-            : pkg.Textures.Count == 0 ? $"{pkg.Models.Count} livery model(s) for the {pkg.Vehicle}."
-            : placed == pkg.Textures.Count ? $"All {placed} picture(s) have a place on the {pkg.Vehicle}."
-            : $"{placed} of {pkg.Textures.Count} picture(s) placed — pick a texture for the rest, or they are skipped.");
+            ? L.T($"The game has no texture dictionary of the {pkg.Vehicle}.")
+            : pkg.Textures.Count == 0 ? L.T($"{pkg.Models.Count} livery model(s) for the {pkg.Vehicle}.")
+            : placed == pkg.Textures.Count ? L.T($"All {placed} picture(s) have a place on the {pkg.Vehicle}.")
+            : L.T($"{placed} of {pkg.Textures.Count} picture(s) placed — pick a texture for the rest, or they are skipped."));
         SetWarnings([.. pkg.Warnings, .. r?.Warnings ?? []]);
         _ = PreviewAsync();
     }
@@ -304,9 +304,9 @@ public sealed partial class LiveryViewModel : FileModViewModel
         Models.Clear();
         foreach (var m in pkg.Models)
             Models.Add(r is null ? new LiveryModelRow(m.Name, "", false)
-                : m.Replaces ? new LiveryModelRow(m.Name, "replaces the game's livery of this name", false)
-                : r.Carcols is not null ? new LiveryModelRow(m.Name, $"a new livery — added to the modkit {r.KitName}", false)
-                : new LiveryModelRow(m.Name, r.KitProblem ?? "skipped", true));
+                : m.Replaces ? new LiveryModelRow(m.Name, L.T("replaces the game's livery of this name"), false)
+                : r.Carcols is not null ? new LiveryModelRow(m.Name, L.T($"a new livery — added to the modkit {r.KitName}"), false)
+                : new LiveryModelRow(m.Name, r.KitProblem ?? L.T("skipped"), true));
         HasTextures = Textures.Count > 0;
         HasModels = Models.Count > 0;
     }

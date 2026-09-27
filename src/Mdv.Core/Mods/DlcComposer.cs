@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.RegularExpressions;
 using Mdv.Core.Index;
 using Mdv.Core.Rpf;
@@ -314,15 +315,15 @@ public static partial class DlcComposer
 
             bool Has(string ext) => own.Any(f => f.Name.Equals(name + ext, StringComparison.OrdinalIgnoreCase));
             if (!Has(".ymt"))
-                spec.Warnings.Add($"«{name}» has no {name}.ymt (the list of its clothes) — the game can't dress it: it may be invisible or crash.");
+                spec.Warnings.Add(L.T($"«{name}» has no {name}.ymt (the list of its clothes) — the game can't dress it: it may be invisible or crash."));
             if (!Has(".ydd") && parts.Count == 0)
-                spec.Warnings.Add($"«{name}» has no {name}.ydd and no folder of components — there is nothing to show.");
+                spec.Warnings.Add(L.T($"«{name}» has no {name}.ydd and no folder of components — there is nothing to show."));
             var ped = new NewPed(name, isStreamed, own.Any(f => f.Name.Equals(name + "_p.ydd", StringComparison.OrdinalIgnoreCase)), PedMeta.Guess(name));
             spec.NewPeds.Add(ped);
             spec.Content.Peds.Add(new AddonPed(name, null));
         }
         foreach (var f in files.Where(f => !used.Contains(f) && PathUtil.SuffixLower(f.Name) is ".yft" or ".ydd"))
-            spec.Warnings.Add($"{f.Origin} belongs to none of its peds — left out.");
+            spec.Warnings.Add(L.T($"{f.Origin} belongs to none of its peds — left out."));
 
         spec.Data.Add(new ComposeData("common/data/peds.meta", "PED_METADATA_FILE"));
         spec.Content.DataTypes.Add("PED_METADATA_FILE");
@@ -354,7 +355,7 @@ public static partial class DlcComposer
             if (seen.TryGetValue(part.Name, out var first))
             {
                 if (!SameFile(first.FullPath, f.FullPath))
-                    spec.Warnings.Add($"{part.Name} is in the mod more than once — {first.Origin} is used, {f.Origin} is left out.");
+                    spec.Warnings.Add(L.T($"{part.Name} is in the mod more than once — {first.Origin} is used, {f.Origin} is left out."));
                 continue;
             }
             seen[part.Name] = f;
@@ -365,11 +366,11 @@ public static partial class DlcComposer
         var drawables = parts.Where(p => p.Kind == ClothingPartKind.Drawable).Select(p => (p.Prop, p.Slot, p.Number)).ToHashSet();
         if (drawables.Count == 0) return null;
         foreach (var t in parts.Where(p => p.Kind != ClothingPartKind.Drawable && !drawables.Contains((p.Prop, p.Slot, p.Number))))
-            spec.Warnings.Add($"{t.Name} belongs to {t.Describe()}, which the mod has no model for — left out.");
+            spec.Warnings.Add(L.T($"{t.Name} belongs to {t.Describe()}, which the mod has no model for — left out."));
         coll.Parts.RemoveAll(p => p.Part.Kind != ClothingPartKind.Drawable && !drawables.Contains((p.Part.Prop, p.Part.Slot, p.Part.Number)));
         foreach (var d in drawables.Where(d => !parts.Any(p => p.Kind == ClothingPartKind.Texture && (p.Prop, p.Slot, p.Number) == d)))
-            spec.Warnings.Add($"{parts.First(p => (p.Prop, p.Slot, p.Number) == d && p.Kind == ClothingPartKind.Drawable).Describe()} has no texture " +
-                              "in the mod — the game shows it untextured.");
+            spec.Warnings.Add(L.T($"{parts.First(p => (p.Prop, p.Slot, p.Number) == d && p.Kind == ClothingPartKind.Drawable).Describe()} has no texture " +
+                              $"in the mod — the game shows it untextured."));
         spec.NewCollections.Add(coll);
         foreach (var f in coll.Parts) spec.Content.Streamed.Add(f.Part.Name);
         spec.Content.DataTypes.Add("SHOP_PED_APPAREL_META_FILE");
@@ -404,7 +405,7 @@ public static partial class DlcComposer
                 hits = byRel.Where(kv => kv.Key.StartsWith(pattern.ToLowerInvariant().TrimEnd('/'), StringComparison.Ordinal)).Select(kv => kv.Value).ToList();
             if (hits.Count == 0)
             {
-                spec.Warnings.Add($"{name}: fxmanifest names {pattern} ({type}), but there is no such file — left out.");
+                spec.Warnings.Add(L.T($"{name}: fxmanifest names {pattern} ({type}), but there is no such file — left out."));
                 continue;
             }
             foreach (var f in hits)
@@ -443,7 +444,7 @@ public static partial class DlcComposer
         {
             if (!seenMeta.Add(type + "|" + Path.GetFileNameWithoutExtension(f.Name)))
             {
-                spec.Warnings.Add($"{f.Origin}: a second {f.Name} — left out (drop the folder of the version you want).");
+                spec.Warnings.Add(L.T($"{f.Origin}: a second {f.Name} — left out (drop the folder of the version you want)."));
                 continue;
             }
             AddData(spec, f, type, "", streamed);
@@ -531,7 +532,7 @@ public static partial class DlcComposer
             if (streamed.TryGetValue(name, out var had))
             {
                 if (!SameFile(had.FullPath, f.FullPath))
-                    spec.Warnings.Add($"{name} is in the mod more than once — {had.Origin} is used, {f.Origin} is left out.");
+                    spec.Warnings.Add(L.T($"{name} is in the mod more than once — {had.Origin} is used, {f.Origin} is left out."));
                 return;
             }
             streamed[name] = f;
@@ -559,7 +560,7 @@ public static partial class DlcComposer
         if (streamed.TryGetValue(inner, out var first))
         {
             if (!SameFile(first.FullPath, f.FullPath))
-                spec.Warnings.Add($"{f.Name} is in the mod more than once — {first.Origin} is used, {f.Origin} is left out.");
+                spec.Warnings.Add(L.T($"{f.Name} is in the mod more than once — {first.Origin} is used, {f.Origin} is left out."));
             return;
         }
         streamed[inner] = f;
@@ -621,7 +622,7 @@ public static partial class DlcComposer
                     // a placement / archetype file as XML (CodeWalker / OpenIV export): built into the game's form
                     var name = Path.GetFileName(f.PackPath);
                     File.WriteAllBytes(dst, MapMeta.Write(MapMeta.Read(File.ReadAllBytes(f.Source), name), name));
-                    log($"    {name}: built from its XML form.");
+                    log(L.T($"    {name}: built from its XML form."));
                 }
                 else PathUtil.Copy2(f.Source, dst);
             }
@@ -629,7 +630,7 @@ public static partial class DlcComposer
             {
                 Directory.CreateDirectory(Path.Combine(tree, "common", "data"));
                 TextIo.WriteText(Path.Combine(tree, "common", "data", "peds.meta"), PedMeta.Build(spec.NewPeds));
-                log($"    peds.meta written for {string.Join(", ", spec.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()}{(p.Streamed ? ", streamed" : "")})"))}.");
+                log(L.T($"    peds.meta written for {string.Join(", ", spec.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()}{(p.Streamed ? ", streamed" : "")})"))}."));
             }
             var data = spec.Data.ToList();
             foreach (var c in spec.NewCollections) WriteCollection(spec, c, device, tree, data, log);
@@ -646,7 +647,7 @@ public static partial class DlcComposer
                     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<CExtraTextMetaFile>\n  <hasGlobalTextFile value=\"true\" />\n" +
                     "  <hasAdditionalText value=\"false\" />\n  <isTitleUpdate value=\"false\" />\n</CExtraTextMetaFile>\n");
                 data.Add(new ComposeData("common/data/dlctext.meta", "TEXTFILE_METAFILE", Persistent: true));
-                log($"    {spec.Content.Labels.Count} text label(s) → global.gxt2 in {DlcAssembler.Langs.Length} languages.");
+                log(L.T($"    {spec.Content.Labels.Count} text label(s) → global.gxt2 in {DlcAssembler.Langs.Length} languages."));
             }
             var changeset = device.StartsWith("dlc_", StringComparison.OrdinalIgnoreCase) ? device[4..] + "_AUTOGEN" : device + "_AUTOGEN";
             if (spec.Content.Kind == ModCategory.Map)
@@ -671,12 +672,12 @@ public static partial class DlcComposer
                 PathUtil.DeleteDir(dir);
                 File.Move(tmp, dir);
                 var rel = Path.GetRelativePath(tree, dir).Replace('\\', '/');
-                if (!rel.Contains("/lang/", StringComparison.Ordinal)) log($"    {rel}: {info.Files} file(s).");
+                if (!rel.Contains("/lang/", StringComparison.Ordinal)) log(L.T($"    {rel}: {info.Files} file(s)."));
             }
             Directory.CreateDirectory(outDir);
             var dlc = Path.Combine(outDir, "dlc.rpf");
             var packed = RpfPacker.PackFolder(tree, dlc, edition);
-            log($"    Packed dlc.rpf ({MergedPack.FmtSize(packed.Size)}, {packed.Files} file(s)).");
+            log(L.T($"    Packed dlc.rpf ({MergedPack.FmtSize(packed.Size)}, {packed.Files} file(s))."));
             return dlc;
         }
         finally
@@ -713,7 +714,7 @@ public static partial class DlcComposer
             if (!data.Any(d => d.PackPath.Equals(image, StringComparison.OrdinalIgnoreCase)))
                 data.Add(new ComposeData(image, "RPF_FILE", Persistent: true));
             var (comps, props) = PedVariation.Counts(ymt);
-            log($"    Collection {full}: {comps.Sum()} model(s){(props.Sum() > 0 ? $", {props.Sum()} prop(s)" : "")} — ymt written.");
+            log(L.T($"    Collection {full}: {comps.Sum()} model(s){(props.Sum() > 0 ? L.T($", {props.Sum()} prop(s)") : "")} — ymt written."));
         }
         if (spec.Content.Shops.Contains(full)) return;
         var creature = spec.Files.Select(f => Path.GetFileNameWithoutExtension(f.PackPath))
@@ -724,7 +725,7 @@ public static partial class DlcComposer
         Directory.CreateDirectory(Path.GetDirectoryName(shopFile)!);
         TextIo.WriteText(shopFile, ShopMeta(c.Ped, dlc, creatureName));
         data.Add(new ComposeData(shop, "SHOP_PED_APPAREL_META_FILE"));
-        log($"    {full}_shop.meta written (the mod has none).");
+        log(L.T($"    {full}_shop.meta written (the mod has none)."));
     }
 
     // ================================================================ maps
@@ -761,7 +762,7 @@ public static partial class DlcComposer
         var path = Path.Combine(tree, MapMetaImage.Replace('/', Path.DirectorySeparatorChar), ManifestName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllBytes(path, MapMeta.Write(MapMeta.Manifest(deps), ManifestName));
-        log($"    {ManifestName} written: {string.Join(", ", deps.Where(d => d.Ytyps.Count > 0).Select(d => $"{d.Ymap} → {string.Join(" + ", d.Ytyps)}"))}.");
+        log(L.T($"    {ManifestName} written: {string.Join(", ", deps.Where(d => d.Ytyps.Count > 0).Select(d => $"{d.Ymap} → {string.Join(" + ", d.Ytyps)}"))}."));
     }
 
     /// <summary>

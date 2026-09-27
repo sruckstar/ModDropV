@@ -55,7 +55,7 @@ public static class ModLibrary
 
     public static IModHandler HandlerFor(ModCategory category) =>
         Handlers.FirstOrDefault(h => h.Category == category)
-        ?? throw new NotSupportedException($"{category.DisplayName()} mods can't be installed yet.");
+        ?? throw new NotSupportedException(L.T($"{category.DisplayName()} mods can't be installed yet."));
 
     /// <summary>
     /// What a drop holds: the detector's report, a package for every handler that found its
@@ -111,9 +111,9 @@ public static class ModLibrary
     public static InstallPlan PlanChanges(InstallTarget target, IReadOnlyCollection<ModChange> changes)
     {
         if (changes.FirstOrDefault(c => !Handlers.Any(h => h.Owns(c.Id))) is { } unknown)
-            throw new ArgumentException($"Unknown installed mod id: {unknown.Id}");
+            throw new ArgumentException(L.T($"Unknown installed mod id: {unknown.Id}"));
         var reg = ModRegistry.Load(target.GameDir);
-        var plan = new InstallPlan { Title = "Applying changes to installed mods" };
+        var plan = new InstallPlan { Title = L.T("Applying changes to installed mods") };
         foreach (var h in Handlers)
         {
             var mine = changes.Where(c => h.Owns(c.Id)).ToList();
@@ -122,6 +122,12 @@ public static class ModLibrary
             plan.Ops.AddRange(part.Ops);
             plan.Warnings.AddRange(part.Warnings);
         }
+        // the last mod out: the game's limits go back to its own
+        var removed = changes.Where(c => c.Remove).Select(c => c.Id).ToHashSet();
+        if (removed.Count > 0 && reg.Mods.All(m => removed.Contains(m.Id)) && File.Exists(ModsOverlay.StatePath(target.GameDir))
+            && ModsOverlay.Load(target.GameDir).PathsOf(GamePools.LimitsOwner).Count > 0)
+            plan.Add(new ActionOp(L.T("Put the game's own limits back in gameconfig.xml — no mods are left"),
+                                  ctx => ctx.Overlay.RemoveMod(GamePools.LimitsOwner)));
         return plan;
     }
 
@@ -134,7 +140,11 @@ public static class ModLibrary
 
     /// <summary>Install an analysed package through its handler's plan.</summary>
     public static InstallContext Install(ModPackage package, InstallTarget target, Action<string> log, PlanRun? run = null) =>
-        InstallExecutor.Run(HandlerFor(package.Category).PlanInstall(package, target), target, log, run);
+        InstallExecutor.Run(PlanInstall(package, target), target, log, run);
+
+    /// <summary>The install plan of an analysed package: its handler's, with the game's limits raised for mods first.</summary>
+    public static InstallPlan PlanInstall(ModPackage package, InstallTarget target) =>
+        GamePools.WithLimits(HandlerFor(package.Category).PlanInstall(package, target), target);
 }
 
 /// <summary>

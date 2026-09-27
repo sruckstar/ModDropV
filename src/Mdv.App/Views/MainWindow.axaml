@@ -1,4 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -19,19 +20,19 @@
 
       <!-- ================= HEADER ================= -->
       <Border Grid.Row="0" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
           <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
             <c:DropMark Width="34" Height="34" />
             <StackPanel VerticalAlignment="Center" Spacing="1">
               <TextBlock Classes="brand" Text="MODDROP V" />
-              <TextBlock Classes="brand-sub" Text="INSTALL · BUILD" />
+              <TextBlock Classes="brand-sub" Text="{l:Tr 'INSTALL · BUILD'}" />
             </StackPanel>
           </StackPanel>
 
           <!-- player: the game mods are installed into; opens the game dialog -->
           <Button Grid.Column="2" Classes="chip" Classes.missing="{Binding !HasGame}" VerticalAlignment="Center"
                   IsVisible="{Binding IsPlayer}" Command="{Binding OpenGameDialogCommand}"
-                  ToolTip.Tip="The GTA V mods are installed into — click to change">
+                  ToolTip.Tip="{l:Tr 'The GTA V mods are installed into — click to change'}">
             <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="10">
               <Path Data="{StaticResource IconGame}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.6"
                     StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="22" Height="16"
@@ -42,7 +43,7 @@
                            FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Text3Brush}"
                            TextTrimming="LeadingCharacterEllipsis" />
               </StackPanel>
-              <TextBlock Grid.Column="2" Text="Change" FontSize="11" VerticalAlignment="Center"
+              <TextBlock Grid.Column="2" Text="{l:Tr 'Change'}" FontSize="11" VerticalAlignment="Center"
                          Foreground="{DynamicResource AccentBrush}" />
             </Grid>
           </Button>
@@ -50,28 +51,28 @@
           <Border Grid.Column="3" Classes="seg" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="2">
               <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding IsModder}"
-                           ToolTip.Tip="Build add-ons into a folder">
+                           ToolTip.Tip="{l:Tr 'Build add-ons into a folder'}">
                 <StackPanel Spacing="0">
-                  <TextBlock Text="For Modders" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                  <TextBlock Text="build DLC to a folder" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" />
+                  <TextBlock Text="{l:Tr 'For Modders'}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                  <TextBlock Text="{l:Tr 'build DLC to a folder'}" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" />
                 </StackPanel>
               </RadioButton>
               <RadioButton Classes="seg" GroupName="mode" IsChecked="{Binding IsPlayer}"
-                           ToolTip.Tip="Install mods straight into GTA V">
+                           ToolTip.Tip="{l:Tr 'Install mods straight into GTA V'}">
                 <StackPanel Spacing="0">
-                  <TextBlock Text="For Players" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                  <TextBlock Text="install into GTA V" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" />
+                  <TextBlock Text="{l:Tr 'For Players'}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                  <TextBlock Text="{l:Tr 'install into GTA V'}" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" />
                 </StackPanel>
               </RadioButton>
             </StackPanel>
           </Border>
 
           <Button Grid.Column="4" Classes="ghost small" VerticalAlignment="Center" MinHeight="34"
-                  Command="{Binding OpenLogCommand}" ToolTip.Tip="Build / install log">
+                  Command="{Binding OpenLogCommand}" ToolTip.Tip="{l:Tr 'Build / install log'}">
             <StackPanel Orientation="Horizontal" Spacing="7">
               <Path Data="{StaticResource IconLog}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                     StrokeLineCap="Round" Stretch="Uniform" Width="13" Height="12" VerticalAlignment="Center" />
-              <TextBlock Text="Log" VerticalAlignment="Center" />
+              <TextBlock Text="{l:Tr 'Log'}" VerticalAlignment="Center" />
               <Panel VerticalAlignment="Center" IsVisible="{Binding HasLog}">
                 <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}" />
                 <Ellipse Width="7" Height="7" Fill="{DynamicResource DangerBrush}" IsVisible="{Binding LogIsError}" />
@@ -79,8 +80,39 @@
             </StackPanel>
           </Button>
 
-          <Button Grid.Column="5" Classes="icon" Command="{Binding ToggleThemeCommand}"
-                  ToolTip.Tip="Toggle light / dark theme" VerticalAlignment="Center">
+          <!-- interface language: the menu rebuilds the window in the one picked -->
+          <Button x:Name="LangButton" Grid.Column="5" Classes="ghost small" VerticalAlignment="Center" MinHeight="34"
+                  ToolTip.Tip="{l:Tr 'Interface language'}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Data="{StaticResource IconGlobe}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.6"
+                    Stretch="Uniform" Width="14" Height="14" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding LanguageShort}" VerticalAlignment="Center" FontWeight="SemiBold" />
+            </StackPanel>
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <ItemsControl ItemsSource="{Binding Languages}" MinWidth="200">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LanguageOption">
+                      <Button Classes="ghost small" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                              BorderThickness="0"
+                              Command="{Binding #LangButton.((vm:MainViewModel)DataContext).SetLanguageCommand}"
+                              CommandParameter="{Binding Code}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                          <TextBlock Text="{Binding NativeName}" VerticalAlignment="Center" />
+                          <Path Grid.Column="1" Data="{StaticResource IconCheck}" Stroke="{DynamicResource AccentBrush}"
+                                StrokeThickness="2" Stretch="Uniform" Width="11" Height="9" VerticalAlignment="Center"
+                                IsVisible="{Binding IsCurrent}" />
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <Button Grid.Column="6" Classes="icon" Command="{Binding ToggleThemeCommand}"
+                  ToolTip.Tip="{l:Tr 'Toggle light / dark theme'}" VerticalAlignment="Center">
             <Panel Width="20" Height="20">
               <PathIcon Data="{StaticResource IconSun}" Width="18" Height="18" IsVisible="{Binding IsDark}" />
               <PathIcon Data="{StaticResource IconMoon}" Width="16" Height="16" IsVisible="{Binding !IsDark}" />
@@ -98,20 +130,20 @@
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Path Data="{StaticResource IconDrop}" Stroke="{Binding $parent[RadioButton].Foreground}" StrokeThickness="1.8"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="13" Height="13" />
-                <TextBlock Text="Install" />
+                <TextBlock Text="{l:Tr 'Install'}" />
               </StackPanel>
             </RadioButton>
             <RadioButton Classes="tab" GroupName="page" IsChecked="{Binding IsLibraryPage}"
-                         ToolTip.Tip="What ModDrop V installed into this game">
+                         ToolTip.Tip="{l:Tr 'What ModDrop V installed into this game'}">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Path Data="{StaticResource IconLayers}" Stroke="{Binding $parent[RadioButton].Foreground}" StrokeThickness="1.7"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="13" Height="13" />
-                <TextBlock Text="Library" />
+                <TextBlock Text="{l:Tr 'Library'}" />
                 <Border Classes="count" IsVisible="{Binding HasInstalled}">
                   <TextBlock Text="{Binding InstalledCount}" />
                 </Border>
                 <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center"
-                         IsVisible="{Binding HasPendingChanges}" ToolTip.Tip="Changes waiting to be applied" />
+                         IsVisible="{Binding HasPendingChanges}" ToolTip.Tip="{l:Tr 'Changes waiting to be applied'}" />
               </StackPanel>
             </RadioButton>
           </StackPanel>
@@ -128,7 +160,7 @@
                   <StackPanel Orientation="Horizontal" Spacing="7">
                     <TextBlock Text="{Binding Label}" />
                     <Border Classes="count soon" IsVisible="{Binding Soon}">
-                      <TextBlock Text="soon" />
+                      <TextBlock Text="{l:Tr 'soon'}" />
                     </Border>
                   </StackPanel>
                 </RadioButton>
@@ -138,13 +170,13 @@
 
           <!-- modder: the game build every add-on type is packed for -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" IsVisible="{Binding IsModder}">
-            <TextBlock Classes="desc" Text="Game version" VerticalAlignment="Center" />
+            <TextBlock Classes="desc" Text="{l:Tr 'Game version'}" VerticalAlignment="Center" />
             <Border Classes="seg small">
               <StackPanel Orientation="Horizontal" Spacing="2">
                 <RadioButton Classes="seg" GroupName="edition" IsChecked="{Binding IsLegacy}" Content="Legacy"
-                             ToolTip.Tip="GTA V Legacy (GTA5.exe)" />
+                             ToolTip.Tip="{l:Tr 'GTA V Legacy (GTA5.exe)'}" />
                 <RadioButton Classes="seg" GroupName="edition" IsChecked="{Binding IsEnhanced}" Content="Enhanced"
-                             ToolTip.Tip="GTA V Enhanced (GTA5_Enhanced.exe): models are converted to gen9" />
+                             ToolTip.Tip="{l:Tr 'GTA V Enhanced (GTA5_Enhanced.exe): models are converted to gen9'}" />
               </StackPanel>
             </Border>
           </StackPanel>
@@ -152,7 +184,7 @@
           <!-- player: how the game stands; opens the library, where the full status is -->
           <Button Grid.Column="2" Classes="pill" Classes.warn="{Binding StatusHasWarnings}" VerticalAlignment="Center"
                   IsVisible="{Binding HasStatus}" Command="{Binding ShowLibraryCommand}"
-                  ToolTip.Tip="Game status — mods folder, loaders, ScriptHookV, DLC packs">
+                  ToolTip.Tip="{l:Tr 'Game status — mods folder, loaders, ScriptHookV, DLC packs'}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Panel Width="8" Height="8" VerticalAlignment="Center">
                 <Ellipse Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding !StatusHasWarnings}" />
@@ -175,9 +207,9 @@
               <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
                   <TextBlock Classes="idx" Text="01" />
-                  <TextBlock Grid.Column="1" Classes="h" Text="SOURCE" />
+                  <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'SOURCE'}" />
                   <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
-                             TextTrimming="CharacterEllipsis" Text="The mod as you downloaded it — a folder or an archive" />
+                             TextTrimming="CharacterEllipsis" Text="{l:Tr 'The mod as you downloaded it — a folder or an archive'}" />
                 </Grid>
 
                 <!-- the whole window accepts the drop, this is where it shows -->
@@ -191,23 +223,23 @@
                           StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="28" Height="28"
                           VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                      <TextBlock Text="Drop a mod here" FontWeight="SemiBold" FontSize="15"
+                      <TextBlock Text="{l:Tr 'Drop a mod here'}" FontWeight="SemiBold" FontSize="15"
                                  FontFamily="{StaticResource DisplayFont}" LetterSpacing="0.6" />
                       <TextBlock Classes="desc"
-                                 Text="Folder, .zip, .rar, .7z or .oiv — ModDrop V looks inside, tells you what it is and shows every step before installing." />
+                                 Text="{l:Tr 'Folder, .zip, .rar, .7z or .oiv — ModDrop V looks inside, tells you what it is and shows every step before installing.'}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
                       <Button Classes="ghost small" HorizontalAlignment="Stretch" Command="{Binding BrowseSourceFolderCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                           <PathIcon Data="{StaticResource IconFolder}" Width="12" Height="12" />
-                          <TextBlock Text="Choose folder…" />
+                          <TextBlock Text="{l:Tr 'Choose folder…'}" />
                         </StackPanel>
                       </Button>
                       <Button Classes="ghost small" HorizontalAlignment="Stretch" Command="{Binding BrowseSourceArchiveCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                           <Path Data="{StaticResource IconArchive}" Stroke="{Binding $parent[Button].Foreground}"
                                 StrokeThickness="1.6" StrokeJoin="Round" Stretch="Uniform" Width="12" Height="12" />
-                          <TextBlock Text="Choose archive…" />
+                          <TextBlock Text="{l:Tr 'Choose archive…'}" />
                         </StackPanel>
                       </Button>
                     </StackPanel>
@@ -218,13 +250,13 @@
                     <TextBlock Text="{Binding PrepareStatus}" HorizontalAlignment="Center" FontSize="13"
                                TextTrimming="CharacterEllipsis" FontFamily="{StaticResource DisplayFont}" />
                     <ProgressBar IsIndeterminate="True" Height="3" MinHeight="3" MaxWidth="320" />
-                    <Button Classes="ghost small" Content="Cancel" HorizontalAlignment="Center"
+                    <Button Classes="ghost small" Content="{l:Tr 'Cancel'}" HorizontalAlignment="Center"
                             Command="{Binding ClearPlayerSourceCommand}" />
                   </StackPanel>
 
                   <!-- loaded -->
                   <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14" Margin="18,12" IsVisible="{Binding HasDrop}"
-                        VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="Drop something else here to replace it">
+                        VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{l:Tr 'Drop something else here to replace it'}">
                     <Border Width="46" Height="46" CornerRadius="23" Background="{DynamicResource AccentWashBrush}"
                             BorderBrush="{DynamicResource AccentLineBrush}" BorderThickness="1">
                       <Path Data="{StaticResource IconArchive}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.6"
@@ -236,10 +268,10 @@
                       <TextBlock Text="{Binding DropSummary}" FontSize="12" Foreground="{DynamicResource Text2Brush}"
                                  FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" />
                     </StackPanel>
-                    <Button Grid.Column="2" Classes="ghost small" Content="Change…" VerticalAlignment="Center"
-                            Command="{Binding BrowseSourceArchiveCommand}" ToolTip.Tip="Pick another archive" />
+                    <Button Grid.Column="2" Classes="ghost small" Content="{l:Tr 'Change…'}" VerticalAlignment="Center"
+                            Command="{Binding BrowseSourceArchiveCommand}" ToolTip.Tip="{l:Tr 'Pick another archive'}" />
                     <Button Grid.Column="3" Classes="icon" VerticalAlignment="Center" Command="{Binding ClearPlayerSourceCommand}"
-                            ToolTip.Tip="Clear">
+                            ToolTip.Tip="{l:Tr 'Clear'}">
                       <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
                             Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
                     </Button>
@@ -248,7 +280,7 @@
 
                 <!-- what the drop holds: pick the mod to install -->
                 <StackPanel Spacing="6" IsVisible="{Binding HasDetected}">
-                  <TextBlock Classes="label" Text="FOUND IN IT" Margin="0" />
+                  <TextBlock Classes="label" Text="{l:Tr 'FOUND IN IT'}" Margin="0" />
                   <ItemsControl ItemsSource="{Binding Detected}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>
@@ -306,23 +338,23 @@
               <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
                   <TextBlock Classes="idx" Text="02" />
-                  <TextBlock Grid.Column="1" Classes="h" Text="OUTPUT" />
+                  <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'OUTPUT'}" />
                   <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
-                             TextTrimming="CharacterEllipsis" Text="Where to save the finished Add-On" />
+                             TextTrimming="CharacterEllipsis" Text="{l:Tr 'Where to save the finished Add-On'}" />
                   <Border Grid.Column="3" Classes="seg small">
                     <StackPanel Orientation="Horizontal" Spacing="2">
-                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding PackRpf}" Content="Pack · dlc.rpf" />
-                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding LooseFolders}" Content="Loose folders"
-                                   ToolTip.Tip="Unpacked *.rpf folders, to pack with CodeWalker yourself" />
+                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding PackRpf}" Content="{l:Tr 'Pack · dlc.rpf'}" />
+                      <RadioButton Classes="seg" GroupName="fmt" IsChecked="{Binding LooseFolders}" Content="{l:Tr 'Loose folders'}"
+                                   ToolTip.Tip="{l:Tr 'Unpacked *.rpf folders, to pack with CodeWalker yourself'}" />
                     </StackPanel>
                   </Border>
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <TextBox Classes="path" Text="{Binding OutputFolder}" PlaceholderText="Output folder" />
+                  <TextBox Classes="path" Text="{Binding OutputFolder}" PlaceholderText="{l:Tr 'Output folder'}" />
                   <Button Grid.Column="1" Classes="ghost" Command="{Binding BrowseOutputCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
                       <PathIcon Data="{StaticResource IconFolder}" Width="14" Height="14" />
-                      <TextBlock Text="Browse…" />
+                      <TextBlock Text="{l:Tr 'Browse…'}" />
                     </StackPanel>
                   </Button>
                 </Grid>
@@ -368,21 +400,21 @@
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14" VerticalAlignment="Center" Margin="4,0">
               <StackPanel Classes="step">
                 <TextBlock Classes="step-no" Text="1" />
-                <TextBlock Classes="step-title" Text="Drop" />
+                <TextBlock Classes="step-title" Text="{l:Tr 'Drop'}" />
                 <TextBlock Classes="desc" TextAlignment="Center"
-                           Text="The mod exactly as you downloaded it. Nested archives are unpacked, readmes skipped." />
+                           Text="{l:Tr 'The mod exactly as you downloaded it. Nested archives are unpacked, readmes skipped.'}" />
               </StackPanel>
               <StackPanel Grid.Column="1" Classes="step">
                 <TextBlock Classes="step-no" Text="2" />
-                <TextBlock Classes="step-title" Text="Check" />
+                <TextBlock Classes="step-title" Text="{l:Tr 'Check'}" />
                 <TextBlock Classes="desc" TextAlignment="Center"
-                           Text="See what was found, adjust the settings, then read every step the install will take." />
+                           Text="{l:Tr 'See what was found, adjust the settings, then read every step the install will take.'}" />
               </StackPanel>
               <StackPanel Grid.Column="2" Classes="step">
                 <TextBlock Classes="step-no" Text="3" />
-                <TextBlock Classes="step-title" Text="Play" />
+                <TextBlock Classes="step-title" Text="{l:Tr 'Play'}" />
                 <TextBlock Classes="desc" TextAlignment="Center"
-                           Text="Installed through the mods folder — switch it off or remove it any time in the Library." />
+                           Text="{l:Tr 'Installed through the mods folder — switch it off or remove it any time in the Library.'}" />
               </StackPanel>
             </Grid>
           </Border>
@@ -430,11 +462,11 @@
         <Border Classes="card" Padding="16,13,6,13">
           <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
             <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,10,0">
-              <TextBlock Classes="h" Text="INSTALLED MODS" />
+              <TextBlock Classes="h" Text="{l:Tr 'INSTALLED MODS'}" />
               <Border Grid.Column="1" Classes="badge" IsVisible="{Binding HasInstalled}" VerticalAlignment="Center">
                 <TextBlock Text="{Binding InstalledCount}" />
               </Border>
-              <TextBox Grid.Column="3" Classes="search" Width="230" Text="{Binding LibrarySearch}" PlaceholderText="Search"
+              <TextBox Grid.Column="3" Classes="search" Width="230" Text="{Binding LibrarySearch}" PlaceholderText="{l:Tr 'Search'}"
                        IsVisible="{Binding HasInstalled}">
                 <TextBox.InnerLeftContent>
                   <Path Data="{StaticResource IconSearch}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.7"
@@ -442,7 +474,7 @@
                 </TextBox.InnerLeftContent>
               </TextBox>
               <Button Grid.Column="4" Classes="icon" Command="{Binding RefreshLibraryCommand}" VerticalAlignment="Center"
-                      ToolTip.Tip="Read the game folder again">
+                      ToolTip.Tip="{l:Tr 'Read the game folder again'}">
                 <Path Data="{StaticResource IconRefresh}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
               </Button>
@@ -470,7 +502,7 @@
 
             <ScrollViewer Grid.Row="2" IsVisible="{Binding HasInstalled}" Padding="0,0,10,0">
               <StackPanel Spacing="6">
-                <TextBlock Classes="desc" IsVisible="{Binding LibraryNoMatch}" Text="Nothing installed matches this filter." />
+                <TextBlock Classes="desc" IsVisible="{Binding LibraryNoMatch}" Text="{l:Tr 'Nothing installed matches this filter.'}" />
                 <ItemsControl ItemsSource="{Binding InstalledView}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -508,19 +540,19 @@
                           <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
                                       IsVisible="{Binding HasConflicts}">
                             <Border Classes="badge conflict" VerticalAlignment="Center" ToolTip.Tip="{Binding ConflictsTip}">
-                              <TextBlock Text="conflict" />
+                              <TextBlock Text="{l:Tr 'conflict'}" />
                             </Border>
                             <Button Classes="ghost small" Padding="7,2" MinHeight="22" VerticalAlignment="Center"
                                     Command="{Binding RaiseCommand}" IsVisible="{Binding CanRaise}"
-                                    ToolTip.Tip="Put this mod's files on top of the others' (shows the plan first)">
-                              <TextBlock Text="on top" FontSize="11" />
+                                    ToolTip.Tip="{l:Tr 'Put this mod’s files on top of the others’ (shows the plan first)'}">
+                              <TextBlock Text="{l:Tr 'on top'}" FontSize="11" />
                             </Button>
                           </StackPanel>
                           <Border Grid.Column="4" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
                             <TextBlock Text="{Binding Status}" />
                           </Border>
                           <Button Grid.Column="5" Classes="icon" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}"
-                                  IsVisible="{Binding CanOpenFolder}" ToolTip.Tip="Open its folder">
+                                  IsVisible="{Binding CanOpenFolder}" ToolTip.Tip="{l:Tr 'Open its folder'}">
                             <PathIcon Data="{StaticResource IconFolder}" Width="15" Height="15" />
                           </Button>
                           <Button Grid.Column="6" Classes="icon" VerticalAlignment="Center" Command="{Binding ToggleRemoveCommand}"
@@ -545,18 +577,18 @@
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                 <StackPanel VerticalAlignment="Center" Spacing="1">
                   <TextBlock Text="{Binding PendingSummary}" FontWeight="SemiBold" FontSize="12.5" />
-                  <TextBlock Classes="desc" FontSize="11" Text="Nothing changes in the game until you apply." />
+                  <TextBlock Classes="desc" FontSize="11" Text="{l:Tr 'Nothing changes in the game until you apply.'}" />
                 </StackPanel>
-                <Button Grid.Column="1" Classes="ghost small" Content="Revert" VerticalAlignment="Center"
+                <Button Grid.Column="1" Classes="ghost small" Content="{l:Tr 'Revert'}" VerticalAlignment="Center"
                         Command="{Binding RevertInstalledCommand}" />
                 <Button Grid.Column="2" Classes="primary" Padding="16,7" FontSize="12.5" VerticalAlignment="Center"
-                        Command="{Binding ReviewChangesCommand}" ToolTip.Tip="See the steps, then apply them">
-                  <TextBlock Text="Apply changes…" />
+                        Command="{Binding ReviewChangesCommand}" ToolTip.Tip="{l:Tr 'See the steps, then apply them'}">
+                  <TextBlock Text="{l:Tr 'Apply changes…'}" />
                 </Button>
               </Grid>
             </Border>
             <TextBlock Grid.Row="3" Classes="desc" Margin="0,2,10,0" IsVisible="{Binding !HasPendingChanges}"
-                       Text="Untick to switch a mod off, the bin removes it — the changes are applied together after a look at the plan."
+                       Text="{l:Tr 'Untick to switch a mod off, the bin removes it — the changes are applied together after a look at the plan.'}"
                        />
           </Grid>
         </Border>
@@ -565,9 +597,9 @@
         <Border Grid.Column="1" Classes="card" Padding="16,13,6,13">
           <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
             <Grid ColumnDefinitions="*,Auto" Margin="0,0,10,0">
-              <TextBlock Classes="h" Text="GAME STATUS" />
+              <TextBlock Classes="h" Text="{l:Tr 'GAME STATUS'}" />
               <Button Grid.Column="1" Classes="icon" Command="{Binding RefreshStatusCommand}" VerticalAlignment="Center"
-                      ToolTip.Tip="Check again">
+                      ToolTip.Tip="{l:Tr 'Check again'}">
                 <Path Data="{StaticResource IconRefresh}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
               </Button>
@@ -575,7 +607,7 @@
             <ScrollViewer Grid.Row="1" Padding="0,0,10,0">
               <StackPanel Spacing="10">
                 <TextBlock Classes="desc" IsVisible="{Binding !HasStatus}"
-                           Text="Choose the GTA V folder (the chip at the top) to see how it stands." />
+                           Text="{l:Tr 'Choose the GTA V folder (the chip at the top) to see how it stands.'}" />
                 <ItemsControl ItemsSource="{Binding StatusRows}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -603,18 +635,18 @@
                     <TextBlock Text="{Binding StaleCopiesText}" TextWrapping="Wrap" FontSize="12"
                                Foreground="{DynamicResource Text1Brush}" />
                     <Button Classes="ghost small" HorizontalAlignment="Left" Command="{Binding UpdateCopiesCommand}"
-                            ToolTip.Tip="Fresh copies from the updated game, with every mod's changes put back">
+                            ToolTip.Tip="{l:Tr 'Fresh copies from the updated game, with every mod’s changes put back'}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <Path Data="{StaticResource IconRefresh}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                               StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
-                        <TextBlock Text="Update copies…" />
+                        <TextBlock Text="{l:Tr 'Update copies…'}" />
                       </StackPanel>
                     </Button>
                   </StackPanel>
                 </Border>
               </StackPanel>
             </ScrollViewer>
-            <TextBlock Grid.Row="2" Classes="hint" Margin="0,0,10,0" Text="Hover a line for details." IsVisible="{Binding HasStatus}" />
+            <TextBlock Grid.Row="2" Classes="hint" Margin="0,0,10,0" Text="{l:Tr 'Hover a line for details.'}" IsVisible="{Binding HasStatus}" />
           </Grid>
         </Border>
       </Grid>
@@ -648,9 +680,9 @@
                 <TextBlock Text="{Binding ResultDetail}" FontSize="12" Foreground="{DynamicResource Text2Brush}"
                            TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
               </StackPanel>
-              <Button Grid.Column="2" Classes="ghost small" Content="Show log" VerticalAlignment="Center"
+              <Button Grid.Column="2" Classes="ghost small" Content="{l:Tr 'Show log'}" VerticalAlignment="Center"
                       Command="{Binding OpenLogCommand}" IsVisible="{Binding HasLog}" />
-              <Button Grid.Column="3" Classes="ghost small" Content="Open folder" VerticalAlignment="Center"
+              <Button Grid.Column="3" Classes="ghost small" Content="{l:Tr 'Open folder'}" VerticalAlignment="Center"
                       Command="{Binding OpenResultCommand}" IsVisible="{Binding HasResultPath}" />
               <Button Grid.Column="4" Classes="icon" VerticalAlignment="Top" Command="{Binding DismissResultCommand}">
                 <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
@@ -678,11 +710,11 @@
                     StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="24" Height="18" />
             </Border>
             <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-              <TextBlock Classes="h" Text="YOUR GTA V" />
-              <TextBlock Classes="desc" Text="Mods are installed straight into this game. Choose the folder with GTA5.exe or GTA5_Enhanced.exe." />
+              <TextBlock Classes="h" Text="{l:Tr 'YOUR GTA V'}" />
+              <TextBlock Classes="desc" Text="{l:Tr 'Mods are installed straight into this game. Choose the folder with GTA5.exe or GTA5_Enhanced.exe.'}" />
             </StackPanel>
             <Button Grid.Column="2" Classes="icon" VerticalAlignment="Top" Command="{Binding CloseGameDialogCommand}"
-                    ToolTip.Tip="Close">
+                    ToolTip.Tip="{l:Tr 'Close'}">
               <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
                     Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
             </Button>
@@ -691,10 +723,10 @@
           <!-- installs found on this PC -->
           <StackPanel Spacing="8" IsVisible="{Binding IsSearchingGames}" Orientation="Horizontal">
             <ProgressBar IsIndeterminate="True" Width="80" Height="3" MinHeight="3" MinWidth="0" VerticalAlignment="Center" />
-            <TextBlock Classes="desc" Text="Looking for GTA V on this PC…" VerticalAlignment="Center" />
+            <TextBlock Classes="desc" Text="{l:Tr 'Looking for GTA V on this PC…'}" VerticalAlignment="Center" />
           </StackPanel>
           <StackPanel Spacing="6" IsVisible="{Binding HasGameCandidates}">
-            <TextBlock Classes="label" Text="FOUND ON THIS PC" Margin="0" />
+            <TextBlock Classes="label" Text="{l:Tr 'FOUND ON THIS PC'}" Margin="0" />
             <ItemsControl ItemsSource="{Binding GameCandidates}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -711,7 +743,7 @@
                       </Border>
                       <TextBlock Grid.Column="1" Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="12"
                                  VerticalAlignment="Center" TextTrimming="LeadingCharacterEllipsis" />
-                      <TextBlock Grid.Column="2" Text="Use" FontSize="12" Foreground="{DynamicResource AccentBrush}"
+                      <TextBlock Grid.Column="2" Text="{l:Tr 'Use'}" FontSize="12" Foreground="{DynamicResource AccentBrush}"
                                  VerticalAlignment="Center" />
                     </Grid>
                   </Button>
@@ -721,13 +753,13 @@
           </StackPanel>
 
           <StackPanel>
-            <TextBlock Classes="label" Text="GAME FOLDER" />
+            <TextBlock Classes="label" Text="{l:Tr 'GAME FOLDER'}" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-              <TextBox Classes="path" Text="{Binding GameFolder}" PlaceholderText="GTA V game folder" />
+              <TextBox Classes="path" Text="{Binding GameFolder}" PlaceholderText="{l:Tr 'GTA V game folder'}" />
               <Button Grid.Column="1" Classes="ghost" Command="{Binding BrowseGameCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="7">
                   <PathIcon Data="{StaticResource IconFolder}" Width="14" Height="14" />
-                  <TextBlock Text="Browse…" />
+                  <TextBlock Text="{l:Tr 'Browse…'}" />
                 </StackPanel>
               </Button>
             </Grid>
@@ -736,7 +768,7 @@
 
           <!-- detected from the executable; only a folder with both needs a choice -->
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Classes="desc" Text="Game version" VerticalAlignment="Center" />
+            <TextBlock Classes="desc" Text="{l:Tr 'Game version'}" VerticalAlignment="Center" />
             <Border Classes="seg">
               <StackPanel Orientation="Horizontal" Spacing="2">
                 <RadioButton Classes="seg" GroupName="edition-game" IsChecked="{Binding IsLegacy}" Content="Legacy" />
@@ -746,16 +778,12 @@
           </StackPanel>
 
           <TextBlock Classes="hint" Margin="0">
-            <Run Text="Everything goes into the game's " /><Run Text="mods" FontWeight="SemiBold" />
-            <Run Text=" folder — the original files stay untouched. A game without mod support gets it set up: " />
-            <Run Text="OpenIV.asi" FontWeight="SemiBold" /><Run Text=" + ASI loader (Legacy) or " />
-            <Run Text="DSOUND.dll" FontWeight="SemiBold" /><Run Text=" (Enhanced), the " />
-            <Run Text="mods" FontWeight="SemiBold" /><Run Text=" folder and a copy of update.rpf." />
+            <Run Text="{l:Tr 'Everything goes into the game’s mods folder — the original files stay untouched. A game without mod support gets it set up: RageOpenV.asi + ASI loader, the mods folder and a copy of update.rpf.'}" />
           </TextBlock>
 
           <Button Classes="primary" HorizontalAlignment="Right" MinWidth="140" Padding="22,9"
                   Command="{Binding CloseGameDialogCommand}" IsEnabled="{Binding HasGame}">
-            <TextBlock Text="Done" HorizontalAlignment="Center" />
+            <TextBlock Text="{l:Tr 'Done'}" HorizontalAlignment="Center" />
           </Button>
         </StackPanel>
       </Border>
@@ -772,12 +800,12 @@
                     StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="20" Height="18" />
             </Border>
             <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-              <TextBlock Classes="h" Text="WHAT WILL BE DONE" />
+              <TextBlock Classes="h" Text="{l:Tr 'WHAT WILL BE DONE'}" />
               <TextBlock Text="{Binding PlanTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="SemiBold"
                          TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <Button Grid.Column="2" Classes="icon" VerticalAlignment="Top" Command="{Binding ClosePlanCommand}"
-                    ToolTip.Tip="Close">
+                    ToolTip.Tip="{l:Tr 'Close'}">
               <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
                     Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
             </Button>
@@ -846,7 +874,7 @@
           <TextBlock Classes="hint" Margin="0" Text="{Binding PlanNote}" />
 
           <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-            <Button Classes="ghost" Content="Cancel" MinWidth="110" Command="{Binding ClosePlanCommand}" />
+            <Button Classes="ghost" Content="{l:Tr 'Cancel'}" MinWidth="110" Command="{Binding ClosePlanCommand}" />
             <Button Classes="primary" MinWidth="160" Padding="22,9" Command="{Binding ConfirmPlanCommand}">
               <TextBlock Text="{Binding PlanConfirmText}" HorizontalAlignment="Center" />
             </Button>
@@ -868,7 +896,7 @@
             </Border>
             <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Classes="h" Text="3D PREVIEW" VerticalAlignment="Center" />
+                <TextBlock Classes="h" Text="{l:Tr '3D PREVIEW'}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding PreviewTitle}" FontFamily="{StaticResource MonoFont}" FontSize="12.5"
                            Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
               </StackPanel>
@@ -876,23 +904,23 @@
                          TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <CheckBox Grid.Column="2" IsChecked="{Binding PreviewTextured}" VerticalAlignment="Center"
-                      ToolTip.Tip="Off: a plain material, to judge the shape">
-              <TextBlock Text="Textures" FontSize="12.5" />
+                      ToolTip.Tip="{l:Tr 'Off: a plain material, to judge the shape'}">
+              <TextBlock Text="{l:Tr 'Textures'}" FontSize="12.5" />
             </CheckBox>
             <CheckBox Grid.Column="3" IsChecked="{Binding PreviewAutoRotate}" VerticalAlignment="Center"
-                      ToolTip.Tip="Keep the model turning">
-              <TextBlock Text="Turntable" FontSize="12.5" />
+                      ToolTip.Tip="{l:Tr 'Keep the model turning'}">
+              <TextBlock Text="{l:Tr 'Turntable'}" FontSize="12.5" />
             </CheckBox>
             <Button Grid.Column="4" Classes="ghost small" VerticalAlignment="Center" Command="{Binding ResetPreviewViewCommand}"
-                    ToolTip.Tip="Frame the model again (or double-click it)">
+                    ToolTip.Tip="{l:Tr 'Frame the model again (or double-click it)'}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Path Data="{StaticResource IconReset}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
-                <TextBlock Text="Reset view" />
+                <TextBlock Text="{l:Tr 'Reset view'}" />
               </StackPanel>
             </Button>
             <Button Grid.Column="5" Classes="icon" VerticalAlignment="Center" Command="{Binding ClosePreviewCommand}"
-                    ToolTip.Tip="Close">
+                    ToolTip.Tip="{l:Tr 'Close'}">
               <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
                     Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
             </Button>
@@ -907,7 +935,7 @@
                 <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="10" Padding="12,5" CornerRadius="14"
                         Background="{DynamicResource ScrimBrush}" IsHitTestVisible="False">
                   <TextBlock FontSize="11.5" Foreground="#E6EEF2F7" TextWrapping="Wrap" TextAlignment="Center"
-                             Text="Drag — turn  ·  wheel — zoom  ·  right-drag or Shift+drag — move  ·  double-click — frame" />
+                             Text="{l:Tr 'Drag — turn  ·  wheel — zoom  ·  right-drag or Shift+drag — move  ·  double-click — frame'}" />
                 </Border>
               </Panel>
             </Border>
@@ -916,12 +944,12 @@
               <!-- tints: the rows of the weapon's tint palette, as the game's tint index picks them -->
               <StackPanel Spacing="6" Margin="0,0,0,10" IsVisible="{Binding HasPreviewTints}">
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                  <TextBlock Classes="label" Text="TINTS" Margin="0" VerticalAlignment="Center" />
+                  <TextBlock Classes="label" Text="{l:Tr 'TINTS'}" Margin="0" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="1" Text="{Binding PreviewTintLabel}" FontSize="12" HorizontalAlignment="Right"
                              VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" TextTrimming="CharacterEllipsis" />
                 </Grid>
                 <TextBlock Classes="desc" FontSize="11.5" TextWrapping="Wrap"
-                           Text="The colours the weapon's tint palette gives it — pick one to see it on the model." />
+                           Text="{l:Tr 'The colours the weapon’s tint palette gives it — pick one to see it on the model.'}" />
                 <ItemsControl ItemsSource="{Binding PreviewTints}" Margin="-3,0,0,0">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -940,9 +968,9 @@
               </StackPanel>
 
               <StackPanel Grid.Row="1" Spacing="2">
-                <TextBlock Classes="label" Text="PARTS" Margin="0" />
+                <TextBlock Classes="label" Text="{l:Tr 'PARTS'}" Margin="0" />
                 <TextBlock Classes="desc" FontSize="11.5"
-                           Text="Components hang on the weapon's attach bones — one per bone, as in the game." />
+                           Text="{l:Tr 'Components hang on the weapon’s attach bones — one per bone, as in the game.'}" />
               </StackPanel>
               <ScrollViewer Grid.Row="2" Padding="0,0,8,0">
                 <ItemsControl ItemsSource="{Binding PreviewPieces}">
@@ -1000,7 +1028,7 @@
             </Border>
             <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Classes="h" Text="3D PREVIEW" VerticalAlignment="Center" />
+                <TextBlock Classes="h" Text="{l:Tr '3D PREVIEW'}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Title}" FontFamily="{StaticResource MonoFont}" FontSize="12.5"
                            Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
               </StackPanel>
@@ -1008,23 +1036,23 @@
                          TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <CheckBox Grid.Column="2" IsChecked="{Binding Textured}" VerticalAlignment="Center"
-                      ToolTip.Tip="Off: a plain material, to judge the shape">
-              <TextBlock Text="Textures" FontSize="12.5" />
+                      ToolTip.Tip="{l:Tr 'Off: a plain material, to judge the shape'}">
+              <TextBlock Text="{l:Tr 'Textures'}" FontSize="12.5" />
             </CheckBox>
             <CheckBox Grid.Column="3" IsChecked="{Binding AutoRotate}" VerticalAlignment="Center"
-                      ToolTip.Tip="Keep the model turning">
-              <TextBlock Text="Turntable" FontSize="12.5" />
+                      ToolTip.Tip="{l:Tr 'Keep the model turning'}">
+              <TextBlock Text="{l:Tr 'Turntable'}" FontSize="12.5" />
             </CheckBox>
             <Button Grid.Column="4" Classes="ghost small" VerticalAlignment="Center" Command="{Binding ResetViewCommand}"
-                    ToolTip.Tip="Frame the model again (or double-click it)">
+                    ToolTip.Tip="{l:Tr 'Frame the model again (or double-click it)'}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Path Data="{StaticResource IconReset}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
-                <TextBlock Text="Reset view" />
+                <TextBlock Text="{l:Tr 'Reset view'}" />
               </StackPanel>
             </Button>
             <Button Grid.Column="5" Classes="icon" VerticalAlignment="Center" Command="{Binding CloseCommand}"
-                    ToolTip.Tip="Close">
+                    ToolTip.Tip="{l:Tr 'Close'}">
               <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
                     Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
             </Button>
@@ -1038,16 +1066,16 @@
                 <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="10" Padding="12,5" CornerRadius="14"
                         Background="{DynamicResource ScrimBrush}" IsHitTestVisible="False">
                   <TextBlock FontSize="11.5" Foreground="#E6EEF2F7" TextWrapping="Wrap" TextAlignment="Center"
-                             Text="Drag — turn  ·  wheel — zoom  ·  right-drag or Shift+drag — move  ·  double-click — frame" />
+                             Text="{l:Tr 'Drag — turn  ·  wheel — zoom  ·  right-drag or Shift+drag — move  ·  double-click — frame'}" />
                 </Border>
               </Panel>
             </Border>
 
             <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" RowSpacing="8">
               <StackPanel Spacing="2">
-                <TextBlock Classes="label" Text="PARTS" Margin="0" />
+                <TextBlock Classes="label" Text="{l:Tr 'PARTS'}" Margin="0" />
                 <TextBlock Classes="desc" FontSize="11.5" TextWrapping="Wrap"
-                           Text="A ped wears one drawable per slot, as in the game — pick another to see it. Textures the game shares between vehicles aren't in the mod: those surfaces are drawn plain." />
+                           Text="{Binding PartsHint}" />
               </StackPanel>
               <ScrollViewer Grid.Row="1" Padding="0,0,8,0">
                 <ItemsControl ItemsSource="{Binding Pieces}">
@@ -1101,13 +1129,13 @@
               <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}" IsVisible="{Binding !LogIsError}" />
               <Ellipse Width="7" Height="7" Fill="{DynamicResource DangerBrush}" IsVisible="{Binding LogIsError}" />
             </Panel>
-            <TextBlock Grid.Column="1" Classes="h" Text="LOG" Margin="4,0,0,0" />
-            <Button Grid.Column="2" Classes="ghost small" Content="Log file" Command="{Binding OpenLogFolderCommand}"
-                    ToolTip.Tip="Open the folder with moddropv.log" />
+            <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'LOG'}" Margin="4,0,0,0" />
+            <Button Grid.Column="2" Classes="ghost small" Content="{l:Tr 'Log file'}" Command="{Binding OpenLogFolderCommand}"
+                    ToolTip.Tip="{l:Tr 'Open the folder with moddropv.log'}" />
             <Button Grid.Column="3" Classes="ghost small" Content="{Binding CopyLogLabel}" Command="{Binding CopyLogCommand}"
                     IsEnabled="{Binding HasLog}" />
             <Button Grid.Column="4" Classes="icon" VerticalAlignment="Center" Command="{Binding CloseLogCommand}"
-                    ToolTip.Tip="Close">
+                    ToolTip.Tip="{l:Tr 'Close'}">
               <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
                     Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
             </Button>
@@ -1115,7 +1143,7 @@
           <ScrollViewer Grid.Row="1" x:Name="LogScroll" Padding="20,0,16,16">
             <Panel>
               <TextBlock Classes="desc" IsVisible="{Binding !HasLog}"
-                         Text="Nothing built or installed yet — the log of the next build or install appears here." />
+                         Text="{l:Tr 'Nothing built or installed yet — the log of the next build or install appears here.'}" />
               <SelectableTextBlock Classes="log" Text="{Binding LogText}" IsVisible="{Binding HasLog}" />
             </Panel>
           </ScrollViewer>
@@ -1138,7 +1166,7 @@
                      TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text3Brush}" />
           <Button Classes="ghost small" HorizontalAlignment="Center" Command="{Binding CancelRunCommand}"
                   IsVisible="{Binding CanCancelRun}"
-                  ToolTip.Tip="Stop after the step that is running — everything done so far is taken back and the game is as it was">
+                  ToolTip.Tip="{l:Tr 'Stop after the step that is running — everything done so far is taken back and the game is as it was'}">
             <TextBlock Text="{Binding CancelRunText}" />
           </Button>
         </StackPanel>

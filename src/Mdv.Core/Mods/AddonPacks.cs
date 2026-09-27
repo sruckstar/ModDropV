@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.RegularExpressions;
 using Mdv.Core.Index;
 using Mdv.Core.Rpf;
@@ -40,6 +41,11 @@ public sealed class AddonPackage : ModPackage
     public bool ReplaceOnly => LooseClothing is not null && Replace?.Wearer is { IsMp: false };
     /// <summary>Install the Replace version instead of the add-on.</summary>
     public bool UseReplace { get; set; }
+    /// <summary>
+    /// Clothing: how the add-on goes in — its MP clothes as new slots of the game's last collections (the game can't take
+    /// a collection more); null: it has none.
+    /// </summary>
+    public ReplacementPackage? Slots { get; set; }
 
     /// <summary>Renumber modkits another pack uses (on by default).</summary>
     public bool FixKits { get; set; } = true;
@@ -90,8 +96,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     };
     private string Noun => Category switch
     {
-        ModCategory.Ped => "ped", ModCategory.Clothing => "clothing collection", ModCategory.Map => "placement file", ModCategory.Prop => "prop",
-        _ => "vehicle",
+        ModCategory.Ped => L.T("ped"), ModCategory.Clothing => L.T("clothing collection"), ModCategory.Map => L.T("placement file"), ModCategory.Prop => L.T("prop"),
+        _ => L.T("vehicle"),
+    };
+    private string NounPlural => Category switch
+    {
+        ModCategory.Ped => L.T("peds"), ModCategory.Clothing => L.T("clothing collections"), ModCategory.Map => L.T("placement files"), ModCategory.Prop => L.T("props"),
+        _ => L.T("vehicles"),
     };
     private bool IsMapKind => Category is ModCategory.Map or ModCategory.Prop;
 
@@ -102,6 +113,17 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     // ================================================================ analyse
 
     public ModPackage? Analyze(DroppedSource source, DetectionReport report, HandlerEnv env)
+    {
+        var result = AnalyzePack(source, report, env);
+        if (result is AddonPackage { Kind: ModCategory.Clothing } clothes && SlotsVersion(clothes, source) is { } slots)
+        {
+            slots.Warnings.InsertRange(0, clothes.Warnings);
+            clothes.Slots = slots;
+        }
+        return result;
+    }
+
+    private ModPackage? AnalyzePack(DroppedSource source, DetectionReport report, HandlerEnv env)
     {
         if (!report.Has(Category)) return null;
         var files = source.Files.Where(f => !f.InBackupDir).ToList();
@@ -125,6 +147,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         }
         if (packs.Count > 0)
         {
+            // a mod with a version for each edition (Legacy\dlc.rpf + Enhanced\dlc.rpf): the one for this game
+            GameEdition? variantFor = null;
+            if (env.Edition is { } ed && packs.Count > 1 && packs.Any(p => EditionOf(p) != EditionOf(packs[0])))
+            {
+                packs = packs.OrderByDescending(p => EditionFit(p, ed)).ToList();
+                variantFor = ed;
+            }
             var (file, pack) = packs[0];
             var (packName, from) = PackNameOf(source, file, pack);
             var pkg = new AddonPackage(Category)
@@ -133,9 +162,10 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 Replace = ReplaceVersion(files, name, src, Path.GetDirectoryName(file.FullPath)!, env.DataDir),
             };
             pkg.Warnings.AddRange(pack.Warnings);
-            foreach (var (other, _) in packs.Skip(1))
-                pkg.Warnings.Add($"Several add-on packs found — installing «{file.Origin}», not «{other.Origin}». Drop the others separately.");
-            Describe(pkg, $"finished pack {file.Origin}");
+            foreach (var other in packs.Skip(1).Where(p => variantFor is null || EditionOf(p) == EditionOf((file, pack))))
+                pkg.Warnings.Add(L.T($"Several add-on packs found — installing «{file.Origin}», not «{other.File.Origin}». Drop the others separately."));
+            Describe(pkg, L.T($"finished pack {file.Origin}"));
+            if (variantFor is { } v) pkg.Parts.Add(L.T($"the version for {v.DisplayName()}"));
             if (IsMapKind) AttachMapParts(pkg, source, report, env, Path.GetDirectoryName(file.FullPath));
             return pkg;
         }
@@ -144,7 +174,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         if (DlcComposer.FromDrop(source) is { } spec && spec.Content.Kind == Category)
         {
             var (packName, from) = PackNameOf(source, null, null);
-            if (spec.Resources.Count == 1 && from is null) (packName, from) = (Clean(spec.Resources[0]) ?? packName, "the FiveM resource's folder");
+            if (spec.Resources.Count == 1 && from is null) (packName, from) = (Clean(spec.Resources[0]) ?? packName, L.T("the FiveM resource's folder"));
             var pkg = new AddonPackage(Category)
             {
                 Name = name, Source = src, Compose = spec, DataDir = env.DataDir, PackName = packName, PackNameFrom = from,
@@ -152,8 +182,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             };
             pkg.Warnings.AddRange(spec.Warnings);
             Describe(pkg, spec.Resources.Count > 0
-                ? $"FiveM resource{(spec.Resources.Count > 1 ? "s" : "")} {string.Join(", ", spec.Resources)} — packed into a dlc.rpf"
-                : "loose models and metas — packed into a dlc.rpf");
+                ? L.T($"FiveM resource(s) {string.Join(", ", spec.Resources)} — packed into a dlc.rpf")
+                : L.T("loose models and metas — packed into a dlc.rpf"));
             if (IsMapKind) AttachMapParts(pkg, source, report, env, null);
             return pkg;
         }
@@ -167,13 +197,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         if (Category == ModCategory.Ped && DlcComposer.FromPedModels(source, vanilla.IsPed) is { } peds)
         {
             var (packName, from) = PackNameOf(source, null, null);
-            if (from is null && peds.NewPeds.Count == 1 && Clean(peds.NewPeds[0].Name) is { Length: >= 3 } own) (packName, from) = (own, "the ped's name");
+            if (from is null && peds.NewPeds.Count == 1 && Clean(peds.NewPeds[0].Name) is { Length: >= 3 } own) (packName, from) = (own, L.T("the ped's name"));
             var pkg = new AddonPackage(Category)
             {
                 Name = name, Source = src, Compose = peds, DataDir = env.DataDir, PackName = packName, PackNameFrom = from,
             };
             pkg.Warnings.AddRange(peds.Warnings);
-            Describe(pkg, "models only, no peds.meta — one is written for it, all packed into a dlc.rpf");
+            Describe(pkg, L.T("models only, no peds.meta — one is written for it, all packed into a dlc.rpf"));
             return pkg;
         }
 
@@ -183,8 +213,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         var targets = ReplacedModels(rp, vanilla);
         rp.Replaces.AddRange(targets);
         rp.Parts.Insert(0, targets.Count > 0
-            ? $"replaces the game's {Noun}{(targets.Count > 1 ? "s" : "")} {string.Join(", ", targets)}"
-            : $"no vehicles.meta / peds.meta — its models replace the game's ones of the same name");
+            ? L.T($"replaces the game's {(targets.Count > 1 ? NounPlural : Noun)} {string.Join(", ", targets)}")
+            : L.T($"no vehicles.meta / peds.meta — its models replace the game's ones of the same name"));
         return rp;
     }
 
@@ -194,21 +224,43 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                     .Where(n => Category == ModCategory.Ped ? vanilla.IsPed(n) : vanilla.IsVehicle(n))
                     .Distinct(StringComparer.OrdinalIgnoreCase)];
 
+    /// <summary>
+    /// The edition a finished pack is made for: its models' format, else a folder named after one
+    /// (Enhanced, gen9 / Legacy, gen8); null when nothing tells.
+    /// </summary>
+    private static GameEdition? EditionOf((DroppedFile File, AddonContent.FinishedPack Pack) p)
+    {
+        if (p.Pack.Content.ModelsEdition is { } m) return m;
+        var dirs = p.File.Origin.Replace('\\', '/').Split('/').SkipLast(1).Select(d => d.ToLowerInvariant()).ToList();
+        if (dirs.Any(d => d.Contains("enhanced") || d.Contains("gen9"))) return GameEdition.Enhanced;
+        if (dirs.Any(d => d.Contains("legacy") || d.Contains("gen8"))) return GameEdition.Legacy;
+        return null;
+    }
+
+    /// <summary>How well a pack suits the game: its own edition best; Legacy models do for Enhanced (converted), not the other way.</summary>
+    private static int EditionFit((DroppedFile File, AddonContent.FinishedPack Pack) p, GameEdition game) => EditionOf(p) switch
+    {
+        null => 1,
+        var e when e == game => 2,
+        GameEdition.Legacy => 0,
+        _ => -1,
+    };
+
     private void Describe(AddonPackage pkg, string what)
     {
         var c = pkg.Content;
         var things = c.Describe().ToList();
         pkg.Parts.Add(things.Count == 0
             ? what
-            : $"{things.Count} {Noun}{(things.Count > 1 ? "s" : "")}: {string.Join(", ", things.Take(3))}{(things.Count > 3 ? ", …" : "")}");
+            : L.T($"{(things.Count > 1 ? NounPlural : Noun)} ({things.Count}): {string.Join(", ", things.Take(3))}{(things.Count > 3 ? ", …" : "")}"));
         if (things.Count > 0) pkg.Parts.Add(what);
-        if (pkg.Replace is { } r) pkg.Parts.Add($"a Replace version too ({r.Files.Count} file(s))");
+        if (pkg.Replace is { } r) pkg.Parts.Add(L.T($"a Replace version too ({r.Files.Count} file(s))"));
 
         // what the game needs to spawn them: every declared model has its model file
         var streamed = new HashSet<string>(c.Streamed.Select(s => Path.GetFileNameWithoutExtension(s.Split('/')[^1])), StringComparer.OrdinalIgnoreCase);
         var folders = new HashSet<string>(c.Streamed.Where(s => s.Contains('/')).Select(s => s.Split('/')[^2]), StringComparer.OrdinalIgnoreCase);
         foreach (var n in c.SpawnNames.Where(n => !streamed.Contains(n) && !folders.Contains(n)))
-            pkg.Warnings.Add($"«{n}» is declared, but the mod has no model for it ({n}.yft) — the game can crash spawning it.");
+            pkg.Warnings.Add(L.T($"«{n}» is declared, but the mod has no model for it ({n}.yft) — the game can crash spawning it."));
     }
 
     /// <summary>The Replace version a mod ships next to its add-on pack: loose models outside the pack's folder.</summary>
@@ -258,16 +310,16 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         {
             var text = TextIo.DecodeUtf8Sig(File.ReadAllBytes(f.FullPath), strict: false);
             var names = ReadmePackRe().Matches(text).Select(m => m.Groups[1].Value).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            if (names.Count == 1 && Clean(names[0]) is { } n) return (n, "the mod's readme");
+            if (names.Count == 1 && Clean(names[0]) is { } n) return (n, L.T("the mod's readme"));
         }
         if (packFile is not null)
         {
             var dir = Path.GetFileName(Path.GetDirectoryName(packFile.Origin.Replace('/', Path.DirectorySeparatorChar)) ?? "");
             if (dir.Length > 0 && !Generic.Contains(dir) && Regex.IsMatch(dir, @"^[A-Za-z0-9_\-]+$") && Clean(dir) is { } d)
-                return (d, "the pack's folder");
+                return (d, L.T("the pack's folder"));
         }
-        if (pack?.NameHash is { } nh && Clean(nh) is { } h) return (h, "the pack's setup2.xml");
-        if (pack?.Device is { } dev && Clean(Regex.Replace(dev, "^dlc_", "", RegexOptions.IgnoreCase)) is { } dv) return (dv, "the pack's setup2.xml");
+        if (pack?.NameHash is { } nh && Clean(nh) is { } h) return (h, L.T("the pack's setup2.xml"));
+        if (pack?.Device is { } dev && Clean(Regex.Replace(dev, "^dlc_", "", RegexOptions.IgnoreCase)) is { } dv) return (dv, L.T("the pack's setup2.xml"));
         return (Clean(NameOf(source).Replace(' ', '_')) is { Length: >= 3 } m ? m : "addon", null);
     }
 
@@ -288,7 +340,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         if (package is PlacementPackage pp) return new PlacementHandler().PlanInstall(pp, target);
         var pkg = (AddonPackage)package;
         if (pkg.UseReplace && pkg.Replace is { } replace) return new ReplacementHandler().PlanInstall(replace, target);
-        var plan = pkg.UsePlacement && pkg.Placement is { } placement
+        var plan = pkg.Slots is { } slots ? new ReplacementHandler().PlanInstall(slots, target)
+            : pkg.UsePlacement && pkg.Placement is { } placement
             ? new PlacementHandler().PlanInstall(placement, target)
             : PlanPack(pkg, target);
         AddExtras(plan, pkg, target);
@@ -311,7 +364,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             if (reg.Find(oldId) is { } old && old.Get("pack") is { } oldPack)
             {
                 plan.Add(ForgetChanges(oldPack, reinstall: oldPack.Equals(pack, StringComparison.OrdinalIgnoreCase)));
-                plan.Add(new ActionOp($"Remove the installed «{old.Name}» (dlcpacks\\{oldPack}) — the same pack", ctx =>
+                plan.Add(new ActionOp(L.T($"Remove the installed «{old.Name}» (dlcpacks\\{oldPack}) — the same pack"), ctx =>
                 {
                     GameInstaller.UninstallPack(ctx.GameDir, oldPack, ctx.Log, ctx.Journal);
                     if (old.Get("overlay") == "1") ctx.Overlay.RemoveMod(oldId);
@@ -319,19 +372,11 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 }));
             }
         if (reg.Find(id) is { } again)
-            plan.Warnings.Add($"«{again.Name}» is already installed — the installed version is replaced.");
+            plan.Warnings.Add(L.T($"«{again.Name}» is already installed — the installed version is replaced."));
 
         var plugins = target.PluginsDir ?? Path.Combine(AppContext.BaseDirectory, "data", "plugins");
         plan.Add(new EnsureModsLoaderOp(plugins));
         if (reg.Find(id) is not null && !checks.Supersedes.Contains(id)) plan.Add(ForgetChanges(pack, reinstall: true));
-        bool raise = checks.MetaDataStoreNow is not null;
-        if (raise)
-            plan.Add(new RpfEditOp(GamePools.GameConfig, id,
-                checks.MetaDataStoreNow < GamePools.MetaDataStoreTarget
-                    ? $"Raise the game's MetaDataStore limit in gameconfig.xml from {checks.MetaDataStoreNow} to {GamePools.MetaDataStoreTarget} " +
-                      "(the game's own .ymt files fill it; one more crashes the game on loading)"
-                    : $"Keep the game's MetaDataStore limit in gameconfig.xml at {checks.MetaDataStoreNow} while this pack is installed",
-                (data, log) => GamePools.Raise(data, GamePools.MetaDataStore, GamePools.MetaDataStoreTarget, log)));
         var fixes = pkg.FixKits ? checks.KitFixes : [];
         var convert = target.Edition == GameEdition.Enhanced && pkg.Content.ModelEditions.Contains(GameEdition.Legacy);
         if (pkg.Finished is { } finished && !convert && fixes.Count == 0)
@@ -339,7 +384,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         else
         {
             plan.Add(new ActionOp(StageDescription(pkg, convert, fixes), ctx => Stage(ctx, pkg, fixes, convert)));
-            plan.Add(new ActionOp($"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}) and add it to dlclist.xml", ctx =>
+            plan.Add(new ActionOp(L.T($"Install the add-on pack '{pack}' (mods\\update\\x64\\dlcpacks\\{pack}) and add it to dlclist.xml"), ctx =>
             {
                 var staged = (string)ctx.Items[StagedKey];
                 try
@@ -353,14 +398,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 }
             }));
         }
-        // a raised limit belongs to the mod (the copy of gameconfig.xml in the mods layer): removing it puts it back
-        bool overlay = raise || reg.Find(id)?.Get("overlay") == "1";
-        plan.Add(new ActionOp("", ctx => ctx.Registered.Add(Record(pkg, id, target, overlay, raise))) { Hidden = true });
+        bool overlay = reg.Find(id)?.Get("overlay") == "1";
+        plan.Add(new ActionOp("", ctx => ctx.Registered.Add(Record(pkg, id, target, overlay))) { Hidden = true });
 
         foreach (var c in checks.Items.Where(c => c.Level is CheckLevel.Warn && !c.Title.StartsWith("Modkit", StringComparison.Ordinal)))
             plan.Warnings.Add(c.Detail);
         foreach (var f in checks.KitFixes.Where(_ => !pkg.FixKits))
-            plan.Warnings.Add($"Modkit {f.Kit.Name} keeps id {f.Kit.Id}, which {f.TakenBy} uses too.");
+            plan.Warnings.Add(L.T($"Modkit {f.Kit.Name} keeps id {f.Kit.Id}, which {f.TakenBy} uses too."));
         return plan;
     }
 
@@ -374,8 +418,10 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         var mods = ctx.Overlay.ForgetArchive($"update/x64/dlcpacks/{pack}/dlc.rpf");
         if (mods.Count == 0) return;
         var reg = ModRegistry.Load(ctx.GameDir);
-        ctx.Log($"    [!] {string.Join(", ", mods.Select(m => $"«{reg.Find(m)?.Name ?? m}»"))} changed this pack — " +
-                (reinstall ? "the new version doesn't have those changes; install them again." : "they go with it."));
+        var names = string.Join(", ", mods.Select(m => $"«{reg.Find(m)?.Name ?? m}»"));
+        ctx.Log(reinstall
+            ? L.T($"    [!] {names} changed this pack — the new version doesn't have those changes; install them again.")
+            : L.T($"    [!] {names} changed this pack — they go with it."));
     }) { Hidden = true };
 
     /// <summary>"Add-On installed — spawn it with a trainer by name: innovabcm."</summary>
@@ -385,12 +431,12 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         if (pkg.Kind == ModCategory.Clothing)
         {
             var peds = CollectionsOf(pkg).Select(c => ClothingNames.PedLabel(c.Ped)).Distinct().ToList();
-            return $"Clothes installed — pick them for {(peds.Count == 0 ? "the MP characters" : string.Join(" / ", peds))} in a trainer's wardrobe " +
-                   "(they come after the game's own).";
+            return L.T($"Clothes installed — pick them for {(peds.Count == 0 ? L.T("the MP characters") : string.Join(" / ", peds))} in a trainer's wardrobe " +
+                   $"(they come after the game's own).");
         }
         var names = pkg.Content.SpawnNames.ToList();
-        return names.Count == 0 ? "Add-On installed."
-            : $"Add-On installed — spawn it with a trainer by name: {string.Join(", ", names.Take(6))}{(names.Count > 6 ? ", …" : "")}.";
+        return names.Count == 0 ? L.T("Add-On installed.")
+            : L.T($"Add-On installed — spawn it with a trainer by name: {string.Join(", ", names.Take(6))}{(names.Count > 6 ? ", …" : "")}.");
     }
 
     private static GameIndex? TryIndex(InstallTarget target)
@@ -409,24 +455,24 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     {
         var parts = new List<string>();
         if (pkg.LooseClothing is { } loose)
-            parts.Add($"Pack the clothes as the collection {loose.Ped}_{loose.NameFor(pkg.Device)} (numbered from 0, ymt and shop meta written) into a dlc.rpf");
+            parts.Add(L.T($"Pack the clothes as the collection {loose.Ped}_{loose.NameFor(pkg.Device)} (numbered from 0, ymt and shop meta written) into a dlc.rpf"));
         else if (pkg.Compose is { NewPeds.Count: > 0 } made)
-            parts.Add($"Write peds.meta for {string.Join(", ", made.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()})"))} " +
-                      "and pack it with the models into a dlc.rpf");
+            parts.Add(L.T($"Write peds.meta for {string.Join(", ", made.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()})"))} " +
+                      $"and pack it with the models into a dlc.rpf"));
         else if (pkg.Compose is { } map && pkg.Kind is ModCategory.Map or ModCategory.Prop)
             parts.Add(map.Resources.Count > 0
-                ? $"Pack the FiveM resource{(map.Resources.Count > 1 ? "s" : "")} {string.Join(", ", map.Resources)} into a dlc.rpf as a {(pkg.Kind == ModCategory.Map ? "map" : "props")} pack"
+                ? (pkg.Kind == ModCategory.Map ? L.T($"Pack the FiveM resource(s) {string.Join(", ", map.Resources)} into a dlc.rpf as a map pack") : L.T($"Pack the FiveM resource(s) {string.Join(", ", map.Resources)} into a dlc.rpf as a props pack"))
                 : pkg.Kind == ModCategory.Map
-                    ? $"Pack the map ({map.Files.Count} file(s): placements, archetypes, models) into a dlc.rpf" +
-                      (map.Content.HasManifest ? "" : " with a manifest that loads its archetypes with its placements")
-                    : $"Pack the props ({map.Files.Count} file(s)) into a dlc.rpf, their archetypes loaded for good");
+                    ? L.T($"Pack the map ({map.Files.Count} file(s): placements, archetypes, models) into a dlc.rpf") +
+                      (map.Content.HasManifest ? "" : L.T(" with a manifest that loads its archetypes with its placements"))
+                    : L.T($"Pack the props ({map.Files.Count} file(s)) into a dlc.rpf, their archetypes loaded for good"));
         else if (pkg.Compose is { } spec)
             parts.Add(spec.Resources.Count > 0
-                ? $"Pack the FiveM resource{(spec.Resources.Count > 1 ? "s" : "")} {string.Join(", ", spec.Resources)} into a dlc.rpf"
-                : "Pack the models and metas into a dlc.rpf");
-        else parts.Add("Prepare a copy of the pack");
-        if (convert) parts.Add("convert its Legacy models to the GTA V Enhanced (gen9) format");
-        foreach (var f in fixes) parts.Add($"give modkit {f.Kit.Name} the free id {f.NewId}");
+                ? L.T($"Pack the FiveM resource(s) {string.Join(", ", spec.Resources)} into a dlc.rpf")
+                : L.T("Pack the models and metas into a dlc.rpf"));
+        else parts.Add(L.T("Prepare a copy of the pack"));
+        if (convert) parts.Add(L.T("convert its Legacy models to the GTA V Enhanced (gen9) format"));
+        foreach (var f in fixes) parts.Add(L.T($"give modkit {f.Kit.Name} the free id {f.NewId}"));
         return string.Join(", ", parts);
     }
 
@@ -452,7 +498,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 if (convert)
                 {
                     var n = RpfRetarget.Mismatched(finished.Path, edition).Count;
-                    ctx.Log($"    Converting {n} Legacy model(s) to the GTA V Enhanced (gen9) format; everything else stays byte for byte…");
+                    ctx.Log(L.T($"    Converting {n} Legacy model(s) to the GTA V Enhanced (gen9) format; everything else stays byte for byte…"));
                     RpfRetarget.Convert(finished.Path, rpf, edition);
                 }
                 else PathUtil.Copy2(finished.Path, rpf);
@@ -497,7 +543,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             foreach (var fix in mine)
             {
                 text = AddonContent.WithKitId(text, fix.Kit, fix.NewId);
-                log($"    Modkit {fix.Kit.Name}: id {fix.Kit.Id} → {fix.NewId} ({fix.TakenBy} uses {fix.Kit.Id}).");
+                log(L.T($"    Modkit {fix.Kit.Name}: id {fix.Kit.Id} → {fix.NewId} ({fix.TakenBy} uses {fix.Kit.Id})."));
             }
             var fixedFile = Path.Combine(tmp, "kits", Guid.NewGuid().ToString("N")[..8], Path.GetFileName(f.PackPath));
             Directory.CreateDirectory(Path.GetDirectoryName(fixedFile)!);
@@ -515,13 +561,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             string text;
             using (var arc = RpfArchive.Open(rpf))
             {
-                var e = arc.Locate(byFile.Key) ?? throw new InvalidDataException($"{byFile.Key} is not in the pack.");
+                var e = arc.Locate(byFile.Key) ?? throw new InvalidDataException(L.T($"{byFile.Key} is not in the pack."));
                 text = TextIo.DecodeUtf8Sig(arc.ReadContent(e), strict: false);
             }
             foreach (var fix in byFile)
             {
                 text = AddonContent.WithKitId(text, fix.Kit, fix.NewId);
-                log($"    Modkit {fix.Kit.Name}: id {fix.Kit.Id} → {fix.NewId} ({fix.TakenBy} uses {fix.Kit.Id}).");
+                log(L.T($"    Modkit {fix.Kit.Name}: id {fix.Kit.Id} → {fix.NewId} ({fix.TakenBy} uses {fix.Kit.Id})."));
             }
             using var ed = RpfEditor.Open(rpf);
             ed.Put(byFile.Key, StoredEntry.FromFile(Path.GetFileName(byFile.Key), TextIo.Utf8NoBom.GetBytes(text), edition));
@@ -529,7 +575,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         }
     }
 
-    private RegisteredMod Record(AddonPackage pkg, string id, InstallTarget target, bool overlay, bool pools)
+    private RegisteredMod Record(AddonPackage pkg, string id, InstallTarget target, bool overlay)
     {
         var c = pkg.Content;
         var names = pkg.Kind switch
@@ -550,17 +596,16 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 ["models"] = string.Join(",", names),
                 ["where"] = names.Count == 0 ? $"dlcpacks\\{pkg.PackName}"
                     : pkg.Kind == ModCategory.Map
-                        ? $"{(c.Maps.Count > 0 ? $"{c.Maps.Sum(m => m.Entities)} objects" : string.Join(", ", names.Take(3)))} · dlcpacks\\{pkg.PackName}"
+                        ? $"{(c.Maps.Count > 0 ? L.T($"{c.Maps.Sum(m => m.Entities)} objects") : string.Join(", ", names.Take(3)))} · dlcpacks\\{pkg.PackName}"
                     : pkg.Kind == ModCategory.Prop
-                        ? $"props: {string.Join(", ", names.Take(4))}{(names.Count > 4 ? ", …" : "")} · dlcpacks\\{pkg.PackName}"
+                        ? L.T($"props: {string.Join(", ", names.Take(4)) + (names.Count > 4 ? ", …" : "")}") + $" · dlcpacks\\{pkg.PackName}"
                     : pkg.Kind == ModCategory.Clothing
                         ? $"{string.Join(", ", CollectionsOf(pkg).Take(3).Select(x => $"{ClothingNames.PedLabel(x.Ped)} · {x.DlcName}"))} · dlcpacks\\{pkg.PackName}"
-                    : $"spawn: {string.Join(", ", names.Take(4))}{(names.Count > 4 ? ", …" : "")} · dlcpacks\\{pkg.PackName}",
+                    : L.T($"spawn: {string.Join(", ", names.Take(4)) + (names.Count > 4 ? ", …" : "")}") + $" · dlcpacks\\{pkg.PackName}",
             },
         };
         if (pkg.Version is { Length: > 0 } v) record.Data["version"] = v;
         if (overlay) record.Data["overlay"] = "1";
-        if (pools) record.Data["pools"] = "1";                 // holds a raised gameconfig.xml pool
         return record;
     }
 
@@ -584,17 +629,17 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
 
     public InstallPlan PlanChanges(InstallTarget target, ModRegistry registry, IReadOnlyList<ModChange> changes)
     {
-        var plan = new InstallPlan { Title = $"Updating installed {Category.PluralName().ToLowerInvariant()}" };
+        var plan = new InstallPlan { Title = L.T($"Updating installed {Category.PluralName().ToLowerInvariant()}") };
         var game = target.GameDir;
         foreach (var c in changes)
         {
-            var m = registry.Find(c.Id) ?? throw new ArgumentException($"«{c.Id}» is not installed.");
+            var m = registry.Find(c.Id) ?? throw new ArgumentException(L.T($"«{c.Id}» is not installed."));
             var folder = m.Get("pack") ?? c.Id[Prefix.Length..];
             var name = m.Name.Length > 0 ? m.Name : folder;
             if (c.Remove)
             {
                 plan.Add(ForgetChanges(folder, reinstall: false));
-                plan.Add(new ActionOp($"Remove «{name}» (dlcpack {folder})", ctx =>
+                plan.Add(new ActionOp(L.T($"Remove «{name}» (dlcpack {folder})"), ctx =>
                 {
                     GameInstaller.UninstallPack(game, folder, ctx.Log, ctx.Journal);
                     ctx.Unregistered.Add(c.Id);
@@ -602,13 +647,13 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 if (m.Get("overlay") == "1") plan.Add(new OverlayRemoveOp(c.Id, name));
             }
             else if (c.Enable)
-                plan.Add(new ActionOp($"Switch on «{name}» (dlcpack {folder})", ctx =>
+                plan.Add(new ActionOp(L.T($"Switch on «{name}» (dlcpack {folder})"), ctx =>
                 {
                     GameInstaller.EnablePack(game, folder, ctx.Log, ctx.Journal);
                     ctx.Switched[c.Id] = true;
                 }));
             else
-                plan.Add(new ActionOp($"Switch off «{name}» (dlcpack {folder})", ctx =>
+                plan.Add(new ActionOp(L.T($"Switch off «{name}» (dlcpack {folder})"), ctx =>
                 {
                     GameInstaller.DisablePack(game, folder, ctx.Log, ctx.Journal);
                     ctx.Switched[c.Id] = false;

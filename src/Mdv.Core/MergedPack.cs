@@ -112,7 +112,7 @@ public sealed partial class MergedPack
         foreach (var (unit, step) in new[] { ("GB", 1L << 30), ("MB", 1L << 20), ("KB", 1L << 10) })
             if (n >= step)
                 return $"{((double)n / step).ToString("G6", CultureInfo.InvariantCulture)} {unit}";
-        return $"{n} bytes";
+        return L.T($"{n} bytes");
     }
 
     private readonly Action<string> _log;
@@ -187,7 +187,7 @@ public sealed partial class MergedPack
         }
         catch (Exception ex)
         {
-            _log($"    [!] Could not read existing {Path.GetFileName(dlcRpf)} ({ex.Message}); starting a fresh pack.");
+            _log(L.T($"    [!] Could not read existing {Path.GetFileName(dlcRpf)} ({ex.Message}); starting a fresh pack."));
             return null;
         }
         using (arc)
@@ -195,18 +195,18 @@ public sealed partial class MergedPack
             var pack = tree.FirstOrDefault(e => !e.IsDir && e.Path[(e.Path.LastIndexOf('/') + 1)..] == "_pack.json");
             if (pack is null)
             {
-                _log("    [!] Existing pack has no embedded manifest; starting a fresh pack.");
+                _log(L.T("    [!] Existing pack has no embedded manifest; starting a fresh pack."));
                 return null;
             }
             PackState? data;
             try
             {
                 data = TextIo.FromJson<PackState>(TextIo.DecodeUtf8Sig(arc.ReadContent(pack.Entry)));
-                if (data is null) throw new InvalidDataException("empty manifest");
+                if (data is null) throw new InvalidDataException(L.T("empty manifest"));
             }
             catch (Exception)
             {
-                _log("    [!] Embedded manifest is unreadable; starting a fresh pack.");
+                _log(L.T("    [!] Embedded manifest is unreadable; starting a fresh pack."));
                 return null;
             }
             // re-extract asset binaries from the nested weapons.rpf
@@ -220,7 +220,7 @@ public sealed partial class MergedPack
             }
             Data = data;
             Save();
-            _log($"    Recovered {data.Weapons.Count} weapon(s) from the existing '{FolderName}' pack.");
+            _log(L.T($"    Recovered {data.Weapons.Count} weapon(s) from the existing '{FolderName}' pack."));
             return data;
         }
     }
@@ -279,8 +279,8 @@ public sealed partial class MergedPack
                     Data.Shared[s.Key] = content;
         Dirty = true;
         Save();
-        _log($"Merged into '{FolderName}': weapon '{name}' ({newAssets.Count} assets); " +
-             $"pack now holds {Data.Weapons.Count} weapon(s).");
+        _log(L.T($"Merged into '{FolderName}': weapon '{name}' ({newAssets.Count} assets); " +
+             $"pack now holds {Data.Weapons.Count} weapon(s)."));
     }
 
     /// <summary>
@@ -296,8 +296,8 @@ public sealed partial class MergedPack
         {
             var dst = Path.Combine(AssetsDir, fname);
             if (File.Exists(dst) && AssetUsedByOthers(fname, suffix))
-                _log($"    [!] Model '{fname}' is already in the pack from another weapon — " +
-                     "overwriting it; rename it if the two differ.");
+                _log(L.T($"    [!] Model '{fname}' is already in the pack from another weapon — " +
+                     $"overwriting it; rename it if the two differ."));
             File.WriteAllBytes(dst, blob);
             newAssets.Add(fname);
         }
@@ -317,9 +317,9 @@ public sealed partial class MergedPack
         };
         Dirty = true;
         Save();
-        _log($"Merged into '{FolderName}': prebuilt pack '{name}' ({newAssets.Count} models, " +
+        _log(L.T($"Merged into '{FolderName}': prebuilt pack '{name}' ({newAssets.Count} models, " +
              $"{files.Count} meta files, {imported.LabelHashes.Count} text labels); pack now holds " +
-             $"{Data.Weapons.Count} weapon(s).");
+             $"{Data.Weapons.Count} weapon(s)."));
     }
 
     // ---- switch off / remove a weapon ---------------------------------------
@@ -331,7 +331,7 @@ public sealed partial class MergedPack
         w.Disabled = !enabled;
         Dirty = true;
         Save();
-        _log($"'{FolderName}': weapon '{w.Name}' switched {(enabled ? "on" : "off")}.");
+        _log((enabled ? L.T($"'{FolderName}': weapon '{w.Name}' switched on.") : L.T($"'{FolderName}': weapon '{w.Name}' switched off.")));
         return true;
     }
 
@@ -343,8 +343,8 @@ public sealed partial class MergedPack
         Data.Weapons.Remove(suffix);
         Dirty = true;
         Save();
-        _log($"'{FolderName}': weapon '{w.Name}' removed ({w.Assets.Count} model(s), {w.Files.Count} meta file(s)); " +
-             $"{Data.Weapons.Count} weapon(s) left.");
+        _log(L.T($"'{FolderName}': weapon '{w.Name}' removed ({w.Assets.Count} model(s), {w.Files.Count} meta file(s)); " +
+             $"{Data.Weapons.Count} weapon(s) left."));
         return true;
     }
 
@@ -354,7 +354,7 @@ public sealed partial class MergedPack
 
     public PackBuild Build(GameEdition edition = GameEdition.Legacy)
     {
-        if (IsEmpty) throw new InvalidOperationException($"'{FolderName}' pack is empty — nothing to build.");
+        if (IsEmpty) throw new InvalidOperationException(L.T($"'{FolderName}' pack is empty — nothing to build."));
 
         var tmp = PathUtil.MakeTempDir();
         try
@@ -474,8 +474,8 @@ public sealed class MergedPackSet
             var installed = Path.Combine(dlcpacks, pack.FolderName, "dlc.rpf");
             if (Directory.Exists(pack.Root) && !File.Exists(installed))
             {
-                _log($"Installed '{pack.FolderName}' pack not found in the game ({installed}) — starting " +
-                     "a fresh pack instead of extending the previously staged one.");
+                _log(L.T($"Installed '{pack.FolderName}' pack not found in the game ({installed}) — starting " +
+                     $"a fresh pack instead of extending the previously staged one."));
                 PathUtil.TryDeleteDir(pack.Root);
                 dropped = true;
             }
@@ -490,7 +490,7 @@ public sealed class MergedPackSet
         int idx = Packs.Count == 0 ? 1 : Packs.Max(p => p.Index) + 1;
         var pack = new MergedPack(OutDir, idx, _log);
         Packs.Add(pack);
-        _log($"Pack limit ({MergedPack.FmtSize(Limit)}) reached — starting a new dlcpack '{pack.FolderName}'.");
+        _log(L.T($"Pack limit ({MergedPack.FmtSize(Limit)}) reached — starting a new dlcpack '{pack.FolderName}'."));
         return pack;
     }
 

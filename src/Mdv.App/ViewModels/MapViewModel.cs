@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
@@ -28,11 +29,11 @@ public sealed partial class MapPartRow : ObservableObject
         IsOn = !pkg.SkippedExtras.Contains(part);
     }
 
-    public string Title => _part is ScriptPackage ? "Its scripts" : "Game files it changes";
+    public string Title => _part is ScriptPackage ? L.T("Its scripts") : L.T("Game files it changes");
     public string Detail => _part switch
     {
-        ScriptPackage s => $"{string.Join(", ", s.Files.Where(f => f.IsEntry).Select(f => f.Name))} → scripts\\ (a script mod of its own in the Library)",
-        ReplacementPackage r => $"{string.Join(", ", r.Files.Select(f => f.Name))} — in copies of the game's archives under mods",
+        ScriptPackage s => L.T($"{string.Join(", ", s.Files.Where(f => f.IsEntry).Select(f => f.Name))} → scripts\\ (a script mod of its own in the Library)"),
+        ReplacementPackage r => L.T($"{string.Join(", ", r.Files.Select(f => f.Name))} — in copies of the game's archives under mods"),
         _ => string.Join(" · ", _part.Parts),
     };
 
@@ -113,14 +114,14 @@ public sealed partial class MapViewModel : FileModViewModel
     public string Note => UsesPlacement
         ? (ActivePlacement?.Files.Any(f => f.Tool == PlacementTool.MapEditor) ?? false) &&
           !(ActivePlacement?.Files.Any(f => f.Tool == PlacementTool.Menyoo) ?? false)
-            ? @"It goes into scripts\AutoloadMaps — Map Editor loads it with the game. Switching it off in the Library renames it to *.disabled."
-            : @"It goes into menyooStuff\Spooner — in the game open Menyoo (F8): Object Spooner → Manage Saved Files → the map → Load Placement. " +
-              "Switching it off in the Library renames it to *.disabled."
+            ? L.T(@"It goes into scripts\AutoloadMaps — Map Editor loads it with the game. Switching it off in the Library renames it to *.disabled.")
+            : L.T(@"It goes into menyooStuff\Spooner — in the game open Menyoo (F8): Object Spooner → Manage Saved Files → the map → Load Placement. " +
+              "Switching it off in the Library renames it to *.disabled.")
         : _pkg?.Kind == ModCategory.Prop
-            ? @"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml; its props load with the game — spawn them by name " +
-              "with Menyoo's Object Spooner or Map Editor. Switch it off or remove it any time in the Library."
-            : @"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml — the map loads with the game in story mode, " +
-              "no trainer needed. Switch it off or remove it any time in the Library.";
+            ? L.T(@"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml; its props load with the game — spawn them by name " +
+              "with Menyoo's Object Spooner or Map Editor. Switch it off or remove it any time in the Library.")
+            : L.T(@"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml — the map loads with the game in story mode, " +
+              "no trainer needed. Switch it off or remove it any time in the Library.");
 
     partial void OnInstallAsPlacementChanged(bool value)
     {
@@ -152,9 +153,9 @@ public sealed partial class MapViewModel : FileModViewModel
 
     protected override string? NotReady()
     {
-        if (IsChecking) return "The map is still being checked against the game — wait a moment.";
+        if (IsChecking) return L.T("The map is still being checked against the game — wait a moment.");
         if (_pkg is null || UsesPlacement) return null;
-        if (AddonPackHandler.Clean(PackName) is null) return "Give the pack a folder name (latin letters, digits, _).";
+        if (AddonPackHandler.Clean(PackName) is null) return L.T("Give the pack a folder name (latin letters, digits, _).");
         return _pkg.Checks?.Blocking;
     }
 
@@ -179,21 +180,20 @@ public sealed partial class MapViewModel : FileModViewModel
         var main = (ModPackage?)pkg ?? placements!;
         Name = main.Name;
         bool props = pkg?.Kind == ModCategory.Prop;
-        KindBadge = props ? "props" : "map";
-        Heading = props ? "PROPS" : "MAP";
+        KindBadge = props ? L.T("props") : L.T("map");
+        Heading = props ? L.T("PROPS") : L.T("MAP");
         SourceText = pkg is null
-            ? $"A map saved by {string.Join(" and ", placements!.Files.Select(f => f.Tool == PlacementTool.Menyoo ? "Menyoo" : "Map Editor").Distinct())} — " +
-              "it needs that tool in the game"
-            : pkg.Finished is { } f ? $"A finished {(props ? "props" : "map")} pack ({f.Device ?? "dlc.rpf"})"
-            : pkg.Compose is { Resources.Count: > 0 } s ? $"A FiveM map ({string.Join(", ", s.Resources)}) — packed into a dlc.rpf on install"
-            : props ? "Loose props with their archetypes (.ytyp) — packed into a dlc.rpf on install"
-            : "Loose map files (.ymap / .ytyp and their models) — packed into a dlc.rpf on install";
+            ? L.T($"A map saved by {string.Join(" / ", placements!.Files.Select(f => f.Tool == PlacementTool.Menyoo ? "Menyoo" : "Map Editor").Distinct())} — it needs that tool in the game")
+            : pkg.Finished is { } f ? (props ? L.T($"A finished props pack ({f.Device ?? "dlc.rpf"})") : L.T($"A finished map pack ({f.Device ?? "dlc.rpf"})"))
+            : pkg.Compose is { Resources.Count: > 0 } s ? L.T($"A FiveM map ({string.Join(", ", s.Resources)}) — packed into a dlc.rpf on install")
+            : props ? L.T("Loose props with their archetypes (.ytyp) — packed into a dlc.rpf on install")
+            : L.T("Loose map files (.ymap / .ytyp and their models) — packed into a dlc.rpf on install");
         HasPlacementChoice = pkg?.Placement is not null;
         InstallAsPlacement = pkg?.UsePlacement ?? true;
-        PackText = "Add-on map — loads with the game by itself, no trainer needed";
+        PackText = L.T("Add-on map — loads with the game by itself, no trainer needed");
         PlacementText = pkg?.Placement is { } pl
-            ? $"{string.Join(" / ", pl.Files.Select(x => x.Tool == PlacementTool.Menyoo ? "Menyoo map" : "Map Editor map").Distinct())} — " +
-              $"{string.Join(", ", pl.Files.Select(x => x.Name))}, loaded in the trainer"
+            ? L.T($"{string.Join(" / ", pl.Files.Select(x => x.Tool == PlacementTool.Menyoo ? L.T("Menyoo map") : L.T("Map Editor map")).Distinct())} — " +
+              $"{string.Join(", ", pl.Files.Select(x => x.Name))}, loaded in the trainer")
             : "";
         PackName = pkg?.PackName ?? "";
         if (pkg is not null)
@@ -225,7 +225,7 @@ public sealed partial class MapViewModel : FileModViewModel
             foreach (var f in pp.Files)
                 Items.Add(new MapItemRow(Path.GetFileNameWithoutExtension(f.Name),
                     string.Join(" · ", new[] { f.Counts(), At(f.At) }.Where(s => s.Length > 0)),
-                    f.Tool == PlacementTool.Menyoo ? "menyoo" : "map editor"));
+                    f.Tool == PlacementTool.Menyoo ? "menyoo" : L.T("map editor")));
             return;
         }
         if (_pkg is not { } pkg) return;
@@ -238,9 +238,9 @@ public sealed partial class MapViewModel : FileModViewModel
         if (c.Maps.Count == 0)
             foreach (var y in c.Ymaps) Items.Add(new MapItemRow(Path.GetFileNameWithoutExtension(y.Split('/')[^1]), "", "placement"));
         if (c.Archetypes.Count > 0)
-            Items.Add(new MapItemRow(pkg.Kind == ModCategory.Prop ? $"{c.Archetypes.Count} prop{(c.Archetypes.Count == 1 ? "" : "s")}" : $"Its own models ({c.Archetypes.Count})",
+            Items.Add(new MapItemRow(pkg.Kind == ModCategory.Prop ? L.T($"{c.Archetypes.Count} prop(s)") : L.T($"Its own models ({c.Archetypes.Count})"),
                 string.Join(", ", c.Archetypes.Take(12)) + (c.Archetypes.Count > 12 ? ", …" : ""),
-                pkg.Kind == ModCategory.Prop ? "spawn names" : "archetypes"));
+                pkg.Kind == ModCategory.Prop ? L.T("spawn names") : L.T("archetypes")));
     }
 
     /// <summary>Check against the selected game in the background; a newer check wins.</summary>
@@ -255,12 +255,12 @@ public sealed partial class MapViewModel : FileModViewModel
             Checks.Clear();
             IsChecking = false;
             ChecksNeedAttention = false;
-            CheckStatus = "Choose the GTA V folder — the map is checked against what the game already has.";
+            CheckStatus = L.T("Choose the GTA V folder — the map is checked against what the game already has.");
             NotifyLists();
             return;
         }
         IsChecking = true;
-        CheckStatus = "Checking against the game…";
+        CheckStatus = L.T("Checking against the game…");
         var target = MainViewModel.TargetFor(game, Shell.Edition);
         var pkg = _pkg;
         var placement = ActivePlacement;
@@ -286,7 +286,7 @@ public sealed partial class MapViewModel : FileModViewModel
         catch (Exception ex)
         {
             AppLog.Error("checking the map failed", ex);
-            error = $"The game could not be checked: {ex.Message}";
+            error = L.T($"The game could not be checked: {ex.Message}");
         }
         if (gen != _generation) return;
         IsChecking = false;
@@ -296,18 +296,18 @@ public sealed partial class MapViewModel : FileModViewModel
         {
             foreach (var d in placement.Dependencies) Tools.Add(new DependencyRow(d));
             if (placement.MissingModels.Count > 0)
-                Checks.Add(new AddonCheckRow(new AddonCheck(CheckLevel.Warn, "Models not in the game", PlacementHandler.MissingText(placement.MissingModels))));
+                Checks.Add(new AddonCheckRow(new AddonCheck(CheckLevel.Warn, L.T("Models not in the game"), PlacementHandler.MissingText(placement.MissingModels))));
             problems = placement.Dependencies.Count(d => d.IsProblem) + (placement.MissingModels.Count > 0 ? 1 : 0);
-            CheckStatus = error ?? (problems > 0 ? $"{problems} thing{(problems == 1 ? "" : "s")} to look at — it can still be installed."
-                                                 : "The tool it needs is there, and every model it places.");
+            CheckStatus = error ?? (problems > 0 ? (problems == 1 ? L.T("1 thing to look at — it can still be installed.") : L.T($"{problems} things to look at — it can still be installed."))
+                                                 : L.T("The tool it needs is there, and every model it places."));
         }
         else if (report is not null)
         {
             foreach (var c in report.Items.OrderByDescending(c => c.Level)) Checks.Add(new AddonCheckRow(c));
             problems = report.Items.Count(i => i.Level is CheckLevel.Warn or CheckLevel.Block);
-            CheckStatus = report.Blocking is not null ? "It can't go into this game."
-                : problems > 0 ? $"{problems} thing{(problems == 1 ? "" : "s")} to look at — it can still be installed."
-                : "Nothing clashes with what the game already has.";
+            CheckStatus = report.Blocking is not null ? L.T("It can't go into this game.")
+                : problems > 0 ? (problems == 1 ? L.T("1 thing to look at — it can still be installed.") : L.T($"{problems} things to look at — it can still be installed."))
+                : L.T("Nothing clashes with what the game already has.");
             _loading = true;
             PackName = pkg!.PackName;                  // a taken name was changed to a free one
             _loading = false;
@@ -325,7 +325,7 @@ public sealed partial class MapViewModel : FileModViewModel
     private void UpdatePackDetail()
     {
         if (_pkg is not { } pkg) return;
-        PackDetail = $"mods\\update\\x64\\dlcpacks\\{pkg.PackName}  ·  mounted as {pkg.Device}" +
-                     (pkg.PackNameFrom is { } from ? $"  ·  name from {from}" : "");
+        PackDetail = L.T($"mods\\update\\x64\\dlcpacks\\{pkg.PackName}  ·  mounted as {pkg.Device}") +
+                     (pkg.PackNameFrom is { } from ? L.T($"  ·  name from {from}") : "");
     }
 }

@@ -24,7 +24,7 @@ public static class GameEditions
 
     /// <summary>The manifest's "target" line.</summary>
     public static string TargetLabel(this GameEdition e) =>
-        e == GameEdition.Enhanced ? "GTA V Enhanced (OPEN, gen9 resources)" : "GTA V Legacy (OPEN)";
+        e == GameEdition.Enhanced ? L.T("GTA V Enhanced (OPEN, gen9 resources)") : L.T("GTA V Legacy (OPEN)");
 
     /// <summary>
     /// The edition of the game installed in <paramref name="gameDir"/>, decided by its
@@ -49,6 +49,6 @@ public static class GameEditions
         null or "" or "auto" => null,
         "legacy" or "gen8" or "le" => GameEdition.Legacy,
         "enhanced" or "gen9" or "ee" => GameEdition.Enhanced,
-        _ => throw new ArgumentException($"Unknown game edition '{s}' — use legacy, enhanced or auto."),
+        _ => throw new ArgumentException(L.T($"Unknown game edition '{s}' — use legacy, enhanced or auto.")),
     };
 }

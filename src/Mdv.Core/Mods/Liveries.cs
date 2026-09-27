@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Mdv.Core.Index;
@@ -99,7 +100,7 @@ public sealed class LiveryModel
 /// <param name="Pack">the add-on's dlcpacks folder (null: the game's own)</param>
 public sealed record LiveryVehicle(string Model, string? Pack = null, string? Label = null)
 {
-    public override string ToString() => Pack is null ? Model : $"{Model}  (add-on{(Label is null ? "" : " " + Label)})";
+    public override string ToString() => Pack is null ? Model : L.T($"{Model}  (add-on{(Label is null ? "" : " " + Label)})");
 }
 
 /// <summary>What a livery becomes in one game: the vehicle's dictionaries and textures, its modkit.</summary>
@@ -242,7 +243,7 @@ public sealed partial class LiveryHandler : FileModHandler
                 if (!vanilla.IsTexture(stem) && !IsLiveryLike(stem) && ext != ".dds") continue;
                 if (!seen.Add("tex:" + stem))
                 {
-                    pkg.Warnings.Add($"{f.Name} is in the mod more than once — {f.Origin} is left out (drop just the folder of the version you want).");
+                    pkg.Warnings.Add(L.T($"{f.Name} is in the mod more than once — {f.Origin} is left out (drop just the folder of the version you want)."));
                     continue;
                 }
                 pkg.Textures.Add(new LiveryTexture { Source = f.FullPath, Origin = f.Origin });
@@ -264,7 +265,7 @@ public sealed partial class LiveryHandler : FileModHandler
                 }
                 catch (InvalidDataException)
                 {
-                    pkg.Warnings.Add($"{f.Name} could not be read as a texture dictionary — left out.");
+                    pkg.Warnings.Add(L.T($"{f.Name} could not be read as a texture dictionary — left out."));
                     continue;
                 }
                 foreach (var t in inside.Where(t => seen.Add("tex:" + t.Name)))
@@ -316,7 +317,7 @@ public sealed partial class LiveryHandler : FileModHandler
         }
 
         if (pkg.Models.Select(m => IsLiveryModel(m.Name, out var v) ? v : null).FirstOrDefault(v => v is not null && models.IsVehicle(v)) is { } kitVehicle)
-            Set(kitVehicle, "the livery models' names");
+            Set(kitVehicle, L.T("the livery models' names"));
 
         // the vehicles whose textures the pictures are named after
         var scores = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -332,12 +333,12 @@ public sealed partial class LiveryHandler : FileModHandler
             int best = scores[ranked[0]];
             var top = ranked.Where(v => scores[v] == best).ToList();
             var pick = top.FirstOrDefault(named.ContainsKey) ?? top[0];
-            Set(pick, top.Count == 1 ? "the textures' names"
-                : named.ContainsKey(pick) ? $"the textures' names and the mod's name (they fit {top.Count} vehicles)"
-                : $"the textures' names — {top.Count} vehicles have them, check it's the right one");
+            Set(pick, top.Count == 1 ? L.T("the textures' names")
+                : named.ContainsKey(pick) ? L.T($"the textures' names and the mod's name (they fit {top.Count} vehicles)")
+                : L.T($"the textures' names — {top.Count} vehicles have them, check it's the right one"));
         }
         else if (named.Count > 0)
-            Set(named.OrderByDescending(kv => kv.Value).First().Key, "the mod's name and folders");
+            Set(named.OrderByDescending(kv => kv.Value).First().Key, L.T("the mod's name and folders"));
 
         void Set(string vehicle, string from)
         {
@@ -349,10 +350,10 @@ public sealed partial class LiveryHandler : FileModHandler
     private static void Describe(LiveryPackage pkg)
     {
         if (pkg.Textures.Count > 0)
-            pkg.Parts.Add($"{pkg.Textures.Count} texture(s): {string.Join(", ", pkg.Textures.Take(4).Select(t => t.Name))}{(pkg.Textures.Count > 4 ? ", …" : "")}");
+            pkg.Parts.Add(L.T($"{pkg.Textures.Count} texture(s): {string.Join(", ", pkg.Textures.Take(4).Select(t => t.Name))}{(pkg.Textures.Count > 4 ? ", …" : "")}"));
         if (pkg.Models.Count > 0)
-            pkg.Parts.Add($"{pkg.Models.Count} modkit livery model(s): {string.Join(", ", pkg.Models.Take(4).Select(m => m.Name))}{(pkg.Models.Count > 4 ? ", …" : "")}");
-        pkg.Parts.Add(pkg.Vehicle is null ? "the vehicle it is for is not clear — pick it" : $"for the {pkg.Vehicle} (by {pkg.VehicleFrom})");
+            pkg.Parts.Add(L.T($"{pkg.Models.Count} modkit livery model(s): {string.Join(", ", pkg.Models.Take(4).Select(m => m.Name))}{(pkg.Models.Count > 4 ? ", …" : "")}"));
+        pkg.Parts.Add(pkg.Vehicle is null ? L.T("the vehicle it is for is not clear — pick it") : L.T($"for the {pkg.Vehicle} (by {pkg.VehicleFrom})"));
     }
 
     // ================================================================ against a game
@@ -375,7 +376,7 @@ public sealed partial class LiveryHandler : FileModHandler
     /// </summary>
     public static LiveryResolution Resolve(LiveryPackage pkg, InstallTarget target, GameIndex? index = null)
     {
-        var vehicle = pkg.Vehicle ?? throw new InvalidOperationException("Pick the vehicle the livery is for.");
+        var vehicle = pkg.Vehicle ?? throw new InvalidOperationException(L.T("Pick the vehicle the livery is for."));
         index ??= GameIndex.Open(target.GameDir, target.IndexCacheRoot);
         var overlay = ModsOverlay.Load(target.GameDir);
         var r = new LiveryResolution { GameDir = Path.GetFullPath(target.GameDir), Edition = target.Edition, Vehicle = vehicle };
@@ -394,11 +395,11 @@ public sealed partial class LiveryHandler : FileModHandler
             }
             catch (InvalidDataException ex)
             {
-                r.Warnings.Add($"{file} could not be read: {ex.Message}");
+                r.Warnings.Add(L.T($"{file} could not be read: {ex.Message}"));
             }
         }
         if (r.Dictionaries.Count == 0 && pkg.Textures.Count > 0)
-            r.Warnings.Add($"The game has no texture dictionary of the {vehicle} ({vehicle}.ytd) — its textures can't be replaced.");
+            r.Warnings.Add(L.T($"The game has no texture dictionary of the {vehicle} ({vehicle}.ytd) — its textures can't be replaced."));
         foreach (var model in new[] { $"{vehicle}_hi.yft", $"{vehicle}.yft", "vehshare.ytd" })
             if (Winner(index, model) is { } mp) r.ModelPaths.Add(mp);
         r.Slots.AddRange(r.Dictionaries.SelectMany(d => d.Textures)
@@ -432,7 +433,7 @@ public sealed partial class LiveryHandler : FileModHandler
                     pick = livery.FirstOrDefault(s => TrailingNumberRe().Match(s) is { Success: true } sn && sn.Value.TrimStart('0') == num.Value.TrimStart('0') &&
                                                       !taken.Contains(s));
                 if (pick is null && pkg.Textures.Count == 1 && livery.Count == 1) pick = livery[0];
-                if (pick is not null) t.Note = $"the {r.Vehicle} has no texture named {t.Name} — it replaces {pick}";
+                if (pick is not null) t.Note = L.T($"the {r.Vehicle} has no texture named {t.Name} — it replaces {pick}");
             }
             t.Slot = pick;
             if (pick is not null) taken.Add(pick);
@@ -457,7 +458,7 @@ public sealed partial class LiveryHandler : FileModHandler
         var near = index.Find($"{vehicle}_livery*.yft").FirstOrDefault(h => h.Winner) ?? index.Resolve($"{vehicle}.yft");
         if (near is null)
         {
-            r.KitProblem = $"The game has no {vehicle}.yft — the livery models have nowhere to go.";
+            r.KitProblem = L.T($"The game has no {vehicle}.yft — the livery models have nowhere to go.");
             return;
         }
         var nearPath = near.InMods ? near.GamePath[GameIndex.ModsPrefix.Length..] : near.GamePath;
@@ -476,7 +477,7 @@ public sealed partial class LiveryHandler : FileModHandler
         }
         if (kit is null)
         {
-            r.KitProblem = $"The {vehicle} has no modkit of its own — new livery models can't be added to it (texture liveries can).";
+            r.KitProblem = L.T($"The {vehicle} has no modkit of its own — new livery models can't be added to it (texture liveries can).");
             return;
         }
         r.KitName = kit;
@@ -487,7 +488,7 @@ public sealed partial class LiveryHandler : FileModHandler
             r.Carcols = path;
             return;
         }
-        r.KitProblem = $"The {vehicle}'s modkit {kit} is not in a carcols.meta ModDrop V can edit (the base game keeps its kits in a binary carcols.ymt).";
+        r.KitProblem = L.T($"The {vehicle}'s modkit {kit} is not in a carcols.meta ModDrop V can edit (the base game keeps its kits in a binary carcols.ymt).");
     }
 
     /// <summary>The modkits carvariations.meta gives a vehicle (null: the vehicle isn't in it).</summary>
@@ -527,7 +528,7 @@ public sealed partial class LiveryHandler : FileModHandler
     {
         if (package is ReplacementPackage whole) return new ReplacementHandler().PlanInstall(whole, target);
         var pkg = (LiveryPackage)package;
-        if (pkg.Vehicle is null) throw new InvalidOperationException("Pick the vehicle the livery is for.");
+        if (pkg.Vehicle is null) throw new InvalidOperationException(L.T("Pick the vehicle the livery is for."));
         var r = pkg.Resolved;
         if (r is null || r.Vehicle != pkg.Vehicle || r.Edition != target.Edition ||
             !r.GameDir.Equals(Path.GetFullPath(target.GameDir), StringComparison.OrdinalIgnoreCase))
@@ -538,8 +539,8 @@ public sealed partial class LiveryHandler : FileModHandler
         var models = pkg.Models.Where(m => m.Target is not null && (m.Replaces || r.Carcols is not null)).ToList();
         if (textures.Count + models.Count == 0)
             throw new InvalidOperationException(pkg.Textures.Count > 0 && r.Dictionaries.Count > 0
-                ? $"None of the livery's textures has a place on the {pkg.Vehicle} — pick which texture each one replaces."
-                : r.KitProblem ?? r.Warnings.FirstOrDefault() ?? $"Nothing of the livery fits the {pkg.Vehicle}.");
+                ? L.T($"None of the livery's textures has a place on the {pkg.Vehicle} — pick which texture each one replaces.")
+                : r.KitProblem ?? r.Warnings.FirstOrDefault() ?? L.T($"Nothing of the livery fits the {pkg.Vehicle}."));
 
         var plan = BeginInstall(id, pkg.Name, target);
         var touched = new List<string>();
@@ -551,8 +552,7 @@ public sealed partial class LiveryHandler : FileModHandler
             if (mine.Count == 0) continue;
             var file = Path.GetFileName(path);
             plan.Add(new RpfEditOp(path, id,
-                $"Put {mine.Count} livery texture(s) into the {r.Vehicle}'s {file}: " +
-                string.Join(", ", mine.Take(4).Select(m => m.Item1)) + (mine.Count > 4 ? ", …" : "") + " (in a copy of its archive under mods)",
+                L.T($"Put {mine.Count} livery texture(s) into the {r.Vehicle}'s {file}: {string.Join(", ", mine.Take(4).Select(m => m.Item1)) + (mine.Count > 4 ? ", …" : "")} (in a copy of its archive under mods)"),
                 (data, log) => data is null ? null : Ytd.Edit(data, [.. mine.Select(m => Edit(m.t))], file, log)));
             touched.Add(path);
         }
@@ -567,7 +567,7 @@ public sealed partial class LiveryHandler : FileModHandler
             var carcols = r.Carcols!;
             var kit = r.KitName!;
             plan.Add(new RpfEditOp(carcols, id,
-                $"Add {string.Join(", ", newModels.Select(m => m.Name))} to the {r.Vehicle}'s modkit {kit} in carcols.meta",
+                L.T($"Add {string.Join(", ", newModels.Select(m => m.Name))} to the {r.Vehicle}'s modkit {kit} in carcols.meta"),
                 (data, log) => data is null ? null : TextIo.Utf8NoBom.GetBytes(
                     AddToKit(TextIo.DecodeUtf8Sig(data, strict: false), kit, newModels.Select(m => m.Name), pkg.Carcols, log))));
             touched.Add(carcols);
@@ -575,18 +575,18 @@ public sealed partial class LiveryHandler : FileModHandler
 
         foreach (var t in pkg.Textures)
         {
-            if (t.Slot is null) plan.Warnings.Add($"{t.Name}: no texture of the {r.Vehicle} picked for it — skipped.");
+            if (t.Slot is null) plan.Warnings.Add(L.T($"{t.Name}: no texture of the {r.Vehicle} picked for it — skipped."));
             else if (t.Note is not null) plan.Warnings.Add($"{t.Name}: {t.Note}.");
         }
-        foreach (var m in pkg.Models.Where(m => !m.Replaces && r.Carcols is null)) plan.Warnings.Add($"{m.Name}: {r.KitProblem} Skipped.");
+        foreach (var m in pkg.Models.Where(m => !m.Replaces && r.Carcols is null)) plan.Warnings.Add(L.T($"{m.Name}: {r.KitProblem} Skipped."));
         if (newModels.Count > 0)
-            plan.Warnings.Add($"The new livery model(s) have no name in the game's text — Los Santos Customs may list them without one; trainers show them by number.");
+            plan.Warnings.Add(L.T($"The new livery model(s) have no name in the game's text — Los Santos Customs may list them without one; trainers show them by number."));
         plan.Warnings.AddRange(r.Warnings);
         plan.Warnings.AddRange(ConflictWarnings(id, target, touched));
 
         var what = new List<string>();
-        if (textures.Count > 0) what.Add($"{textures.Count} texture(s)");
-        if (models.Count > 0) what.Add($"{models.Count} livery model(s)");
+        if (textures.Count > 0) what.Add(L.T($"{textures.Count} texture(s)"));
+        if (models.Count > 0) what.Add(L.T($"{models.Count} livery model(s)"));
         var addon = Vehicles(target, pkg.DataDir).FirstOrDefault(v => v.Model == pkg.Vehicle && v.Pack is not null);
         plan.Add(Register(id, ModCategory.Livery, pkg, target, $"{pkg.Vehicle}{(addon is null ? "" : " (add-on)")} · {string.Join(", ", what)}",
                           new() { ["vehicle"] = pkg.Vehicle, ["pack"] = addon?.Pack ?? "" }));
@@ -602,7 +602,7 @@ public sealed partial class LiveryHandler : FileModHandler
     internal static string AddToKit(string carcols, string kit, IEnumerable<string> models, string? modCarcols, Action<string>? log = null)
     {
         var kitTag = Regex.Match(carcols, $@"<kitName>\s*{Regex.Escape(kit)}\s*</kitName>", RegexOptions.IgnoreCase);
-        if (!kitTag.Success) throw new InvalidDataException($"The modkit {kit} is not in carcols.meta.");
+        if (!kitTag.Success) throw new InvalidDataException(L.T($"The modkit {kit} is not in carcols.meta."));
         int next = carcols.IndexOf("<kitName>", kitTag.Index + kitTag.Length, StringComparison.OrdinalIgnoreCase);
         int end = next < 0 ? carcols.Length : next;
         var region = carcols[kitTag.Index..end];
@@ -615,7 +615,7 @@ public sealed partial class LiveryHandler : FileModHandler
             var theirs = own is null ? null
                 : Regex.Match(own, $@"<Item>\s*<modelName>\s*{Regex.Escape(model)}\s*</modelName>.*?</Item>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
             items.Add(theirs is { Success: true } ? theirs.Value : LiveryItem(model));
-            log?.Invoke($"    carcols.meta: {model} added to the modkit {kit}{(theirs is { Success: true } ? " (the mod's own entry)" : "")}.");
+            log?.Invoke(L.T($"    carcols.meta: {model} added to the modkit {kit}{(theirs is { Success: true } ? L.T(" (the mod's own entry)") : "")}."));
         }
         if (items.Count == 0) return carcols;
 
@@ -630,7 +630,7 @@ public sealed partial class LiveryHandler : FileModHandler
             return carcols[..lineStart] + block + carcols[lineStart..];
         }
         var empty = Regex.Match(region, @"<visibleMods\s*/>", RegexOptions.IgnoreCase);
-        if (!empty.Success) throw new InvalidDataException($"The modkit {kit} in carcols.meta has no visibleMods list.");
+        if (!empty.Success) throw new InvalidDataException(L.T($"The modkit {kit} in carcols.meta has no visibleMods list."));
         int s = kitTag.Index + empty.Index;
         return carcols[..s] + "<visibleMods>" + block + "\n      </visibleMods>" + carcols[(s + empty.Length)..];
     }
@@ -665,7 +665,7 @@ public sealed partial class LiveryHandler : FileModHandler
         var where = base.WhereOf(m, overlay);
         // the add-on it was on was reinstalled or removed: nothing of it is left in the game (all of a livery is in the mods layer)
         return overlay is null || (overlay.PathsOf(m.Id).Count == 0 && !overlay.IsParked(m.Id))
-            ? $"{where} — no longer applied (its vehicle was reinstalled or removed)"
+            ? L.T($"{where} — no longer applied (its vehicle was reinstalled or removed)")
             : where;
     }
 

@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Globalization;
 using System.Xml.Linq;
 using Mdv.Core.Index;
@@ -37,10 +38,10 @@ public sealed class PlacementFile
     public string Counts()
     {
         var parts = new List<string>();
-        if (Objects > 0) parts.Add(Objects == 1 ? "1 object" : $"{Objects} objects");
-        if (Vehicles > 0) parts.Add(Vehicles == 1 ? "1 vehicle" : $"{Vehicles} vehicles");
-        if (Peds > 0) parts.Add(Peds == 1 ? "1 ped" : $"{Peds} peds");
-        return parts.Count == 0 ? "nothing placed" : string.Join(", ", parts);
+        if (Objects > 0) parts.Add(Objects == 1 ? L.T("1 object") : L.T($"{Objects} objects"));
+        if (Vehicles > 0) parts.Add(Vehicles == 1 ? L.T("1 vehicle") : L.T($"{Vehicles} vehicles"));
+        if (Peds > 0) parts.Add(Peds == 1 ? L.T("1 ped") : L.T($"{Peds} peds"));
+        return parts.Count == 0 ? L.T("nothing placed") : string.Join(", ", parts);
     }
 }
 
@@ -89,7 +90,7 @@ public sealed class PlacementHandler : FileModHandler
             if (file is null) continue;
             if (!dests.Add(file.Dest))
             {
-                pkg.Warnings.Add($"{f.Name} is in the mod more than once — the first one is used, {f.Origin} is left out.");
+                pkg.Warnings.Add(L.T($"{f.Name} is in the mod more than once — the first one is used, {f.Origin} is left out."));
                 continue;
             }
             pkg.Files.Add(file);
@@ -97,8 +98,8 @@ public sealed class PlacementHandler : FileModHandler
         if (pkg.Files.Count == 0) return null;
         foreach (var t in pkg.Files.GroupBy(f => f.Tool))
             pkg.Parts.Add(t.Key == PlacementTool.Menyoo
-                ? $"Menyoo map{(t.Count() > 1 ? "s" : "")}: {string.Join(", ", t.Select(f => $"{Path.GetFileNameWithoutExtension(f.Name)} ({f.Counts()})"))}"
-                : $"Map Editor map{(t.Count() > 1 ? "s" : "")}: {string.Join(", ", t.Select(f => $"{Path.GetFileNameWithoutExtension(f.Name)} ({f.Counts()})"))}");
+                ? L.T($"Menyoo map(s): {string.Join(", ", t.Select(f => $"{Path.GetFileNameWithoutExtension(f.Name)} ({f.Counts()})"))}")
+                : L.T($"Map Editor map(s): {string.Join(", ", t.Select(f => $"{Path.GetFileNameWithoutExtension(f.Name)} ({f.Counts()})"))}"));
         pkg.Dependencies.AddRange(DependencyCheck.Tools(ToolsOf(pkg), DependencyCatalog.Load(null), null, GameEdition.Legacy));
         return pkg;
     }
@@ -237,8 +238,8 @@ public sealed class PlacementHandler : FileModHandler
             var list = g.ToList();
             plan.Add(new CopyFilesOp([.. list.Select(f => (f.Source, f.Dest))],
                 g.Key == PlacementTool.Menyoo
-                    ? $"Copy {string.Join(", ", list.Select(f => f.Name))} into menyooStuff\\Spooner (Menyoo: Object Spooner → Manage Saved Files)"
-                    : $"Copy {string.Join(", ", list.Select(f => f.Name))} into scripts\\AutoloadMaps (Map Editor loads it with the game)"));
+                    ? L.T($"Copy {string.Join(", ", list.Select(f => f.Name))} into menyooStuff\\Spooner (Menyoo: Object Spooner → Manage Saved Files)")
+                    : L.T($"Copy {string.Join(", ", list.Select(f => f.Name))} into scripts\\AutoloadMaps (Map Editor loads it with the game)")));
         }
         foreach (var d in pkg.Dependencies.Where(d => d.IsProblem))
             plan.Warnings.Add($"{d.Name} — {d.StateText}: {d.Detail}");
@@ -246,11 +247,10 @@ public sealed class PlacementHandler : FileModHandler
             plan.Warnings.Add(MissingText(pkg.MissingModels));
         var there = pkg.Files.Where(f => File.Exists(Path.Combine(target.GameDir, f.Dest))).Select(f => f.Dest).ToList();
         if (there.Count > 0)
-            plan.Warnings.Add($"{string.Join(", ", there.Take(3))} {(there.Count == 1 ? "is" : "are")} already in the game — replaced now, " +
-                              "back when the mod is removed.");
+            plan.Warnings.Add(L.T($"Already in the game: {string.Join(", ", there.Take(3))} — replaced now, back when the mod is removed."));
         var where = string.Join(", ", pkg.Files.GroupBy(f => f.Tool).Select(g => g.Key == PlacementTool.Menyoo
             ? $"Menyoo · {string.Join(", ", g.Select(f => Path.GetFileNameWithoutExtension(f.Name)))}"
-            : $"Map Editor · {string.Join(", ", g.Select(f => Path.GetFileNameWithoutExtension(f.Name)))}"));
+            : L.T($"Map Editor · {string.Join(", ", g.Select(f => Path.GetFileNameWithoutExtension(f.Name)))}")));
         plan.Add(Register(id, ModCategory.Map, pkg, target, where, new()
         {
             ["kind"] = "placement",
@@ -262,8 +262,7 @@ public sealed class PlacementHandler : FileModHandler
 
     /// <summary>"12 of the models it places are neither in the game nor in the mod (…)".</summary>
     public static string MissingText(IReadOnlyList<string> missing) =>
-        $"{(missing.Count == 1 ? "1 model it places is" : $"{missing.Count} models it places are")} not in the game " +
-        $"({string.Join(", ", missing.Take(5))}{(missing.Count > 5 ? ", …" : "")}) — they come from another mod; without it they don't show.";
+        L.T($"Models it places that are not in the game ({missing.Count}): {string.Join(", ", missing.Take(5))}{(missing.Count > 5 ? ", …" : "")} — they come from another mod; without it they don't show.");
 
     // ================================================================ switching and removing
 
@@ -278,8 +277,8 @@ public sealed class PlacementHandler : FileModHandler
     {
         var entries = Entries(m);
         yield return new RenameEntriesOp(entries, on,
-            on ? $"Switch on «{m.Name}»: {string.Join(", ", entries.Select(Path.GetFileName))} back under {(entries.Count == 1 ? "its name" : "their names")}"
-               : $"Switch off «{m.Name}»: rename {string.Join(", ", entries.Select(Path.GetFileName))} to *{ScriptHandler.DisabledSuffix} (the tool doesn't list it)");
+            on ? L.T($"Switch on «{m.Name}»: {string.Join(", ", entries.Select(Path.GetFileName))} back under {(entries.Count == 1 ? L.T("its name") : L.T("their names"))}")
+               : L.T($"Switch off «{m.Name}»: rename {string.Join(", ", entries.Select(Path.GetFileName))} to *{ScriptHandler.DisabledSuffix} (the tool doesn't list it)"));
         yield return new ActionOp("", ctx => ctx.Switched[m.Id] = on) { Hidden = true };
     }
 

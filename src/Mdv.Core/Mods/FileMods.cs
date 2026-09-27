@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.RegularExpressions;
 
 namespace Mdv.Core.Mods;
@@ -48,7 +49,7 @@ public abstract partial class FileModHandler : IModHandler
         var reg = ModRegistry.Load(target.GameDir);
         if (reg.Find(id) is { } old)
         {
-            plan.Warnings.Add($"«{old.Name}» is already installed — the installed version is replaced.");
+            plan.Warnings.Add(L.T($"«{old.Name}» is already installed — the installed version is replaced."));
             plan.Ops.AddRange(RemoveOps(old, IsOff(old, LoadOverlay(target)), unregister: false, reinstall: true));
         }
         if (modsLoader)
@@ -110,17 +111,17 @@ public abstract partial class FileModHandler : IModHandler
     protected virtual IEnumerable<PlanOp> SwitchOps(RegisteredMod m, bool on)
     {
         if (on)
-            yield return new ActionOp($"Switch on «{m.Name}»: put its files back into the game archives", ctx =>
+            yield return new ActionOp(L.T($"Switch on «{m.Name}»: put its files back into the game archives"), ctx =>
             {
                 int n = ctx.Overlay.Unpark(m.Id);
-                ctx.Log($"    «{m.Name}»: {n} file(s) back in the archive copies in mods.");
+                ctx.Log(L.T($"    «{m.Name}»: {n} file(s) back in the archive copies in mods."));
                 ctx.Switched[m.Id] = true;
             });
         else
-            yield return new ActionOp($"Switch off «{m.Name}»: take its files out of the game archives (kept for switching on)", ctx =>
+            yield return new ActionOp(L.T($"Switch off «{m.Name}»: take its files out of the game archives (kept for switching on)"), ctx =>
             {
                 int n = ctx.Overlay.Park(m.Id);
-                ctx.Log($"    «{m.Name}»: {n} file(s) taken out and kept aside.");
+                ctx.Log(L.T($"    «{m.Name}»: {n} file(s) taken out and kept aside."));
                 ctx.Switched[m.Id] = false;
             });
     }
@@ -129,18 +130,18 @@ public abstract partial class FileModHandler : IModHandler
     protected virtual IEnumerable<PlanOp> TakeOutOps(RegisteredMod m, bool off, bool reinstall = false)
     {
         if (off)
-            yield return new ActionOp($"Forget the switched-off «{m.Name}»'s kept files", ctx => ctx.Overlay.DropParked(m.Id));
+            yield return new ActionOp(L.T($"Forget the switched-off «{m.Name}»'s kept files"), ctx => ctx.Overlay.DropParked(m.Id));
         else
             yield return new OverlayRemoveOp(m.Id, m.Name, reinstall);
     }
 
     public InstallPlan PlanChanges(InstallTarget target, ModRegistry registry, IReadOnlyList<ModChange> changes)
     {
-        var plan = new InstallPlan { Title = $"Updating installed {Category.PluralName().ToLowerInvariant()}" };
+        var plan = new InstallPlan { Title = L.T($"Updating installed {Category.PluralName().ToLowerInvariant()}") };
         var overlay = LoadOverlay(target);
         foreach (var c in changes)
         {
-            var m = registry.Find(c.Id) ?? throw new ArgumentException($"«{c.Id}» is not installed.");
+            var m = registry.Find(c.Id) ?? throw new ArgumentException(L.T($"«{c.Id}» is not installed."));
             bool off = IsOff(m, overlay);
             if (c.Remove)
             {
@@ -149,7 +150,7 @@ public abstract partial class FileModHandler : IModHandler
             }
             if (c.Enable == !off) continue;                          // already that way
             if (!Switchable(m))
-                throw new NotSupportedException($"«{m.Name}» copied files into the game folder — it can be removed, but not switched off.");
+                throw new NotSupportedException(L.T($"«{m.Name}» copied files into the game folder — it can be removed, but not switched off."));
             plan.Ops.AddRange(SwitchOps(m, c.Enable));
         }
         return plan;
@@ -160,7 +161,7 @@ public abstract partial class FileModHandler : IModHandler
     {
         foreach (var op in TakeOutOps(m, off, reinstall)) yield return op;
         if (m.Journal.Count > 0)
-            yield return new ActionOp($"Take back what «{m.Name}» copied into the game folder ({Describe(m.Journal)})",
+            yield return new ActionOp(L.T($"Take back what «{m.Name}» copied into the game folder ({Describe(m.Journal)})"),
                                       ctx => ctx.Journal.RevertInto(InstallExecutor.OwnSteps(m.Journal, ctx.Overlay)));
         if (unregister)
             yield return new ActionOp("", ctx => ctx.Unregistered.Add(m.Id)) { Hidden = true };
@@ -172,8 +173,8 @@ public abstract partial class FileModHandler : IModHandler
         int files = steps.Count(s => s is CreatedFile or MovedAside or CreatedDir);
         int lines = steps.Count(s => s is DlclistAdded or DlclistRemoved);
         var parts = new List<string>();
-        if (files > 0) parts.Add($"{files} file(s)");
-        if (lines > 0) parts.Add(lines == 1 ? "1 dlclist.xml line" : $"{lines} dlclist.xml lines");
+        if (files > 0) parts.Add(L.T($"{files} file(s)"));
+        if (lines > 0) parts.Add(lines == 1 ? L.T("1 dlclist.xml line") : L.T($"{lines} dlclist.xml lines"));
         return parts.Count == 0 ? "nothing" : string.Join(", ", parts);
     }
 
@@ -188,9 +189,9 @@ public abstract partial class FileModHandler : IModHandler
         {
             var name = reg.Find(g.Key)?.Name ?? g.Key;
             var files = g.Select(c => Path.GetFileName(c.GamePath)).ToList();
-            yield return $"«{name}» already changes {files.Count} file(s) this mod changes too " +
+            yield return L.T($"«{name}» already changes {files.Count} file(s) this mod changes too " +
                          $"({string.Join(", ", files.Take(4))}{(files.Count > 4 ? ", …" : "")}) — this mod goes on top; " +
-                         "removing it brings the other one's version back.";
+                         $"removing it brings the other one's version back.");
         }
     }
 }

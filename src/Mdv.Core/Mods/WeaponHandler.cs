@@ -1,3 +1,4 @@
+using Mdv.Core;
 using Mdv.Core.Rpf;
 using Mdv.Core.Util;
 
@@ -59,11 +60,11 @@ public sealed class WeaponHandler : IModHandler
                 SourcePath = source.Sources.Count == 1 ? source.Sources[0] : null,
             },
         };
-        if (r.PrebuiltRpf is { } pre) pkg.Parts.Add($"finished pack {pre.Origin}");
+        if (r.PrebuiltRpf is { } pre) pkg.Parts.Add(L.T($"finished pack {pre.Origin}"));
         else
         {
-            pkg.Parts.Add($"{r.Models.Count} model / texture file(s)");
-            if (r.Configs.Count > 0) pkg.Parts.Add($"own config: {string.Join(", ", r.Configs.Select(c => c.Name))}");
+            pkg.Parts.Add(L.T($"{r.Models.Count} model / texture file(s)"));
+            if (r.Configs.Count > 0) pkg.Parts.Add(L.T($"own config: {string.Join(", ", r.Configs.Select(c => c.Name))}"));
         }
         pkg.Warnings.AddRange(r.Warnings);
         return pkg;
@@ -72,7 +73,7 @@ public sealed class WeaponHandler : IModHandler
     // ================================================================ install
 
     /// <summary>The base weapon couldn't be determined — the build returned nothing to install.</summary>
-    private sealed class NotBuiltException() : Exception("the base weapon could not be determined");
+    private sealed class NotBuiltException() : Exception(L.T("the base weapon could not be determined"));
 
     /// <summary>
     /// <see cref="Pipeline.BuildAddon"/> with a game folder: resolve the edition, then build
@@ -82,7 +83,7 @@ public sealed class WeaponHandler : IModHandler
     internal static BuildResult? InstallBuild(BuildOptions o, Action<string> log)
     {
         if (!o.PackRpf && !o.MergePack)
-            throw new ArgumentException("Installing into GTA V requires a packed dlc.rpf — enable RPF packing.");
+            throw new ArgumentException(L.T("Installing into GTA V requires a packed dlc.rpf — enable RPF packing."));
         var game = o.InstallGameDir!;
         var edition = GameInstaller.ResolveEdition(game, o.Edition, log);
         log(Pipeline.TargetLine(edition));
@@ -113,10 +114,10 @@ public sealed class WeaponHandler : IModHandler
         return new InstallPlan { Title = $"Installing «{name}»" }
             .Add(new EnsureModsLoaderOp(plugins))
             .Add(new ActionOp(o.MergePack
-                                  ? $"Build «{name}» and add it to the shared AddonWeapons pack"
-                                  : $"Build «{name}» as an add-on pack of its own",
+                                  ? L.T($"Build «{name}» and add it to the shared AddonWeapons pack")
+                                  : L.T($"Build «{name}» as an add-on pack of its own"),
                               ctx => Build(ctx, t, o)))
-            .Add(new ActionOp("Install the built pack into mods\\update\\x64\\dlcpacks and add it to dlclist.xml",
+            .Add(new ActionOp(L.T("Install the built pack into mods\\update\\x64\\dlcpacks and add it to dlclist.xml"),
                               ctx => InstallBuilt(ctx, pkg, o)));
     }
 
@@ -164,7 +165,7 @@ public sealed class WeaponHandler : IModHandler
                 GameInstaller.InstallToGame(ctx.GameDir, i.DlcRpf, i.Folder, ctx.Log, ctx.Journal);
             else
             {
-                ctx.Log($"'{i.Folder}' unchanged — leaving the installed copy in place.");
+                ctx.Log(L.T($"'{i.Folder}' unchanged — leaving the installed copy in place."));
                 GameInstaller.RegisterInDlclist(ctx.GameDir, i.Folder, ctx.Log, ctx.Journal);
             }
         }
@@ -247,7 +248,7 @@ public sealed class WeaponHandler : IModHandler
 
     public InstallPlan PlanChanges(InstallTarget target, ModRegistry registry, IReadOnlyList<ModChange> changes)
     {
-        var plan = new InstallPlan { Title = "Updating installed weapons" };
+        var plan = new InstallPlan { Title = L.T("Updating installed weapons") };
         var game = target.GameDir;
         var merged = new List<ModChange>();
         foreach (var c in changes)
@@ -260,19 +261,19 @@ public sealed class WeaponHandler : IModHandler
             var folder = c.Id[WeaponIds.PackPrefix.Length..];
             var name = registry.Find(c.Id)?.Name is { Length: > 0 } n ? n : folder;
             if (c.Remove)
-                plan.Add(new ActionOp($"Remove «{name}» (dlcpack {folder})", ctx =>
+                plan.Add(new ActionOp(L.T($"Remove «{name}» (dlcpack {folder})"), ctx =>
                 {
                     GameInstaller.UninstallPack(game, folder, ctx.Log, ctx.Journal);
                     ctx.Unregistered.Add(c.Id);
                 }));
             else if (c.Enable)
-                plan.Add(new ActionOp($"Switch on «{name}» (dlcpack {folder})", ctx =>
+                plan.Add(new ActionOp(L.T($"Switch on «{name}» (dlcpack {folder})"), ctx =>
                 {
                     GameInstaller.EnablePack(game, folder, ctx.Log, ctx.Journal);
                     ctx.Switched[c.Id] = true;
                 }));
             else
-                plan.Add(new ActionOp($"Switch off «{name}» (dlcpack {folder})", ctx =>
+                plan.Add(new ActionOp(L.T($"Switch off «{name}» (dlcpack {folder})"), ctx =>
                 {
                     GameInstaller.DisablePack(game, folder, ctx.Log, ctx.Journal);
                     ctx.Switched[c.Id] = false;
@@ -283,9 +284,9 @@ public sealed class WeaponHandler : IModHandler
         {
             int off = merged.Count(c => !c.Remove && !c.Enable), on = merged.Count(c => !c.Remove && c.Enable);
             int remove = merged.Count(c => c.Remove);
-            var what = new[] { (off, "switch off"), (on, "switch on"), (remove, "remove") }
+            var what = new[] { (off, L.T("switch off")), (on, L.T("switch on")), (remove, "remove") }
                        .Where(x => x.Item1 > 0).Select(x => $"{x.Item2} {x.Item1}");
-            plan.Add(new ActionOp($"Shared AddonWeapons pack: {string.Join(", ", what)} weapon(s), then rebuild and reinstall it",
+            plan.Add(new ActionOp(L.T($"Shared AddonWeapons pack: {string.Join(", ", what)} weapon(s), then rebuild and reinstall it"),
                                   ctx => ApplyMerged(ctx, merged)));
         }
         return plan;
@@ -304,7 +305,7 @@ public sealed class WeaponHandler : IModHandler
             var pack = ms.OwnerOf(suffix);
             if (pack is null)
             {
-                log($"    [!] Weapon '{suffix}' is no longer in any AddonWeapons pack — skipped.");
+                log(L.T($"    [!] Weapon '{suffix}' is no longer in any AddonWeapons pack — skipped."));
                 continue;
             }
             if (c.Remove)
@@ -329,7 +330,7 @@ public sealed class WeaponHandler : IModHandler
 
         foreach (var b in ms.BuildAll(ctx.Target.Edition))
         {
-            log($"Packed '{b.Folder}' into a single dlc.rpf ({b.Size} bytes, {b.Weapons.Count} weapon(s)).");
+            log(L.T($"Packed '{b.Folder}' into a single dlc.rpf ({b.Size} bytes, {b.Weapons.Count} weapon(s))."));
             Pipeline.VerifyPack(b.DlcRpf, log);
             GameInstaller.InstallToGame(game, b.DlcRpf, b.Folder, log, ctx.Journal);
         }
@@ -377,13 +378,13 @@ public static class WeaponStaging
             if (twin is not null)
             {
                 CopyDir(twin, staged);
-                log($"Picked up the '{folder}' pack ({state.Weapons.Count} weapon(s)) from {ModRegistry.AwbName}'s staging: {twin}");
+                log(L.T($"Picked up the '{folder}' pack ({state.Weapons.Count} weapon(s)) from {ModRegistry.AwbName}'s staging: {twin}"));
             }
             else
             {
                 Directory.CreateDirectory(staged);
                 PathUtil.Copy2(installed, Path.Combine(staged, "dlc.rpf"));
-                log($"No staged copy of the installed '{folder}' pack — it will be recovered from the game ({state.Weapons.Count} weapon(s)).");
+                log(L.T($"No staged copy of the installed '{folder}' pack — it will be recovered from the game ({state.Weapons.Count} weapon(s))."));
             }
         }
     }

@@ -1,5 +1,6 @@
 <!-- OIV panel, form slot: the package's own card — its colours, icon, name, author and description. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              x:Class="Mdv.App.Views.Panels.OivFormView"
@@ -34,7 +35,7 @@
                          Foreground="{Binding HeaderText}" />
             </StackPanel>
             <Border Grid.Column="2" Classes="badge" VerticalAlignment="Top">
-              <TextBlock Text="oiv package" />
+              <TextBlock Text="{l:Tr 'oiv package'}" />
             </Border>
           </Grid>
         </Border>
@@ -44,18 +45,18 @@
         <StackPanel Spacing="12">
           <SelectableTextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="13" LineHeight="20"
                                Foreground="{DynamicResource Text2Brush}" IsVisible="{Binding HasDescription}" />
-          <TextBlock Classes="desc" Text="The package has no description." IsVisible="{Binding !HasDescription}" />
+          <TextBlock Classes="desc" Text="{l:Tr 'The package has no description.'}" IsVisible="{Binding !HasDescription}" />
           <Button Classes="ghost small" HorizontalAlignment="Left" Command="{Binding OpenLinkCommand}"
                   IsVisible="{Binding HasLink}" ToolTip.Tip="{Binding Link}">
             <StackPanel Orientation="Horizontal" Spacing="7">
               <Path Data="{StaticResource IconExpand}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
                     StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="11" Height="11" />
-              <TextBlock Text="Author's page" />
+              <TextBlock Text="{l:Tr 'Author’s page'}" />
             </StackPanel>
           </Button>
           <Border Classes="note">
             <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}"
-                       Text="Installed the safe way: files inside game archives go into copies under mods, the game's own archives stay untouched. Removing the package in the Library puts everything back." />
+                       Text="{l:Tr 'Installed the safe way: files inside game archives go into copies under mods, the game’s own archives stay untouched. Removing the package in the Library puts everything back.'}" />
           </Border>
         </StackPanel>
       </ScrollViewer>

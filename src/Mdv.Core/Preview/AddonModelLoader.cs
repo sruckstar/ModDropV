@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Mdv.Core.Mods;
@@ -129,7 +130,7 @@ public static partial class AddonModelLoader
         }
         catch (Exception ex)
         {
-            model.Warnings.Add($"{Path.GetFileName(name)}: can't read the model ({ex.Message}).");
+            model.Warnings.Add(L.T($"{Path.GetFileName(name)}: can't read the model ({ex.Message})."));
             return null;
         }
     }
@@ -139,8 +140,8 @@ public static partial class AddonModelLoader
         model.TextureCount = textures.Decoded;
         if (textures.Missing.Count == 0) return;
         var names = textures.Missing.Order(StringComparer.OrdinalIgnoreCase).ToList();
-        model.Warnings.Add($"{names.Count} texture(s) not in the mod (shared game textures), shown plain: " +
-                           $"{string.Join(", ", names.Take(5))}{(names.Count > 5 ? "…" : "")}");
+        model.Warnings.Add(L.T($"{names.Count} texture(s) not in the mod (shared game textures), shown plain: " +
+                           $"{string.Join(", ", names.Take(5))}{(names.Count > 5 ? "…" : "")}"));
     }
 
     // ------------------------------------------------------------------ vehicles
@@ -173,7 +174,7 @@ public static partial class AddonModelLoader
         ct.ThrowIfCancellationRequested();
 
         var textures = new WeaponModelLoader.TextureLibrary(files) { Fallback = SharedTexture, Layer = layer };
-        var bodyPiece = WeaponModelLoader.MakePiece(body, "body", $"Body ({name})", "body", null, true, true, Matrix4x4.Identity, textures);
+        var bodyPiece = WeaponModelLoader.MakePiece(body, "body", L.T($"Body ({name})"), "body", null, true, true, Matrix4x4.Identity, textures);
 
         // the physics children: breakable parts drawn on their own, and the wheels
         var lod = frag.PhysicsLODGroup?.PhysicsLOD1;
@@ -205,7 +206,7 @@ public static partial class AddonModelLoader
         }
         model.Pieces.Add(bodyPiece);
         if (!wheels.IsEmpty) model.Pieces.Add(wheels);
-        foreach (var p in model.Pieces) p.Note = $"{p.Triangles:#,0} triangles";
+        foreach (var p in model.Pieces) p.Note = L.T($"{p.Triangles:#,0} triangles");
         Finish(model, textures);
         return model;
     }
@@ -238,9 +239,9 @@ public static partial class AddonModelLoader
 
     private static readonly Dictionary<string, string> SlotNames = new()
     {
-        ["head"] = "head", ["berd"] = "beard / mask", ["hair"] = "hair", ["uppr"] = "upper body", ["lowr"] = "legs",
-        ["hand"] = "hands", ["feet"] = "feet", ["teef"] = "neck / teeth", ["accs"] = "accessory", ["task"] = "gear",
-        ["decl"] = "decals", ["jbib"] = "jacket",
+        ["head"] = L.N("head"), ["berd"] = L.N("beard / mask"), ["hair"] = L.N("hair"), ["uppr"] = L.N("upper body"), ["lowr"] = L.N("legs"),
+        ["hand"] = L.N("hands"), ["feet"] = L.N("feet"), ["teef"] = L.N("neck / teeth"), ["accs"] = L.N("accessory"), ["task"] = L.N("gear"),
+        ["decl"] = L.N("decals"), ["jbib"] = L.N("jacket"),
     };
 
     private static readonly Lazy<Dictionary<uint, string>> DrawableNames = new(() =>
@@ -300,7 +301,7 @@ public static partial class AddonModelLoader
             var slot = m.Success ? m.Groups[1].Value.ToLowerInvariant() : "part";
             bool visible = firstOfSlot.Add(slot);
             var piece = WeaponModelLoader.MakePiece(d, n, n, slot, m.Success ? slot : null, m.Success, visible, Matrix4x4.Identity, textures);
-            piece.Note = $"{(m.Success ? SlotNames[slot] : "part")} · {piece.Triangles:#,0} triangles";
+            piece.Note = L.T($"{(m.Success ? L.T(SlotNames[slot]) : L.T("part"))} · {piece.Triangles:#,0} triangles");
             model.Pieces.Add(piece);
         }
         if (model.Pieces.Count == 0) return model.Warnings.Count > 0 ? model : null;

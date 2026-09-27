@@ -1,5 +1,6 @@
 <!-- Replacement panel, form slot: each file of the mod and the place in the game it replaces. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              xmlns:mods="using:Mdv.Core.Mods"
@@ -8,11 +9,11 @@
   <Border Classes="card" Padding="16,13,6,13">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,0,10,0">
-        <TextBlock Classes="h" Text="WHERE THE FILES GO" />
+        <TextBlock Classes="h" Text="{l:Tr 'WHERE THE FILES GO'}" />
         <TextBlock Grid.Column="1" Classes="desc" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                    Text="{Binding Name}" />
         <Border Grid.Column="2" Classes="badge">
-          <TextBlock Text="replace" />
+          <TextBlock Text="{l:Tr 'replace'}" />
         </Border>
       </Grid>
       <StackPanel Grid.Row="1" Spacing="6" Margin="0,0,10,0">
@@ -38,7 +39,7 @@
                   </Grid>
                   <ComboBox ItemsSource="{Binding Candidates}" SelectedItem="{Binding SelectedTarget}" IsVisible="{Binding Found}"
                             IsEnabled="{Binding HasChoice}" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="The place in the game this file replaces (the copy the game loads comes first)">
+                            ToolTip.Tip="{l:Tr 'The place in the game this file replaces (the copy the game loads comes first)'}">
                     <ComboBox.ItemTemplate>
                       <DataTemplate x:DataType="mods:ReplaceTarget">
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -49,7 +50,7 @@
                       </DataTemplate>
                     </ComboBox.ItemTemplate>
                   </ComboBox>
-                  <TextBlock Text="Not a file of this game — it is skipped." FontSize="11.5" IsVisible="{Binding Missing}"
+                  <TextBlock Text="{l:Tr 'Not a file of this game — it is skipped.'}" FontSize="11.5" IsVisible="{Binding Missing}"
                              Foreground="{DynamicResource DangerBrush}" />
                   <TextBlock Text="{Binding Note}" FontSize="11.5" TextWrapping="Wrap" IsVisible="{Binding HasNote}"
                              Foreground="{DynamicResource WarnBrush}" />

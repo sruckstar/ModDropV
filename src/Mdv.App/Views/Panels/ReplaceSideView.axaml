@@ -1,5 +1,6 @@
 <!-- Replacement panel, side slot: what was found and how it is installed. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              xmlns:c="using:Mdv.App.Controls"
@@ -7,7 +8,7 @@
              x:DataType="vm:ReplacementViewModel">
   <Border Classes="card" Padding="16,13,6,13">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-      <TextBlock Classes="h" Text="ANALYSIS" />
+      <TextBlock Classes="h" Text="{l:Tr 'ANALYSIS'}" />
       <!-- a vehicle / ped replacement: the model it brings -->
       <Border Grid.Row="1" Height="148" Margin="0,0,10,0" CornerRadius="9" ClipToBounds="True"
               BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1"
@@ -15,10 +16,10 @@
         <Panel>
           <c:WeaponModelView Model="{Binding Preview.Model}" VisiblePieces="{Binding Preview.Visible}"
                              Textured="{Binding Preview.Textured}" ResetCount="{Binding Preview.ResetCount}"
-                             ToolTip.Tip="Drag to turn · wheel to zoom · double-click to frame" />
+                             ToolTip.Tip="{l:Tr 'Drag to turn · wheel to zoom · double-click to frame'}" />
           <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center"
                       IsVisible="{Binding Preview.IsLoading}">
-            <TextBlock Classes="desc" Text="Loading the model…" HorizontalAlignment="Center" />
+            <TextBlock Classes="desc" Text="{l:Tr 'Loading the model…'}" HorizontalAlignment="Center" />
             <ProgressBar IsIndeterminate="True" Width="120" Height="3" MinHeight="3" MinWidth="0" />
           </StackPanel>
           <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
@@ -35,7 +36,7 @@
           </StackPanel>
           <Border Classes="note">
             <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}"
-                       Text="Each file goes where the game actually loads it from — by the folders the mod mirrors, else by its name. The files go into copies of the archives under mods; switch the mod off or remove it in the Library and the game's own files come back." />
+                       Text="{l:Tr 'Each file goes where the game actually loads it from — by the folders the mod mirrors, else by its name. The files go into copies of the archives under mods; switch the mod off or remove it in the Library and the game’s own files come back.'}" />
           </Border>
           <ItemsControl ItemsSource="{Binding Warnings}">
             <ItemsControl.ItemsPanel>

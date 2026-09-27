@@ -37,19 +37,19 @@ public abstract class FileModViewModel(MainViewModel shell) : ModPanelViewModel(
 
     public override (PanelJob? Job, string? Error) Prepare()
     {
-        if (Shell.IsPreparing) return (null, "The drop is still being unpacked — wait a moment.");
-        if (Package is not { } pkg) return (null, "Drop the mod — its folder or archive — first.");
+        if (Shell.IsPreparing) return (null, L.T("The drop is still being unpacked — wait a moment."));
+        if (Package is not { } pkg) return (null, L.T("Drop the mod — its folder or archive — first."));
         if (NotReady() is { } why) return (null, why);
         var game = Shell.GameFolder.Trim();
         var edition = Shell.Edition;
         var target = MainViewModel.TargetFor(game, edition);
         var run = new PlanRun();
-        return (new PanelJob("Installing into GTA V…", log =>
+        return (new PanelJob(L.T("Installing into GTA V…"), log =>
         {
-            log($"Installing «{pkg.Name}» ({pkg.Category.DisplayName()}) into {edition.DisplayName()}: {game}");
+            log(L.T($"Installing «{pkg.Name}» ({pkg.Category.DisplayName()}) into {edition.DisplayName()}: {game}"));
             ModLibrary.Install(pkg, target, log, run);
-            return new PanelOutcome(true, $"Installed into {edition.DisplayName()}",
-                                    $"«{pkg.Name}» is in the game — manage it in the Library:\n{game}", game);
+            return new PanelOutcome(true, L.T($"Installed into {edition.DisplayName()}"),
+                                    L.T($"«{pkg.Name}» is in the game — manage it in the Library:\n{game}"), game);
         })
         {
             Package = pkg,
@@ -101,7 +101,7 @@ public sealed partial class OivViewModel(MainViewModel shell) : FileModViewModel
         Name = pkg.Name;
         var by = new List<string>();
         if (pkg.Version is { } v) by.Add("v" + v);
-        if (pkg.Author is { } a) by.Add("by " + a);
+        if (pkg.Author is { } a) by.Add(L.T($"by {a}"));
         by.Add(pkg.FormatVersion.Length > 0 ? $"OIV {pkg.FormatVersion}" : "OIV");
         Byline = string.Join("  ·  ", by);
         Description = pkg.Description ?? "";
@@ -133,15 +133,15 @@ public sealed partial class OivViewModel(MainViewModel shell) : FileModViewModel
         foreach (var s in pkg.Steps.Where(s => s is not OivArchive))
             Steps.Add(new OivStepRow(s switch
             {
-                OivAdd => "put in",
-                OivDelete => "delete",
-                OivXml => "edit xml",
-                OivText => "edit text",
+                OivAdd => L.T("put in"),
+                OivDelete => L.T("delete"),
+                OivXml => L.T("edit xml"),
+                OivText => L.T("edit text"),
                 _ => "",
-            }, s.Path, s.InArchive ? "in a copy of its archive under mods" : s.Path.EndsWith(".rpf") ? "into mods" : "game folder"));
+            }, s.Path, s.InArchive ? L.T("in a copy of its archive under mods") : s.Path.EndsWith(".rpf") ? L.T("into mods") : L.T("game folder")));
         int archives = pkg.Steps.Count(s => s.InArchive);
-        Summary = $"{Steps.Count} step(s) — {archives} inside game archives (done in copies under mods), " +
-                  $"{Steps.Count - archives} in the game folder.";
+        Summary = L.T($"{Steps.Count} step(s) — {archives} inside game archives (done in copies under mods), " +
+                  $"{Steps.Count - archives} in the game folder.");
         SetWarnings(pkg.Warnings);
     }
 
@@ -208,7 +208,7 @@ public sealed partial class ReplacementViewModel : FileModViewModel
 
     [ObservableProperty] public partial string Name { get; set; } = "";
     /// <summary>"File replacement", "Vehicle replacement"…</summary>
-    [ObservableProperty] public partial string KindTitle { get; set; } = "File replacement";
+    [ObservableProperty] public partial string KindTitle { get; set; } = L.T("File replacement");
     [ObservableProperty] public partial bool IsResolving { get; set; }
 
     /// <summary>A vehicle / ped replacement shows the model it brings.</summary>
@@ -222,9 +222,9 @@ public sealed partial class ReplacementViewModel : FileModViewModel
     }
 
     protected override string? NotReady() =>
-        IsResolving ? "The files are still being looked up in the game — wait a moment."
+        IsResolving ? L.T("The files are still being looked up in the game — wait a moment.")
         : _pkg is not null && _pkg.Files.All(f => f.Target is null)
-            ? "None of the mod's files are in this game — nothing to replace."
+            ? L.T("None of the mod's files are in this game — nothing to replace.")
             : null;
 
     /// <summary>Show a replacement (null: none) and look its files up in the selected game.</summary>
@@ -242,10 +242,10 @@ public sealed partial class ReplacementViewModel : FileModViewModel
         Name = pkg.Name;
         KindTitle = pkg.Kind switch
         {
-            ModCategory.Vehicle => "Vehicle replacement",
-            ModCategory.Ped => "Ped replacement",
-            ModCategory.Livery => "Vehicle repaint — whole texture dictionary",
-            _ => "File replacement",
+            ModCategory.Vehicle => L.T("Vehicle replacement"),
+            ModCategory.Ped => L.T("Ped replacement"),
+            ModCategory.Livery => L.T("Vehicle repaint — whole texture dictionary"),
+            _ => L.T("File replacement"),
         };
         _ = Preview.LoadAsync(pkg.Kind is ModCategory.Vehicle or ModCategory.Ped
                                   ? ct => Mdv.Core.Preview.AddonModelLoader.Load(pkg, ct)
@@ -262,13 +262,13 @@ public sealed partial class ReplacementViewModel : FileModViewModel
         Files.Clear();
         if (game.Length == 0 || !Directory.Exists(game))
         {
-            Status = "Choose the GTA V folder — each file's place is looked up in the game.";
+            Status = L.T("Choose the GTA V folder — each file's place is looked up in the game.");
             Summary = string.Join("  ·  ", pkg.Parts);
             SetWarnings(pkg.Warnings);
             return;
         }
         IsResolving = true;
-        Status = "Looking the files up in the game…";
+        Status = L.T("Looking the files up in the game…");
         string? error = null;
         try
         {
@@ -277,15 +277,15 @@ public sealed partial class ReplacementViewModel : FileModViewModel
         catch (Exception ex)
         {
             AppLog.Error("resolving replacement targets failed", ex);
-            error = $"The game's files could not be read: {ex.Message}";
+            error = L.T($"The game's files could not be read: {ex.Message}");
         }
         if (gen != _generation) return;
         IsResolving = false;
         foreach (var f in pkg.Files) Files.Add(new ReplaceFileRow(f));
         int found = pkg.Files.Count(f => f.Target is not null);
         Status = error ?? (found == pkg.Files.Count
-            ? $"All {found} file(s) found in the game."
-            : $"{found} of {pkg.Files.Count} file(s) found in the game — the rest are skipped.");
+            ? L.T($"All {found} file(s) found in the game.")
+            : L.T($"{found} of {pkg.Files.Count} file(s) found in the game — the rest are skipped."));
         Summary = string.Join("  ·  ", pkg.Parts);
         SetWarnings(pkg.Warnings);
     }

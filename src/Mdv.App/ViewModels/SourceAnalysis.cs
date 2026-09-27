@@ -37,9 +37,9 @@ public sealed class SourceAnalysis
             a.PrebuiltRpf = Path.GetFileName(rpf);
             a.RouteBadge = "RPF";
             AddIgnoredRow(intake, a);
-            a.RouteTitle = "Finished dlc.rpf";
-            a.RouteDetail = "The archive is installed as-is, or unpacked into the shared AddonWeapons pack.";
-            a.Rows.Add(new("Archive", $"{a.PrebuiltRpf}  ·  {MergedPack.FmtSize(new FileInfo(rpf).Length)}"));
+            a.RouteTitle = L.T("Finished dlc.rpf");
+            a.RouteDetail = L.T("The archive is installed as-is, or unpacked into the shared AddonWeapons pack.");
+            a.Rows.Add(new(L.T("Archive"), $"{a.PrebuiltRpf}  ·  {MergedPack.FmtSize(new FileInfo(rpf).Length)}"));
             InspectArchive(rpf, a);
             return a;
         }
@@ -54,9 +54,9 @@ public sealed class SourceAnalysis
         if (a.Metas is not null)
         {
             a.RouteBadge = "META";
-            a.RouteTitle = "Models + your metas";
-            a.RouteDetail = "Your .meta/.xml files ship verbatim; only the missing ones are generated.";
-            a.Rows.Add(new("Your files", intake is null
+            a.RouteTitle = L.T("Models + your metas");
+            a.RouteDetail = L.T("Your .meta/.xml files ship verbatim; only the missing ones are generated.");
+            a.Rows.Add(new(L.T("Your files"), intake is null
                 ? string.Join(", ", a.Metas)
                 : string.Join(", ", intake.Configs.Select(c => c.Origin))));
         }
@@ -64,30 +64,30 @@ public sealed class SourceAnalysis
         {
             a.RouteBadge = "REPL";
             a.RouteTitle = "Replace → Add-On";
-            a.RouteDetail = "The full DLC meta stack is generated from the matching vanilla template.";
+            a.RouteDetail = L.T("The full DLC meta stack is generated from the matching vanilla template.");
         }
 
         if (!File.Exists(Path.Combine(AppPaths.Templates, "_index.json")))
         {
-            a.Warnings.Add("Template library not found — it will be built on the first run.");
+            a.Warnings.Add(L.T("Template library not found — it will be built on the first run."));
             return a;
         }
 
         var scan = new InputScanner(AppPaths.Templates).Scan(folder);
         int files = scan.Groups.Sum(g => g.Files.Count);
-        a.Rows.Add(new("Assets", files == 0 ? "no .ydr / .ytd found" : $"{files} file(s) in {scan.Groups.Count} group(s)"));
+        a.Rows.Add(new(L.T("Assets"), files == 0 ? L.T("no .ydr / .ytd found") : L.T($"{files} file(s) in {scan.Groups.Count} group(s)")));
         if (scan.MainModel is not null)
         {
-            a.Rows.Add(new("Main model", scan.MainModel));
-            if (scan.WeaponClass is not null) a.Rows.Add(new("Class", scan.WeaponClass));
+            a.Rows.Add(new(L.T("Main model"), scan.MainModel));
+            if (scan.WeaponClass is not null) a.Rows.Add(new(L.T("Class"), scan.WeaponClass));
         }
         if (scan.BaseWeapon is not null)
-            a.Rows.Add(new("Base weapon", scan.TemplateSource == "exact"
-                ? $"{scan.BaseWeapon}  (exact match)"
-                : $"{scan.BaseWeapon}  (class fallback)"));
+            a.Rows.Add(new(L.T("Base weapon"), scan.TemplateSource == "exact"
+                ? L.T($"{scan.BaseWeapon}  (exact match)")
+                : L.T($"{scan.BaseWeapon}  (class fallback)")));
         var hi = scan.Groups.Where(g => g.Role == "hi").Select(g => g.Stem).ToList();
         if (hi.Count > 0) a.Rows.Add(new("Hi-LOD", string.Join(", ", hi)));
-        a.Rows.Add(new("Components", a.Components.Count == 0 ? "none" : string.Join(", ", a.Components.Select(c => c.Stem))));
+        a.Rows.Add(new(L.T("Components"), a.Components.Count == 0 ? L.T("none") : string.Join(", ", a.Components.Select(c => c.Stem))));
         AddIgnoredRow(intake, a);
         a.Warnings.AddRange(scan.Warnings);
         return a;
@@ -110,15 +110,15 @@ public sealed class SourceAnalysis
         bool comps = a.Store.ComponentPrices.Count > 0 && Overrides.FindPrebuiltRpf(folder) is null;
         var fields = a.Store.FieldsSummary(comps);
         if (fields.Length > 0)
-            a.Rows.Add(new("From the mod", $"{fields}  ·  {string.Join(", ", a.Store.Sources)}"));
+            a.Rows.Add(new(L.T("From the mod"), $"{fields}  ·  {string.Join(", ", a.Store.Sources)}"));
     }
 
     private static void AddIntakeRows(IntakeResult intake, SourceAnalysis a)
     {
-        a.Rows.Add(new("Dropped", string.Join(", ", intake.Sources.Select(Path.GetFileName))));
+        a.Rows.Add(new(L.T("Dropped"), string.Join(", ", intake.Sources.Select(Path.GetFileName))));
         // archives found inside the drop (the dropped one itself is already named above)
         var nested = intake.Archives.Where(x => x.Contains('/')).ToList();
-        if (nested.Count > 0) a.Rows.Add(new("Nested", string.Join(", ", nested)));
+        if (nested.Count > 0) a.Rows.Add(new(L.T("Nested"), string.Join(", ", nested)));
         a.Warnings.AddRange(intake.Warnings);
     }
 
@@ -134,7 +134,7 @@ public sealed class SourceAnalysis
             return path.Contains('/') ? path[(path.LastIndexOf('/') + 1)..] : path;
         });
         var more = intake.Ignored.Count > shown ? $" (+{intake.Ignored.Count - shown})" : "";
-        a.Rows.Add(new("Skipped", string.Join(", ", names) + more));
+        a.Rows.Add(new(L.T("Skipped"), string.Join(", ", names) + more));
     }
 
     private static void InspectArchive(string rpf, SourceAnalysis a)
@@ -152,20 +152,20 @@ public sealed class SourceAnalysis
             {
                 using var nested = arc.OpenNested(models.Entry);
                 var names = nested.Files().Select(f => f.Name).ToList();
-                a.Rows.Add(new("Models", names.Count == 0 ? "none" : $"{names.Count}: {string.Join(", ", names.Take(6))}{(names.Count > 6 ? "…" : "")}"));
+                a.Rows.Add(new(L.T("Models"), names.Count == 0 ? L.T("none") : $"{names.Count}: {string.Join(", ", names.Take(6))}{(names.Count > 6 ? "…" : "")}"));
             }
             else
             {
-                a.Warnings.Add("No x64/models/cdimages/weapons.rpf inside — the archive holds no weapon models.");
+                a.Warnings.Add(L.T("No x64/models/cdimages/weapons.rpf inside — the archive holds no weapon models."));
             }
         }
         catch (RpfFormatException ex)
         {
-            a.Warnings.Add($"Cannot look inside the archive: {ex.Message}");
+            a.Warnings.Add(L.T($"Cannot look inside the archive: {ex.Message}"));
         }
         catch (Exception ex)
         {
-            a.Warnings.Add($"Cannot look inside the archive ({ex.GetType().Name}).");
+            a.Warnings.Add(L.T($"Cannot look inside the archive ({ex.GetType().Name})."));
         }
     }
 }

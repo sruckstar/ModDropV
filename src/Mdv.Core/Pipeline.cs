@@ -37,7 +37,7 @@ public sealed record BuildOptions
     /// or Legacy when not installing.
     /// </summary>
     public GameEdition? Edition { get; init; }
-    /// <summary>Bundled mods-folder plugins and ASI loaders (OpenIV.asi, DSOUND.dll, dinput8.dll, xinput1_4.dll). Null = DataDir/plugins.</summary>
+    /// <summary>Bundled mods-folder plugins and ASI loaders (dinput8.dll, xinput1_4.dll; RageOpenV.asi is downloaded). Null = DataDir/plugins.</summary>
     public string? PluginsDir { get; init; }
 }
 
@@ -72,40 +72,40 @@ public static partial class Pipeline
         var missing = need.Where(f => !File.Exists(Path.Combine(dataDir, f))).ToList();
         if (missing.Count > 0)
         {
-            log($"[!] Missing vanilla metas in {dataDir}: {string.Join(", ", missing)}");
+            log(L.T($"[!] Missing vanilla metas in {dataDir}: {string.Join(", ", missing)}"));
             return false;
         }
-        log("Building template library from vanilla metas…");
+        log(L.T("Building template library from vanilla metas…"));
         var anim = Path.Combine(dataDir, "weaponanimations.meta");
         var lib = TemplateLibrary.FromMetas(
             Path.Combine(dataDir, "weapons.meta"), Path.Combine(dataDir, "weaponcomponents.meta"),
             Path.Combine(dataDir, "weaponarchetypes.meta"), File.Exists(anim) ? anim : null);
         lib.Save(templatesDir);
-        log($"Done: {lib.Weapons.Count} weapon templates.");
+        log(L.T($"Done: {lib.Weapons.Count} weapon templates."));
         return true;
     }
 
     /// <summary>Self-check a freshly packed dlc.rpf; throws if any resource is corrupt.</summary>
     public static void VerifyPack(string dlcRpf, Action<string> log)
     {
-        log("Self-checking RPF resources…");
+        log(L.T("Self-checking RPF resources…"));
         var problems = RpfTools.VerifyResources(dlcRpf);
         if (problems.Count > 0)
         {
-            log($"[!] Check FAILED — {problems.Count} problem resources:");
+            log(L.T($"[!] Check FAILED — {problems.Count} problem resources:"));
             foreach (var p in problems) log("    ✗ " + p);
-            log("[!] Archive is NOT usable in the game (see above). Build aborted.");
+            log(L.T("[!] Archive is NOT usable in the game (see above). Build aborted."));
             throw new InvalidOperationException(
-                $"dlc.rpf check failed: {problems.Count} resources are corrupt " +
-                "(unpacked size doesn't match the flagged size).");
+                L.T($"dlc.rpf check failed: {problems.Count} resources are corrupt " +
+                $"(unpacked size doesn't match the flagged size)."));
         }
-        log("Self-check passed: all resources decompress to exactly their flagged page size — ready to install.");
+        log(L.T("Self-check passed: all resources decompress to exactly their flagged page size — ready to install."));
     }
 
     /// <summary>The log line naming what a build targets.</summary>
     public static string TargetLine(GameEdition edition) => edition == GameEdition.Enhanced
-        ? "Target: GTA V Enhanced (OPEN archive, models in gen9 format)."
-        : "Target: GTA V Legacy (OPEN archive).";
+        ? L.T("Target: GTA V Enhanced (OPEN archive, models in gen9 format).")
+        : L.T("Target: GTA V Legacy (OPEN archive).");
 
     /// <summary>
     /// Full build. Returns null when the base weapon can't be determined. With
@@ -132,7 +132,7 @@ public static partial class Pipeline
         var prebuilt = Overrides.FindPrebuiltRpf(o.InputFolder);
         if (prebuilt is not null)
         {
-            log($"Input folder holds a prebuilt archive: {Path.GetFileName(prebuilt)} — no weapon models to convert.");
+            log(L.T($"Input folder holds a prebuilt archive: {Path.GetFileName(prebuilt)} — no weapon models to convert."));
             return BuildPrebuilt(prebuilt, o, edition, log);
         }
 
@@ -141,27 +141,27 @@ public static partial class Pipeline
 
         var sc = new InputScanner(o.TemplatesDir);
         var res = sc.Scan(o.InputFolder);
-        log($"Scan: main model = {Py(res.MainModel)}, class = {Py(res.WeaponClass)}");
+        log(L.T($"Scan: main model = {Py(res.MainModel)}, class = {Py(res.WeaponClass)}"));
         if (!res.TemplateFound)
         {
-            log("[!] Base weapon not determined — build is not possible.");
+            log(L.T("[!] Base weapon not determined — build is not possible."));
             foreach (var w in res.Warnings) log("    - " + w);
             return null;
         }
-        log($"Base weapon: {res.BaseWeapon}  ({res.TemplateSource})");
+        log(L.T($"Base weapon: {res.BaseWeapon}  ({res.TemplateSource})"));
         foreach (var w in res.Warnings) log("    ! " + w);
 
         // ---- route 2: the folder ships its own metas
         var src = Overrides.Collect(o.InputFolder);
         if (src.Any)
-            log($"Found {src.Texts.Count} meta/xml file(s) in the input folder — shipping them as-is " +
-                $"instead of generating from templates: {string.Join(", ", src.Names.Values.OrderBy(n => n, StringComparer.Ordinal))}");
+            log(L.T($"Found {src.Texts.Count} meta/xml file(s) in the input folder — shipping them as-is " +
+                $"instead of generating from templates: {string.Join(", ", src.Names.Values.OrderBy(n => n, StringComparer.Ordinal))}"));
         bool keepNames = src.ForbidsRenaming();
         if (keepNames)
         {
-            log("    Supplied metas name the models, so the models keep their original names (no _awXXXX renaming).");
+            log(L.T("    Supplied metas name the models, so the models keep their original names (no _awXXXX renaming)."));
             if (!string.IsNullOrEmpty(o.ModelName))
-                log("    [!] The chosen model name is ignored — the supplied metas already pin the model names.");
+                log(L.T("    [!] The chosen model name is ignored — the supplied metas already pin the model names."));
         }
 
         string? modelName = null;
@@ -170,9 +170,9 @@ public static partial class Pipeline
             var clean = Namer.SanitizeModelName(o.ModelName);
             if (clean.Length == 0)
                 throw new ArgumentException(
-                    $"Model name «{o.ModelName}» has no usable characters — " +
-                    "use latin letters, digits and underscores (e.g. w_pi_mygun).");
-            log($"Model name: '{res.MainModel}' -> '{clean}' (and its siblings).");
+                    L.T($"Model name «{o.ModelName}» has no usable characters — " +
+                    $"use latin letters, digits and underscores (e.g. w_pi_mygun)."));
+            log(L.T($"Model name: '{res.MainModel}' -> '{clean}' (and its siblings)."));
             modelName = clean;
         }
 
@@ -188,11 +188,11 @@ public static partial class Pipeline
 
         var comps = Overrides.ComponentsFromOverrides(src.Texts);
         if (comps is not null)
-            log($"Components taken from the supplied weaponcomponents.meta ({comps.Count}).");
+            log(L.T($"Components taken from the supplied weaponcomponents.meta ({comps.Count})."));
 
         var mg = new MetaGenerator(tpl, res, plan, o.Price, o.AmmoCost, o.Name, o.Desc,
                                    o.ComponentPrices, comps);
-        log($"Components: {(mg.Components.Count > 0 ? string.Join(", ", mg.Components.Select(e => e.Role)) : "—")}");
+        log(L.T($"Components: {(mg.Components.Count > 0 ? string.Join(", ", mg.Components.Select(e => e.Role)) : "—")}"));
         var metas = mg.GenerateAll();
         var supplied = src.DataFiles;
         foreach (var (k, v) in supplied) metas[k] = v;       // supplied files win
@@ -203,46 +203,46 @@ public static partial class Pipeline
             var problems = MetaGenerator.VerifyComponentMetas(metas, mg.Components, generated);
             if (problems.Count > 0)
             {
-                log($"[!] Component check: {problems.Count} problem(s):");
+                log(L.T($"[!] Component check: {problems.Count} problem(s):"));
                 foreach (var p in problems) log("    ✗ " + p);
             }
             else if (generated.Overlaps(["weapon.meta", "weaponcomponents.meta", "shop_weapon.meta"]))
-                log($"Component check: all {mg.Components.Count} component(s) present in the generated metas.");
+                log(L.T($"Component check: all {mg.Components.Count} component(s) present in the generated metas."));
             else
-                log($"Component check: all {mg.Components.Count} component(s) come from your own metas — nothing to check.");
+                log(L.T($"Component check: all {mg.Components.Count} component(s) come from your own metas — nothing to check."));
         }
         else
         {
-            log("Component check: this build has no weapon components.");
+            log(L.T("Component check: this build has no weapon components."));
         }
 
         if (o.MergePack)
         {
             if (src.Configs.Count > 0)
-                log("    [!] content.xml / setup2.xml are regenerated for the shared pack (it has one " +
-                    "changeset for all weapons) — the supplied ones are not used.");
+                log(L.T("    [!] content.xml / setup2.xml are regenerated for the shared pack (it has one " +
+                    "changeset for all weapons) — the supplied ones are not used."));
             return BuildMerged(res, plan, metas, mg, o, edition, log);
         }
 
         var asm = new DlcAssembler(res, plan, metas, mg.GxtLabels(), o.InputFolder, src);
         if (edition == GameEdition.Enhanced) LogGen9Conversion(o.InputFolder, asm.AssetRenames(), log);
         var result = asm.Build(o.OutDir, packRpf, edition);
-        log($"WEAPON hash: {plan.WeaponHash}");
-        log($"Assets copied: {result.Assets.Count}");
+        log(L.T($"WEAPON hash: {plan.WeaponHash}"));
+        log(L.T($"Assets copied: {result.Assets.Count}"));
         if (result.Packed)
         {
-            log($"Packed into a single dlc.rpf ({result.Manifest["dlc_rpf_size"]} bytes).");
+            log(L.T($"Packed into a single dlc.rpf ({result.Manifest["dlc_rpf_size"]} bytes)."));
             VerifyPack(result.DlcRpf!, log);
         }
         else
         {
-            log("Assets laid out loose — build with pack_rpf=True for a dlc.rpf.");
+            log(L.T("Assets laid out loose — build with pack_rpf=True for a dlc.rpf."));
         }
-        log($"output: {result.Root}");
+        log(L.T($"output: {result.Root}"));
 
         if (o.InstallGameDir is not null)
         {
-            if (!result.Packed) throw new InvalidOperationException("Installation not possible: dlc.rpf was not packed.");
+            if (!result.Packed) throw new InvalidOperationException(L.T("Installation not possible: dlc.rpf was not packed."));
             result.Installs.Add(new PackInstall(Path.GetFileName(result.Root), result.DlcRpf!, Changed: true));
         }
         return result;
@@ -265,7 +265,7 @@ public static partial class Pipeline
             if (ResourceEditions.NeedsConversion(path, hdr, GameEdition.Enhanced)) legacy.Add(Path.GetFileName(src));
         }
         if (legacy.Count > 0)
-            log($"Converting {legacy.Count} Legacy model(s) to the Enhanced (gen9) format: {string.Join(", ", legacy)}");
+            log(L.T($"Converting {legacy.Count} Legacy model(s) to the Enhanced (gen9) format: {string.Join(", ", legacy)}"));
     }
 
     // ------------------------------------------------------------ merged pack
@@ -284,15 +284,15 @@ public static partial class Pipeline
         var built = ms.BuildAll(edition);
         foreach (var b in built)
         {
-            log($"Packed '{b.Folder}' into a single dlc.rpf ({b.Size} bytes, {b.Weapons.Count} weapon(s)).");
+            log(L.T($"Packed '{b.Folder}' into a single dlc.rpf ({b.Size} bytes, {b.Weapons.Count} weapon(s))."));
             VerifyPack(b.DlcRpf, log);
-            log($"output: {b.Root}");
+            log(L.T($"output: {b.Root}"));
         }
 
         var packs = ms.AllPacks();
         if (packs.Count > 1)
-            log($"The set now spans {packs.Count} dlcpacks ({string.Join(", ", packs.Select(p => p.FolderName))}) — " +
-                $"each stays under the {MergedPack.FmtSize(ms.Limit)} limit.");
+            log(L.T($"The set now spans {packs.Count} dlcpacks ({string.Join(", ", packs.Select(p => p.FolderName))}) — " +
+                $"each stays under the {MergedPack.FmtSize(ms.Limit)} limit."));
 
         var primary = built.Count > 0
             ? built[0]
@@ -331,7 +331,7 @@ public static partial class Pipeline
         var asm = new DlcAssembler(res, plan, metas, mg.GxtLabels(), o.InputFolder);
         var renames = asm.AssetRenames();
         var pack = ms.AddWeapon(plan.Suffix, mg.WeaponName, metas, mg.GxtLabels(), o.InputFolder, renames);
-        log($"WEAPON hash: {plan.WeaponHash}");
+        log(L.T($"WEAPON hash: {plan.WeaponHash}"));
         if (edition == GameEdition.Enhanced) LogGen9Conversion(o.InputFolder, renames, log);
         var result = FinishMerged(ms, o.InstallGameDir, edition, log);
         result.WeaponSuffix = plan.Suffix;
@@ -350,14 +350,14 @@ public static partial class Pipeline
         var folderName = Path.GetFileName(Path.TrimEndingDirectorySeparator(o.InputFolder));
         if (o.MergePack)
         {
-            log($"Unpacking '{Path.GetFileName(dlcRpf)}' to fold it into the shared pack…");
+            log(L.T($"Unpacking '{Path.GetFileName(dlcRpf)}' to fold it into the shared pack…"));
             var imported = Overrides.ImportDlcRpf(dlcRpf);
             foreach (var w in imported.Warnings) log("    ! " + w);
             if (imported.Assets.Count == 0 && imported.Metas.Count == 0)
                 throw new InvalidOperationException(
-                    $"{Path.GetFileName(dlcRpf)} holds neither weapon models nor meta files — nothing to merge.");
-            log($"    {imported.Assets.Count} model(s), {imported.Metas.Count} meta file(s), " +
-                $"{imported.LabelHashes.Count} text label(s).");
+                    L.T($"{Path.GetFileName(dlcRpf)} holds neither weapon models nor meta files — nothing to merge."));
+            log(L.T($"    {imported.Assets.Count} model(s), {imported.Metas.Count} meta file(s), " +
+                $"{imported.LabelHashes.Count} text label(s)."));
 
             var packName = string.IsNullOrEmpty(folderName) ? o.Name : folderName;
             var suffix = new Namer(packName).Suffix;
@@ -368,8 +368,8 @@ public static partial class Pipeline
             var completed = Overrides.CompleteShopEntries(imported, suffix.Replace("_", "").ToUpperInvariant(), shown, o.Desc,
                                                           o.Price, o.AmmoCost, o.ShopId ?? DefaultShopId);
             if (completed.Count > 0)
-                log($"    No shop entry for {string.Join(", ", completed)} — generated shop_weapon.meta, " +
-                    "contentunlocks.meta and name labels so weapon menus (GET_NUM_DLC_WEAPONS) list it.");
+                log(L.T($"    No shop entry for {string.Join(", ", completed)} — generated shop_weapon.meta, " +
+                    $"contentunlocks.meta and name labels so weapon menus (GET_NUM_DLC_WEAPONS) list it."));
 
             var ms = OpenPackSet(o.OutDir, o.InstallGameDir, log);
             var pack = ms.AddPrebuilt(suffix, packName, imported);
@@ -390,11 +390,11 @@ public static partial class Pipeline
         {
             if (edition == GameEdition.Legacy)
                 throw new InvalidOperationException(
-                    $"{Path.GetFileName(dlcRpf)} is built for GTA V Enhanced — its models are in the gen9 format " +
+                    L.T($"{Path.GetFileName(dlcRpf)} is built for GTA V Enhanced — its models are in the gen9 format " +
                     $"({string.Join(", ", mismatched.Take(3))}{(mismatched.Count > 3 ? ", …" : "")}), which " +
-                    "GTA V Legacy can't load. Use the Legacy version of the mod.");
-            log($"The archive holds {mismatched.Count} Legacy model(s) — converting them to the Enhanced (gen9) " +
-                $"format; everything else is kept byte for byte.");
+                    $"GTA V Legacy can't load. Use the Legacy version of the mod."));
+            log(L.T($"The archive holds {mismatched.Count} Legacy model(s) — converting them to the Enhanced (gen9) " +
+                $"format; everything else is kept byte for byte."));
             // installing: the converted copy is staged, it has to outlive this build for the install step
             var convertedDir = o.InstallGameDir is not null ? Path.Combine(o.OutDir, dlcName) : (tmpDir = PathUtil.MakeTempDir());
             Directory.CreateDirectory(convertedDir);
@@ -402,11 +402,11 @@ public static partial class Pipeline
             RpfRetarget.Convert(dlcRpf, converted, edition);
             VerifyPack(converted, log);
             dlcRpf = converted;
-            log($"Installing the converted archive under the dlcpack name '{dlcName}'.");
+            log(L.T($"Installing the converted archive under the dlcpack name '{dlcName}'."));
         }
         else
         {
-            log($"Installing the archive as-is under the dlcpack name '{dlcName}'.");
+            log(L.T($"Installing the archive as-is under the dlcpack name '{dlcName}'."));
         }
 
         try
@@ -447,8 +447,8 @@ public static partial class Pipeline
                           $"dlcpacks path and add 'dlcpacks:/{dlcName}/' to dlclist.xml.",
         };
         TextIo.WriteText(Path.Combine(root, "manifest.json"), TextIo.ToJson(manifest));
-        log($"    dlc.rpf copied -> {dest}");
-        log($"output: {root}");
+        log(L.T($"    dlc.rpf copied -> {dest}"));
+        log(L.T($"output: {root}"));
         return new BuildResult { Root = root, DlcRpf = dest, Packed = true, Prebuilt = true, Manifest = manifest };
     }
 }

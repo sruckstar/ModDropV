@@ -7,6 +7,8 @@ namespace Mdv.App.Services;
 public sealed class Settings
 {
     public string Theme { get; set; } = "dark";
+    /// <summary>Interface language ("ru-RU"…); empty = the system's.</summary>
+    public string Language { get; set; } = "";
     public string Mode { get; set; } = "modder";
     public string? LastOutput { get; set; }
     public string? LastGame { get; set; }

@@ -63,11 +63,11 @@ public sealed partial class MainViewModel
         string empty;
         if (game is null)
             empty = GameFolder.Trim().Length == 0
-                ? "Choose the GTA V folder to see the mods installed into it."
-                : "Nothing installed into this folder yet.";
+                ? L.T("Choose the GTA V folder to see the mods installed into it.")
+                : L.T("Nothing installed into this folder yet.");
         else
         {
-            empty = "Nothing installed into this game by ModDrop V yet — drop a mod on the Install page.";
+            empty = L.T("Nothing installed into this game by ModDrop V yet — drop a mod on the Install page.");
             var target = TargetFor(game, Edition);
             IsReadingLibrary = true;
             try
@@ -81,7 +81,7 @@ public sealed partial class MainViewModel
             catch (Exception ex)
             {
                 AppLog.Error("listing installed mods failed", ex);
-                empty = $"Could not read the installed mods: {ex.Message}";
+                empty = L.T($"Could not read the installed mods: {ex.Message}");
             }
         }
         if (gen != _installedGeneration) return;         // a newer refresh owns the list
@@ -113,9 +113,17 @@ public sealed partial class MainViewModel
         if (!File.Exists(ModsOverlay.StatePath(game))) return result;
         var overlay = ModsOverlay.Load(game);
         var names = mods.ToDictionary(m => m.Id, m => m.Name);
+        // the shared limits are no mod; add-on packs installed before them keep a raised pool of their own and share
+        // gameconfig.xml without clashing: each builds on the one below
+        var raisers = ModRegistry.Load(game).Mods.Where(r => r.Get("pools") == "1").Select(r => r.Id).ToHashSet();
         foreach (var m in mods)
         {
-            var shared = overlay.PathsOf(m.Id).Select(overlay.OwnersOf).Where(o => o.Count > 1).ToList();
+            var shared = overlay.PathsOf(m.Id)
+                                .Select(p => p.Equals(GamePools.GameConfig, StringComparison.OrdinalIgnoreCase) && raisers.Contains(m.Id)
+                                    ? [.. overlay.OwnersOf(p).Where(o => o == m.Id || !raisers.Contains(o))]
+                                    : overlay.OwnersOf(p))
+                                .Select(o => o.Where(x => x != GamePools.LimitsOwner).ToList())
+                                .Where(o => o.Count > 1).ToList();
             var others = shared.SelectMany(o => o).Where(o => o != m.Id).Distinct()
                                .Select(o => names.GetValueOrDefault(o, o)).OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase)
                                .ToList();
@@ -129,12 +137,12 @@ public sealed partial class MainViewModel
     {
         var game = InstalledGameDir();
         if (game is null || IsBuilding) return;
-        var plan = new InstallPlan { Title = $"Putting «{row.Name}» on top" };
+        var plan = new InstallPlan { Title = L.T($"Putting «{row.Name}» on top") };
         plan.Add(new OverlayRaiseOp(row.Mod.Id, row.Name));
-        plan.Warnings.Add($"Where it and {string.Join(", ", row.Conflicts)} change the same files, the game gets «{row.Name}»'s.");
-        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Put on top",
-                 () => RunPlanAsync(plan, "Reordering mods…", $"«{row.Name}» is on top"),
-                 "Only the order changes — every mod keeps its files, and removing one brings the next one's back.");
+        plan.Warnings.Add(L.T($"Where it and {string.Join(", ", row.Conflicts)} change the same files, the game gets «{row.Name}»'s."));
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Put on top"),
+                 () => RunPlanAsync(plan, L.T("Reordering mods…"), L.T($"«{row.Name}» is on top")),
+                 L.T("Only the order changes — every mod keeps its files, and removing one brings the next one's back."));
     }
 
     /// <summary>"All" plus a chip per category present; the one picked stays picked if it's still there.</summary>
@@ -143,7 +151,7 @@ public sealed partial class MainViewModel
         var picked = LibraryFilters.FirstOrDefault(f => f.IsOn)?.Category;
         foreach (var f in LibraryFilters) f.PropertyChanged -= OnFilterChanged;
         LibraryFilters.Clear();
-        LibraryFilters.Add(new LibraryFilterViewModel(null, "All", Installed.Count));
+        LibraryFilters.Add(new LibraryFilterViewModel(null, L.T("All"), Installed.Count));
         foreach (var g in Installed.GroupBy(r => r.Category).OrderBy(g => g.Key))
             LibraryFilters.Add(new LibraryFilterViewModel(g.Key, g.Key.PluralName(), g.Count()));
         (LibraryFilters.FirstOrDefault(f => f.Category == picked) ?? LibraryFilters[0]).IsOn = true;
@@ -182,9 +190,9 @@ public sealed partial class MainViewModel
         int on = changed.Count(r => !r.PendingRemove && r.Enabled);
         int off = changed.Count - remove - on;
         var parts = new List<string>();
-        if (off > 0) parts.Add($"{off} to switch off");
-        if (on > 0) parts.Add($"{on} to switch on");
-        if (remove > 0) parts.Add($"{remove} to remove");
+        if (off > 0) parts.Add(L.T($"{off} to switch off"));
+        if (on > 0) parts.Add(L.T($"{on} to switch on"));
+        if (remove > 0) parts.Add(L.T($"{remove} to remove"));
         PendingSummary = string.Join(" · ", parts);
         HasPendingChanges = changed.Count > 0;
     }
@@ -221,11 +229,11 @@ public sealed partial class MainViewModel
         catch (Exception ex)
         {
             AppLog.Error("planning installed changes failed", ex);
-            ShowResult(false, "Couldn't plan the changes", ex.Message, null);
+            ShowResult(false, L.T("Couldn't plan the changes"), ex.Message, null);
             return;
         }
-        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Apply changes", ApplyInstalledAsync,
-                 "Everything is done as one step: if something fails, the game is left exactly as it was.");
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Apply changes"), ApplyInstalledAsync,
+                 L.T("Everything is done as one step: if something fails, the game is left exactly as it was."));
     }
 
     /// <summary>Apply the marked switches / removals; shared packs are rebuilt and reinstalled.</summary>
@@ -241,8 +249,8 @@ public sealed partial class MainViewModel
         ResultVisible = false;
         StartLog([]);
         IsBuilding = true;
-        StageStatus = "Updating installed mods…";
-        StageHint = "Getting ready";
+        StageStatus = L.T("Updating installed mods…");
+        StageHint = L.T("Getting ready");
         var target = TargetFor(game, Edition);
         AppLog.Info($"installed changes: {string.Join(", ", changes)} in {game}");
         var run = new PlanRun();
@@ -251,17 +259,17 @@ public sealed partial class MainViewModel
         {
             await Task.Run(() => ModLibrary.Apply(target, changes, OnLog, run));
             var summary = PendingSummary;
-            ShowResult(true, "Installed mods updated", $"{summary} — done:\n{game}", game);
+            ShowResult(true, L.T("Installed mods updated"), L.T($"{summary} — done:\n{game}"), game);
         }
         catch (OperationCanceledException)
         {
-            ShowResult(false, "Cancelled — nothing changed", "Every step done so far was taken back.", null);
+            ShowResult(false, L.T("Cancelled — nothing changed"), L.T("Every step done so far was taken back."), null);
         }
         catch (Exception ex)
         {
             AppLog.Error("installed changes failed", ex);
             FailLog(ex);
-            ShowResult(false, "Update failed", $"{ex.Message}\n\nSee the log for details.", null);
+            ShowResult(false, L.T("Update failed"), L.T($"{ex.Message}\n\nSee the log for details."), null);
         }
         finally
         {

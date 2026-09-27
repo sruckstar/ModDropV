@@ -106,7 +106,7 @@ public static partial class ShopIds
                 }
             }
         }
-        if (packs > 0) log($"    scanned game folder: {packs} add-on pack(s) with shop ids.");
+        if (packs > 0) log(L.T($"    scanned game folder: {packs} add-on pack(s) with shop ids."));
         return ids;
     }
 
@@ -151,7 +151,7 @@ public static partial class ShopIds
         if (outDir is not null) used.UnionWith(ScanOutputShopIds(outDir, excludeSlug));
         int chosen = PickFreeShopId(used, @base);
         var shown = used.Count > 0 ? string.Join(", ", used.OrderBy(i => i)) : "none";
-        log($"Auto Shop ID: picked {chosen} (already in use: {shown}).");
+        log(L.T($"Auto Shop ID: picked {chosen} (already in use: {shown})."));
         return chosen;
     }
 }

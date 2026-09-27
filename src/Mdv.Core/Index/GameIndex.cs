@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Mdv.Core.Rpf;
@@ -113,7 +114,7 @@ public sealed class GameIndex
     {
         var sw = Stopwatch.StartNew();
         gameDir = Path.GetFullPath(gameDir);
-        if (!Directory.Exists(gameDir)) throw new DirectoryNotFoundException($"No such folder: {gameDir}");
+        if (!Directory.Exists(gameDir)) throw new DirectoryNotFoundException(L.T($"No such folder: {gameDir}"));
         var exe = ExeSignature(gameDir);
         var files = ArchiveFiles(gameDir);
 
@@ -123,7 +124,7 @@ public sealed class GameIndex
         {
             var loaded = GameIndexCache.TryLoad(cacheFile, out var cachedExe);
             if (loaded is not null && cachedExe != exe)
-                log?.Invoke($"The game was updated ({cachedExe} → {exe}) — rebuilding the file index.");
+                log?.Invoke(L.T($"The game was updated ({cachedExe} → {exe}) — rebuilding the file index."));
             else if (loaded is not null)
                 cached = loaded.ToDictionary(a => a.RelPath, StringComparer.OrdinalIgnoreCase);
         }
@@ -146,7 +147,7 @@ public sealed class GameIndex
         if (todo.Count > 0)
         {
             var crypto = TryCrypto(gameDir, log);
-            if (cached.Count > 0) log?.Invoke($"Updating the file index: {todo.Count} archive(s) changed.");
+            if (cached.Count > 0) log?.Invoke(L.T($"Updating the file index: {todo.Count} archive(s) changed."));
             Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = ct }, i =>
             {
                 var (full, rel) = files[i];
@@ -161,7 +162,7 @@ public sealed class GameIndex
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    log?.Invoke($"Could not save the file index cache: {ex.Message}");
+                    log?.Invoke(L.T($"Could not save the file index cache: {ex.Message}"));
                 }
             }
         }
@@ -204,7 +205,7 @@ public sealed class GameIndex
             var ver = FileVersionInfo.GetVersionInfo(exe).FileVersion;
             return string.IsNullOrWhiteSpace(ver) ? $"{name} ({fi.Length} bytes)" : $"{name} {ver.Trim()}";
         }
-        return "(no game executable)";
+        return L.T("(no game executable)");
     }
 
     private static GameCrypto? TryCrypto(string gameDir, Action<string>? log)
@@ -218,7 +219,7 @@ public sealed class GameIndex
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
-            log?.Invoke($"Encrypted game archives will be skipped: {ex.Message}");
+            log?.Invoke(L.T($"Encrypted game archives will be skipped: {ex.Message}"));
             return null;
         }
     }
@@ -266,11 +267,11 @@ public sealed class GameIndex
         {
             var b = basic[i];
             int rank = b.Rank;
-            string? inactive = b.Shadowed ? $"replaced by {ModsPrefix}{b.GameRel}" : null;
+            string? inactive = b.Shadowed ? L.T($"replaced by {ModsPrefix}{b.GameRel}") : null;
             if (b.Dlc is { } d)
             {
                 if (dlcRank.TryGetValue(d, out var r)) rank = r;
-                else inactive ??= list is null ? "not mounted" : "not in dlclist.xml";
+                else inactive ??= list is null ? L.T("not mounted") : L.T("not in dlclist.xml");
             }
             info[i] = new ArchiveInfo(b.Role, b.GameRel, b.InMods, b.Dlc, rank, b.Source, inactive, b.LogicalRoot);
         }
@@ -300,7 +301,7 @@ public sealed class GameIndex
         string root = parts.Length == 1
             ? (lower.StartsWith("x64", StringComparison.Ordinal) ? "x64/" : lower.StartsWith("common", StringComparison.Ordinal) ? "common/" : lower + "/")
             : lower + "/";
-        return new Basic(ArchiveRole.Base, gameRel, inMods, shadowed, null, 0, "base game" + where, root);
+        return new Basic(ArchiveRole.Base, gameRel, inMods, shadowed, null, 0, L.T("base game") + where, root);
     }
 
     /// <summary>Logical path + rank of one file (a <c>dlc_patch</c> entry belongs to its pack, just above it).</summary>
@@ -316,7 +317,7 @@ public sealed class GameIndex
         return ($"dlcpacks/{pack}/{innerLower[(slash + 1)..]}",
                 pos < 0 ? info.Rank : 1000 + pos * 10 + 5,
                 $"{info.Source} → {pack}",
-                info.Inactive ?? (pos < 0 ? $"patches {pack}, which isn't mounted" : null));
+                info.Inactive ?? (pos < 0 ? L.T($"patches {pack}, which isn't mounted") : null));
     }
 
     /// <summary>

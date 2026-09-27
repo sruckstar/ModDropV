@@ -30,11 +30,11 @@ public sealed partial class InstalledModViewModel : ObservableObject
     public InstalledMod Mod { get; }
     public string Name => Mod.Name;
     public ModCategory Category => Mod.Category;
-    public string CategoryName => Mod.Category.ShortName();
+    public string CategoryName => Mod.Category.ShortLabel();
 
     /// <summary>Where it lives: the shared pack or its own dlcpack.</summary>
     public string Where => Mod.Category == ModCategory.Weapon
-        ? Mod.Kind == ModKind.Merged ? $"in the shared {Mod.Pack} pack" : $"own dlcpack · {Mod.Pack}"
+        ? Mod.Kind == ModKind.Merged ? L.T($"in the shared {Mod.Pack} pack") : L.T($"own dlcpack · {Mod.Pack}")
         : Mod.Pack;
 
     /// <summary>"from Glock17.zip · 12 Sep 2026" — where it came from and when.</summary>
@@ -43,9 +43,9 @@ public sealed partial class InstalledModViewModel : ObservableObject
         get
         {
             var parts = new List<string>();
-            if (Mod.Source is { Length: > 0 } src) parts.Add($"from {src}");
-            if (Mod.Installed is { } when) parts.Add(when.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture));
-            if (Mod.ImportedFrom is { } other) parts.Add($"taken over from {other}");
+            if (Mod.Source is { Length: > 0 } src) parts.Add(L.T($"from {src}"));
+            if (Mod.Installed is { } when) parts.Add(L.Date(when.ToLocalTime()));
+            if (Mod.ImportedFrom is { } other) parts.Add(L.T($"taken over from {other}"));
             return string.Join(" · ", parts);
         }
     }
@@ -57,9 +57,9 @@ public sealed partial class InstalledModViewModel : ObservableObject
 
     public string RemoveTip => Mod.Category == ModCategory.Weapon
         ? Mod.Kind == ModKind.Merged
-            ? $"Remove from the game: its models, metas and texts are taken out of {Mod.Pack}"
-            : $"Remove from the game: the whole «{Mod.Pack}» dlcpack is deleted"
-        : "Remove from the game: the game's own files (or the mod installed before it) come back";
+            ? L.T($"Remove from the game: its models, metas and texts are taken out of {Mod.Pack}")
+            : L.T($"Remove from the game: the whole «{Mod.Pack}» dlcpack is deleted")
+        : L.T("Remove from the game: the game's own files (or the mod installed before it) come back");
 
     /// <summary>Other installed mods that change the same game files.</summary>
     public IReadOnlyList<string> Conflicts { get; }
@@ -69,9 +69,9 @@ public sealed partial class InstalledModViewModel : ObservableObject
     /// <summary>Another mod's versions win somewhere — it can be put on top.</summary>
     public bool CanRaise => HasConflicts && !OnTop && _raise is not null;
     public string ConflictsTip => !HasConflicts ? ""
-        : OnTop ? $"Changes the same game files as {string.Join(", ", Conflicts)} — its versions are on top, the game gets them."
-        : $"Changes the same game files as {string.Join(", ", Conflicts)} — theirs are on top where they overlap. " +
-          "«On top» puts this one's first.";
+        : OnTop ? L.T($"Changes the same game files as {string.Join(", ", Conflicts)} — its versions are on top, the game gets them.")
+        : L.T($"Changes the same game files as {string.Join(", ", Conflicts)} — theirs are on top where they overlap. " +
+          $"«On top» puts this one's first.");
 
     [RelayCommand]
     private void Raise() => _raise?.Invoke(this);
@@ -89,15 +89,15 @@ public sealed partial class InstalledModViewModel : ObservableObject
     public bool CanToggle => !PendingRemove && Mod.CanSwitch;
 
     public string ToggleTip => Mod.CanSwitch
-        ? "Load this mod in the game"
-        : "It copied files into the game folder — it can be removed, but not switched off";
+        ? L.T("Load this mod in the game")
+        : L.T("It copied files into the game folder — it can be removed, but not switched off");
     public bool IsChanged => PendingRemove || Enabled != Mod.Enabled;
 
     /// <summary>What applying will do to this mod, or its current state if nothing.</summary>
     public string Status =>
-        PendingRemove ? "will be removed"
-        : Enabled != Mod.Enabled ? (Enabled ? "will be switched on" : "will be switched off")
-        : Enabled ? "" : "off";
+        PendingRemove ? L.T("will be removed")
+        : Enabled != Mod.Enabled ? (Enabled ? L.T("will be switched on") : L.T("will be switched off"))
+        : Enabled ? "" : L.T("off");
 
     public bool HasStatus => Status.Length > 0;
 

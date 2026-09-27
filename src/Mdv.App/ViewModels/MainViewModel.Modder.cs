@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Collections.ObjectModel;
 using Mdv.Core.Mods;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -38,40 +39,40 @@ public sealed partial class MainViewModel
     /// <summary>What a player can install, today and later (the side card before anything is dropped).</summary>
     public IReadOnlyList<SupportedKind> PlayerKinds { get; } =
     [
-        new("Weapons", "Replace or FiveM weapon mods and finished packs, as add-ons", true),
-        new("OIV packages & replacements", "Any file swap, safely through the mods folder", true),
-        new("Scripts & plugins", "ASI, ScriptHookVDotNet, RAGE Plugin Hook — with their dependencies", true),
-        new("Vehicles & peds", "Add-on packs, FiveM resources, replacements — checked against the game", true),
-        new("Liveries", "Pictures, texture dictionaries, modkit liveries — for the game's cars and add-ons", true),
-        new("Clothing", "MP clothes packs and FiveM clothing, story characters' clothes — new slots added when needed", true),
-        new("Maps, props & big packs", "Add-on maps and props, Menyoo and Map Editor maps, total conversions — with a size check and cancel", true),
+        new(L.T("Weapons"), L.T("Replace or FiveM weapon mods and finished packs, as add-ons"), true),
+        new(L.T("OIV packages & replacements"), L.T("Any file swap, safely through the mods folder"), true),
+        new(L.T("Scripts & plugins"), L.T("ASI, ScriptHookVDotNet, RAGE Plugin Hook — with their dependencies"), true),
+        new(L.T("Vehicles & peds"), L.T("Add-on packs, FiveM resources, replacements — checked against the game"), true),
+        new(L.T("Liveries"), L.T("Pictures, texture dictionaries, modkit liveries — for the game's cars and add-ons"), true),
+        new(L.T("Clothing"), L.T("MP clothes packs and FiveM clothing, story characters' clothes — new slots added when needed"), true),
+        new(L.T("Maps, props & big packs"), L.T("Add-on maps and props, Menyoo and Map Editor maps, total conversions — with a size check and cancel"), true),
     ];
 
     /// <summary>What a modder can build, today and later.</summary>
     public IReadOnlyList<SupportedKind> ModderKinds { get; } =
     [
-        new("Weapon", "Replace files → a complete add-on weapon DLC", true),
-        new("Vehicle", "From a vanilla base car", false),
-        new("Ped", "peds.meta from a template, .ymt generated", false),
-        new("Prop", ".ytyp with bounds from the model", false),
-        new("MP clothing", ".ymt and shop meta, slots sorted", false),
+        new(L.T("Weapon"), L.T("Replace files → a complete add-on weapon DLC"), true),
+        new(L.T("Vehicle"), L.T("From a vanilla base car"), false),
+        new(L.T("Ped"), L.T("peds.meta from a template, .ymt generated"), false),
+        new(L.T("Prop"), L.T(".ytyp with bounds from the model"), false),
+        new(L.T("MP clothing"), L.T(".ymt and shop meta, slots sorted"), false),
     ];
 
-    private static readonly (ModCategory Category, string Label, string What, string Blurb)[] AddonTypes =
+    private static (ModCategory Category, string Label, string What, string Blurb)[] AddonTypes =>
     [
-        (ModCategory.Weapon, "Weapon", "Weapon add-ons", ""),
-        (ModCategory.Vehicle, "Vehicle", "Vehicle add-ons",
-         "Pick a vanilla car as the base — handling, layout, sounds and class come from it — drop in the .yft / .ytd " +
-         "and get a ready dlc.rpf: vehicles.meta, handling, variations, modkits and the in-game name generated."),
-        (ModCategory.Ped, "Ped", "Ped add-ons",
-         "Models, textures and variations (.ydd / .yft / .ytd / .ymt) into an add-on ped: peds.meta from a template " +
-         "for its kind, the .ymt generated from the components when the mod has none."),
-        (ModCategory.Prop, "Prop", "Prop add-ons",
-         "Models (.ydr / .ytd / .ybn) into spawnable add-on props: the .ytyp is generated with the bounds taken " +
-         "from each model, and the names to spawn them by are listed for Menyoo."),
-        (ModCategory.Clothing, "MP clothing", "MP clothing add-ons",
-         "Freemode clothes and props into an add-on pack: slots and genders sorted from the file names, the .ymt " +
-         "and shop meta generated, the collection named so it never collides with installed packs."),
+        (ModCategory.Weapon, L.T("Weapon"), L.T("Weapon add-ons"), ""),
+        (ModCategory.Vehicle, L.T("Vehicle"), L.T("Vehicle add-ons"),
+         L.T("Pick a vanilla car as the base — handling, layout, sounds and class come from it — drop in the .yft / .ytd " +
+         "and get a ready dlc.rpf: vehicles.meta, handling, variations, modkits and the in-game name generated.")),
+        (ModCategory.Ped, L.T("Ped"), L.T("Ped add-ons"),
+         L.T("Models, textures and variations (.ydd / .yft / .ytd / .ymt) into an add-on ped: peds.meta from a template " +
+         "for its kind, the .ymt generated from the components when the mod has none.")),
+        (ModCategory.Prop, L.T("Prop"), L.T("Prop add-ons"),
+         L.T("Models (.ydr / .ytd / .ybn) into spawnable add-on props: the .ytyp is generated with the bounds taken " +
+         "from each model, and the names to spawn them by are listed for Menyoo.")),
+        (ModCategory.Clothing, L.T("MP clothing"), L.T("MP clothing add-ons"),
+         L.T("Freemode clothes and props into an add-on pack: slots and genders sorted from the file names, the .ymt " +
+         "and shop meta generated, the collection named so it never collides with installed packs.")),
     ];
 
     private void InitModderTypes()

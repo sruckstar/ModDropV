@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -76,7 +77,7 @@ public static partial class OivReader
         }
         catch (XmlException ex)
         {
-            throw new IntakeException($"The OIV package's assembly.xml is not valid XML ({ex.Message}).", ex);
+            throw new IntakeException(L.T($"The OIV package's assembly.xml is not valid XML ({ex.Message})."), ex);
         }
         var root = doc.Root!;
         var dir = Path.GetDirectoryName(Path.GetFullPath(assemblyXml))!;
@@ -84,7 +85,7 @@ public static partial class OivReader
         var format = Attr(root, "version") ?? "";
         var target = Attr(root, "target");
         if (target is not null && !target.Equals("Five", StringComparison.OrdinalIgnoreCase))
-            throw new IntakeException($"This OIV package is for another game («{target}»), not GTA V.");
+            throw new IntakeException(L.T($"This OIV package is for another game («{target}»), not GTA V."));
 
         var name = Text(El(meta, "name"));
         var author = El(meta, "author");
@@ -93,7 +94,7 @@ public static partial class OivReader
         var icon = Path.Combine(dir, "icon.png");
         var pkg = new OivPackage
         {
-            Name = name is { Length: > 0 } ? name : "OIV package",
+            Name = name is { Length: > 0 } ? name : L.T("OIV package"),
             Author = Text(El(author, "displayName")),
             Version = VersionOf(El(meta, "version")),
             Description = Text(El(meta, "description")),
@@ -105,19 +106,19 @@ public static partial class OivReader
             BlackText = Attr(header, "useBlackTextColor") is { } b && b.Equals("true", StringComparison.OrdinalIgnoreCase),
         };
         if (format.Length > 0 && !format.StartsWith('2'))
-            pkg.Warnings.Add($"The package is in OIV format {format} — ModDrop V reads format 2; some steps may be skipped.");
+            pkg.Warnings.Add(L.T($"The package is in OIV format {format} — ModDrop V reads format 2; some steps may be skipped."));
 
-        var content = El(root, "content") ?? throw new IntakeException("The OIV package has no <content> — nothing to install.");
+        var content = El(root, "content") ?? throw new IntakeException(L.T("The OIV package has no <content> — nothing to install."));
         Walk(pkg, content, null);
-        if (pkg.Steps.Count == 0) throw new IntakeException("The OIV package has no install instructions.");
+        if (pkg.Steps.Count == 0) throw new IntakeException(L.T("The OIV package has no install instructions."));
 
         int adds = pkg.Steps.Count(s => s is OivAdd), edits = pkg.Steps.Count(s => s is OivXml or OivText);
         int deletes = pkg.Steps.Count(s => s is OivDelete);
         var parts = new List<string>();
-        if (adds > 0) parts.Add($"{adds} file(s) to put in");
-        if (edits > 0) parts.Add($"{edits} file(s) to edit");
-        if (deletes > 0) parts.Add($"{deletes} to delete");
-        pkg.Parts.Add($"OIV package{(pkg.Version is { } v ? " v" + v : "")}{(pkg.Author is { } a ? " by " + a : "")}");
+        if (adds > 0) parts.Add(L.T($"{adds} file(s) to put in"));
+        if (edits > 0) parts.Add(L.T($"{edits} file(s) to edit"));
+        if (deletes > 0) parts.Add(L.T($"{deletes} to delete"));
+        pkg.Parts.Add(L.T($"OIV package{(pkg.Version is { } v ? " v" + v : "")}{(pkg.Author is { } a ? " by " + a : "")}"));
         pkg.Parts.Add(string.Join(", ", parts));
         return pkg;
     }
@@ -137,7 +138,7 @@ public static partial class OivReader
                     var file = rel is null ? null : Path.GetFullPath(Path.Combine(pkg.Root, "content", rel));
                     if (file is null || !file.StartsWith(pkg.Root, StringComparison.OrdinalIgnoreCase) || !File.Exists(file))
                     {
-                        pkg.Warnings.Add($"The package's file content/{src} is missing — {path} is skipped.");
+                        pkg.Warnings.Add(L.T($"The package's file content/{src} is missing — {path} is skipped."));
                         break;
                     }
                     pkg.Steps.Add(new OivAdd(path, archive is not null, file));
@@ -151,12 +152,12 @@ public static partial class OivReader
                     if (Target(pkg, Attr(e, "path") ?? "", archive) is not { } path) break;
                     if (Attr(e, "type") is { } type && !type.StartsWith("RPF", StringComparison.OrdinalIgnoreCase))
                     {
-                        pkg.Warnings.Add($"{path}: archives of type {type} aren't supported — its steps are skipped.");
+                        pkg.Warnings.Add(L.T($"{path}: archives of type {type} aren't supported — its steps are skipped."));
                         break;
                     }
                     if (!path.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase))
                     {
-                        pkg.Warnings.Add($"{path} is not an .rpf archive — its steps are skipped.");
+                        pkg.Warnings.Add(L.T($"{path} is not an .rpf archive — its steps are skipped."));
                         break;
                     }
                     pkg.Steps.Add(new OivArchive(path, archive is not null, IsTrue(Attr(e, "createIfNotExist"))));
@@ -179,7 +180,7 @@ public static partial class OivReader
                         var xpath = Attr(x, "xpath");
                         if (mode is null || string.IsNullOrWhiteSpace(xpath))
                         {
-                            pkg.Warnings.Add($"{path}: <{x.Name.LocalName}> isn't an XML edit ModDrop V knows — skipped.");
+                            pkg.Warnings.Add(L.T($"{path}: <{x.Name.LocalName}> isn't an XML edit ModDrop V knows — skipped."));
                             continue;
                         }
                         edits.Add(new OivXmlEdit(mode.Value, xpath.Trim(),
@@ -212,7 +213,7 @@ public static partial class OivReader
                                 edits.Add(new OivTextEdit(OivTextMode.Delete, line ?? x.Value, ""));
                                 break;
                             default:
-                                pkg.Warnings.Add($"{path}: <{x.Name.LocalName}> isn't a text edit ModDrop V knows — skipped.");
+                                pkg.Warnings.Add(L.T($"{path}: <{x.Name.LocalName}> isn't a text edit ModDrop V knows — skipped."));
                                 break;
                         }
                     }
@@ -220,7 +221,7 @@ public static partial class OivReader
                     break;
                 }
                 default:
-                    pkg.Warnings.Add($"The package's <{e.Name.LocalName}> instruction isn't supported — skipped.");
+                    pkg.Warnings.Add(L.T($"The package's <{e.Name.LocalName}> instruction isn't supported — skipped."));
                     break;
             }
         }
@@ -232,7 +233,7 @@ public static partial class OivReader
         var rel = Norm(raw);
         if (rel is null)
         {
-            if (raw.Trim().Length > 0) pkg.Warnings.Add($"«{raw.Trim()}» points outside the game folder — skipped.");
+            if (raw.Trim().Length > 0) pkg.Warnings.Add(L.T($"«{raw.Trim()}» points outside the game folder — skipped."));
             return null;
         }
         return archive is null ? rel : $"{archive}/{rel}";
@@ -294,12 +295,12 @@ public static class OivEdits
             }
             catch (XPathException ex)
             {
-                log($"    [!] {what}: the XPath {edit.XPath} is not valid ({ex.Message}) — skipped.");
+                log(L.T($"    [!] {what}: the XPath {edit.XPath} is not valid ({ex.Message}) — skipped."));
                 continue;
             }
             if (hits.Count == 0)
             {
-                log($"    [!] {what}: nothing matches {edit.XPath} — that edit is skipped.");
+                log(L.T($"    [!] {what}: nothing matches {edit.XPath} — that edit is skipped."));
                 continue;
             }
             foreach (var e in hits)
@@ -349,7 +350,7 @@ public static class OivEdits
                     int at = lines.FindIndex(l => Is(l, e.Line));
                     if (at < 0)
                     {
-                        log($"    [!] {what}: the line «{e.Line}» is not there — the text is added at the end.");
+                        log(L.T($"    [!] {what}: the line «{e.Line}» is not there — the text is added at the end."));
                         lines.AddRange(added);
                     }
                     else lines.InsertRange(e.Mode == OivTextMode.InsertBefore ? at : at + 1, added);
@@ -363,10 +364,10 @@ public static class OivEdits
                         lines.InsertRange(i, added);
                         n++;
                     }
-                    if (n == 0) log($"    [!] {what}: the line «{e.Line}» is not there — nothing replaced.");
+                    if (n == 0) log(L.T($"    [!] {what}: the line «{e.Line}» is not there — nothing replaced."));
                     break;
                 case OivTextMode.Delete:
-                    if (lines.RemoveAll(l => Is(l, e.Line)) == 0) log($"    [!] {what}: the line «{e.Line}» is not there — nothing deleted.");
+                    if (lines.RemoveAll(l => Is(l, e.Line)) == 0) log(L.T($"    [!] {what}: the line «{e.Line}» is not there — nothing deleted."));
                     break;
             }
         }
@@ -416,8 +417,8 @@ public sealed class OivHandler : FileModHandler
         var pkg = OivReader.Read(assemblies[0].FullPath);
         pkg.Source = source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null;
         if (assemblies.Count > 1)
-            pkg.Warnings.Add($"The drop holds {assemblies.Count} OIV packages — «{pkg.Name}» ({assemblies[0].Origin}) is the one installed; " +
-                             "drop the others one at a time.");
+            pkg.Warnings.Add(L.T($"The drop holds {assemblies.Count} OIV packages — «{pkg.Name}» ({assemblies[0].Origin}) is the one installed; " +
+                             $"drop the others one at a time."));
         return pkg;
     }
 
@@ -444,7 +445,7 @@ public sealed class OivHandler : FileModHandler
             else
             {
                 missing.Add(a.Path);
-                plan.Warnings.Add($"{a.Path} is not in this game, and the package doesn't create it — its steps are skipped.");
+                plan.Warnings.Add(L.T($"{a.Path} is not in this game, and the package doesn't create it — its steps are skipped."));
             }
         }
 
@@ -471,7 +472,7 @@ public sealed class OivHandler : FileModHandler
         }
 
         plan.Warnings.AddRange(ConflictWarnings(id, target, putPaths));
-        plan.Add(Register(id, ModCategory.Package, pkg, target, $"OIV · {files} change(s)",
+        plan.Add(Register(id, ModCategory.Package, pkg, target, L.T($"OIV · {files} change(s)"),
                           pkg.Link is { } link ? new() { ["link"] = link } : null));
         return plan;
     }
@@ -497,9 +498,9 @@ public sealed class OivHandler : FileModHandler
                 var current = CurrentPacks(overlay);
                 var added = theirs.Where(p => !current.Contains(p)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                 foreach (var p in added) plan.Add(new DlclistAddOp(p));
-                plan.Warnings.Add("The package replaces the whole dlclist.xml — ModDrop V adds just its new packs " +
-                                  (added.Count > 0 ? $"({string.Join(", ", added)})" : "(none — every pack in it is listed already)") +
-                                  ", so the packs other mods listed stay.");
+                plan.Warnings.Add(added.Count > 0
+                    ? L.T($"The package replaces the whole dlclist.xml — ModDrop V adds just its new packs ({string.Join(", ", added)}), so the packs other mods listed stay.")
+                    : L.T("The package replaces the whole dlclist.xml — ModDrop V adds just its new packs (none — every pack in it is listed already), so the packs other mods listed stay."));
                 break;
             }
             case OivXml xml when IsDlclist(xml.Path) && DlclistEdits(xml) is { } lines:
@@ -514,25 +515,25 @@ public sealed class OivHandler : FileModHandler
                 putPaths.Add(del.Path);
                 break;
             case OivXml xml:
-                plan.Add(new RpfEditOp(xml.Path, id, $"Edit {xml.Path} ({Count(xml.Edits.Count, "XML change")})", (content, log) =>
+                plan.Add(new RpfEditOp(xml.Path, id, L.T($"Edit {xml.Path} ({xml.Edits.Count} XML change(s))"), (content, log) =>
                 {
                     if (content is null)
                     {
-                        log($"    [!] {xml.Path} is not there — its XML edits are skipped.");
+                        log(L.T($"    [!] {xml.Path} is not there — its XML edits are skipped."));
                         return null;
                     }
                     return OivEdits.ApplyXml(content, xml.Edits, log, xml.Path);
                 }));
                 putPaths.Add(xml.Path);
                 if (IsDlclist(xml.Path))
-                    plan.Warnings.Add("The package edits dlclist.xml in a way ModDrop V can't read as pack lines — the edit is made as is.");
+                    plan.Warnings.Add(L.T("The package edits dlclist.xml in a way ModDrop V can't read as pack lines — the edit is made as is."));
                 break;
             case OivText text:
-                plan.Add(new RpfEditOp(text.Path, id, $"Edit {text.Path} ({Count(text.Edits.Count, "line change")})", (content, log) =>
+                plan.Add(new RpfEditOp(text.Path, id, L.T($"Edit {text.Path} ({text.Edits.Count} line change(s))"), (content, log) =>
                 {
                     if (content is null && !text.Create)
                     {
-                        log($"    [!] {text.Path} is not there — its line edits are skipped.");
+                        log(L.T($"    [!] {text.Path} is not there — its line edits are skipped."));
                         return null;
                     }
                     return OivEdits.ApplyText(content, text.Edits, log, text.Path);
@@ -556,26 +557,26 @@ public sealed class OivHandler : FileModHandler
             case OivDelete del:
                 var at = Place(del.Path);
                 if (at != del.Path && !File.Exists(Path.Combine(target.GameDir, at)))
-                    plan.Warnings.Add($"The package deletes the game's {del.Path} — ModDrop V never deletes the game's own archives; skipped.");
+                    plan.Warnings.Add(L.T($"The package deletes the game's {del.Path} — ModDrop V never deletes the game's own archives; skipped."));
                 else plan.Add(new DeleteFileOp(at));
                 break;
             case OivXml xml:
-                plan.Add(new FileEditOp(xml.Path, $"Edit <game>/{xml.Path} ({Count(xml.Edits.Count, "XML change")})", (content, log) =>
+                plan.Add(new FileEditOp(xml.Path, L.T($"Edit <game>/{xml.Path} ({xml.Edits.Count} XML change(s))"), (content, log) =>
                 {
                     if (content is null)
                     {
-                        log($"    [!] <game>/{xml.Path} is not there — its XML edits are skipped.");
+                        log(L.T($"    [!] <game>/{xml.Path} is not there — its XML edits are skipped."));
                         return null;
                     }
                     return OivEdits.ApplyXml(content, xml.Edits, log, xml.Path);
                 }));
                 break;
             case OivText text:
-                plan.Add(new FileEditOp(text.Path, $"Edit <game>/{text.Path} ({Count(text.Edits.Count, "line change")})", (content, log) =>
+                plan.Add(new FileEditOp(text.Path, L.T($"Edit <game>/{text.Path} ({text.Edits.Count} line change(s))"), (content, log) =>
                 {
                     if (content is null && !text.Create)
                     {
-                        log($"    [!] <game>/{text.Path} is not there — its line edits are skipped.");
+                        log(L.T($"    [!] <game>/{text.Path} is not there — its line edits are skipped."));
                         return null;
                     }
                     return OivEdits.ApplyText(content, text.Edits, log, text.Path);
@@ -584,7 +585,7 @@ public sealed class OivHandler : FileModHandler
         }
     }
 
-    private static string Count(int n, string what) => n == 1 ? $"1 {what}" : $"{n} {what}s";
+    
 
     private static HashSet<string> CurrentPacks(ModsOverlay overlay)
     {
@@ -639,8 +640,8 @@ public sealed class BuildArchiveOp(string path, bool inArchive, IReadOnlyList<Oi
     public bool InArchive => inArchive;
 
     public override string Describe() =>
-        inArchive ? $"Create {path} ({steps.Count(s => s is OivAdd)} file(s)) inside its archive (in a copy under mods)"
-                  : $"Create mods/{path} ({steps.Count(s => s is OivAdd)} file(s))";
+        inArchive ? L.T($"Create {path} ({steps.Count(s => s is OivAdd)} file(s)) inside its archive (in a copy under mods)")
+                  : L.T($"Create mods/{path} ({steps.Count(s => s is OivAdd)} file(s))");
 
     public override void Execute(InstallContext ctx)
     {
@@ -689,7 +690,7 @@ public sealed class BuildArchiveOp(string path, bool inArchive, IReadOnlyList<Oi
             if (inArchive)
             {
                 ctx.Overlay.Put(modId, path, File.ReadAllBytes(output));
-                ctx.Log($"    created {path}");
+                ctx.Log(L.T($"    created {path}"));
             }
             else new CopyFileOp(output, "mods/" + path).Execute(ctx);
         }

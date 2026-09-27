@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.RegularExpressions;
 
 namespace Mdv.Core.Mods;
@@ -20,7 +21,7 @@ public sealed record ClothingPart(bool Prop, int Slot, int Number, ClothingPartK
     public int Alternative { get; init; }
 
     /// <summary>"uppr 5", "prop head 2" — for messages.</summary>
-    public string Describe() => Prop ? $"prop {ClothingNames.Anchors[Slot]} {Number}" : $"{ClothingNames.Components[Slot]} {Number}";
+    public string Describe() => Prop ? L.T($"prop {ClothingNames.Anchors[Slot]} {Number}") : $"{ClothingNames.Components[Slot]} {Number}";
 }
 
 public enum ClothingPartKind { Drawable, Texture, Cloth }
@@ -59,6 +60,24 @@ public static partial class ClothingNames
         "ANCHOR_HEAD", "ANCHOR_EYES", "ANCHOR_EARS", "ANCHOR_MOUTH", "ANCHOR_LEFT_HAND", "ANCHOR_RIGHT_HAND",
         "ANCHOR_LEFT_WRIST", "ANCHOR_RIGHT_WRIST", "ANCHOR_HIP", "ANCHOR_LEFT_FOOT", "ANCHOR_RIGHT_FOOT",
     ];
+    /// <summary>The components as trainers' wardrobes name them (translated with <c>L.T</c>).</summary>
+    public static readonly string[] TrainerComponents =
+    [
+        L.N("Head"), L.N("Mask"), L.N("Hair"), L.N("Torso"), L.N("Legs"), L.N("Bag"), L.N("Shoes"), L.N("Accessory"),
+        L.N("Undershirt"), L.N("Armor"), L.N("Decal"), L.N("Tops"),
+    ];
+    /// <summary>The prop anchors as trainers' wardrobes name them (translated with <c>L.T</c>).</summary>
+    public static readonly string[] TrainerAnchors =
+    [
+        L.N("Hats"), L.N("Glasses"), L.N("Ears"), L.N("Mouth"), L.N("Left hand"), L.N("Right hand"), L.N("Watches"), L.N("Bracelets"),
+        L.N("Hip"), L.N("Left foot"), L.N("Right foot"),
+    ];
+
+    /// <summary>"Tops (component 11) 653" — where a trainer's wardrobe shows a model of the MP peds (numbered across all collections).</summary>
+    public static string InTrainer(bool prop, int slot, int number) => prop
+        ? L.T($"{L.T(TrainerAnchors[slot])} (prop {slot}) {number}")
+        : L.T($"{L.T(TrainerComponents[slot])} (component {slot}) {number}");
+
     /// <summary>Texture race suffixes by ymt texId.</summary>
     public static readonly string[] Races = ["uni", "whi", "bla", "chi", "lat", "ara", "bal", "jam", "kor", "ita", "pak"];
 
@@ -71,8 +90,8 @@ public static partial class ClothingNames
         Michael => "Michael",
         Franklin => "Franklin",
         Trevor => "Trevor",
-        MpMale => "MP male",
-        MpFemale => "MP female",
+        MpMale => L.T("MP male"),
+        MpFemale => L.T("MP female"),
         _ => ped,
     };
 

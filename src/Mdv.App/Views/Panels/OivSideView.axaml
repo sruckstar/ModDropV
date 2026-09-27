@@ -1,12 +1,13 @@
 <!-- OIV panel, side slot: every step of the package and where it lands. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              x:Class="Mdv.App.Views.Panels.OivSideView"
              x:DataType="vm:OivViewModel">
   <Border Classes="card" Padding="16,13,6,13">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-      <TextBlock Classes="h" Text="WHAT IT DOES" />
+      <TextBlock Classes="h" Text="{l:Tr 'WHAT IT DOES'}" />
       <TextBlock Grid.Row="1" Classes="desc" Text="{Binding Summary}" Margin="0,0,10,0" />
       <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
         <StackPanel Spacing="10">

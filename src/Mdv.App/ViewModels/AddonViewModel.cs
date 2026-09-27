@@ -23,7 +23,7 @@ public sealed partial class ModelPreview : ObservableObject
     private bool _syncing;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPreview), nameof(ShowPanel), nameof(Title), nameof(Stats))]
+    [NotifyPropertyChangedFor(nameof(HasPreview), nameof(ShowPanel), nameof(Title), nameof(Stats), nameof(PartsHint))]
     [NotifyCanExecuteChangedFor(nameof(OpenCommand))]
     public partial WeaponModel? Model { get; set; }
 
@@ -55,13 +55,18 @@ public sealed partial class ModelPreview : ObservableObject
 
     public string Title => Model?.Name ?? "";
 
+    /// <summary>What the parts list means: a ped's drawables take turns in their slot; a vehicle misses the game's shared textures.</summary>
+    public string PartsHint => Pieces.Any(p => p.Bone is { } b && Pieces.Count(o => o.Bone == b) > 1)
+        ? L.T("A ped wears one drawable per slot, as in the game — pick another to see it.")
+        : L.T("Textures the game shares between vehicles aren’t in the mod: those surfaces are drawn plain.");
+
     public string Stats
     {
         get
         {
             if (Model is not { } m) return "";
             var tris = m.Pieces.Where(p => Visible?.Contains(p.Id) ?? p.DefaultVisible).Sum(p => p.Triangles);
-            return string.Format(CultureInfo.InvariantCulture, "{0:#,0} triangles shown · {1} texture(s) · {2} part(s)",
+            return string.Format(CultureInfo.InvariantCulture, L.T("{0:#,0} triangles shown · {1} texture(s) · {2} part(s)"),
                                  tris, m.TextureCount, m.Pieces.Count);
         }
     }
@@ -267,10 +272,10 @@ public sealed partial class AddonViewModel : FileModViewModel
 
     /// <summary>How it goes into the game, for the note under the checks.</summary>
     public string Note => InstallAsReplace
-        ? "The Replace version's files go into copies of the game's archives under mods, where the game loads them from — " +
-          "the game's own files stay untouched. Switch it off or remove it any time in the Library."
-        : @"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml — the game's files stay untouched. " +
-          "Switch it off or remove it any time in the Library.";
+        ? L.T("The Replace version's files go into copies of the game's archives under mods, where the game loads them from — " +
+          "the game's own files stay untouched. Switch it off or remove it any time in the Library.")
+        : L.T(@"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml — the game's files stay untouched. " +
+          "Switch it off or remove it any time in the Library.");
 
     partial void OnInstallAsReplaceChanged(bool value)
     {
@@ -290,7 +295,7 @@ public sealed partial class AddonViewModel : FileModViewModel
         if (pkg.UseReplace && pkg.Replace is { } r)
         {
             foreach (var name in r.Replaces.DefaultIfEmpty(string.Join(", ", r.Files.Select(f => f.Name).Take(3))))
-                Items.Add(new AddonItemRow(name, name, $"the game's own {(ped ? "ped" : "vehicle")} — replaced by the mod's models"));
+                Items.Add(new AddonItemRow(name, name, L.T($"the game's own {(ped ? "ped" : "vehicle")} — replaced by the mod's models")));
             return;
         }
         if (ped)
@@ -298,7 +303,7 @@ public sealed partial class AddonViewModel : FileModViewModel
             {
                 var made = pkg.Compose?.NewPeds.FirstOrDefault(n => n.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase));
                 var detail = made is not null
-                    ? $"no peds.meta in the mod — a {made.Gender.ToString().ToLowerInvariant()} ped's entry is written for it" +
+                    ? L.T($"no peds.meta in the mod — a {made.Gender.ToString().ToLowerInvariant()} ped's entry is written for it") +
                       (made.Streamed ? " · streamed" : "")
                     : p.PedType is { } t ? Pretty(t) : "";
                 Items.Add(new AddonItemRow(p.Name, p.Name, detail));
@@ -332,8 +337,8 @@ public sealed partial class AddonViewModel : FileModViewModel
     {
         if (_pkg is null) return null;
         if (_pkg.UseReplace) return null;
-        if (IsChecking) return "The add-on is still being checked against the game — wait a moment.";
-        if (AddonPackHandler.Clean(PackName) is null) return "Give the pack a folder name (latin letters, digits, _).";
+        if (IsChecking) return L.T("The add-on is still being checked against the game — wait a moment.");
+        if (AddonPackHandler.Clean(PackName) is null) return L.T("Give the pack a folder name (latin letters, digits, _).");
         return _pkg.Checks?.Blocking;
     }
 
@@ -363,16 +368,16 @@ public sealed partial class AddonViewModel : FileModViewModel
         ShowItems();
         HasNewPeds = pkg.Compose is { NewPeds.Count: > 0 };
         PedIsFemale = pkg.Compose is { NewPeds: [var first, ..] } && first.Gender == PedGender.Female;
-        SourceText = pkg.Finished is { } f ? $"A finished add-on pack ({f.Device ?? "dlc.rpf"})"
-            : pkg.Compose is { NewPeds.Count: > 0 } ? "Models only, no peds.meta — ModDrop V writes one; all packed into a dlc.rpf on install"
-            : pkg.Compose is { Resources.Count: > 0 } s ? $"A FiveM resource ({string.Join(", ", s.Resources)}) — packed into a dlc.rpf on install"
-            : "Loose models and metas — packed into a dlc.rpf on install";
+        SourceText = pkg.Finished is { } f ? L.T($"A finished add-on pack ({f.Device ?? "dlc.rpf"})")
+            : pkg.Compose is { NewPeds.Count: > 0 } ? L.T("Models only, no peds.meta — ModDrop V writes one; all packed into a dlc.rpf on install")
+            : pkg.Compose is { Resources.Count: > 0 } s ? L.T($"A FiveM resource ({string.Join(", ", s.Resources)}) — packed into a dlc.rpf on install")
+            : L.T("Loose models and metas — packed into a dlc.rpf on install");
         Summary = string.Join("  ·  ", pkg.Parts);
         HasReplace = pkg.Replace is not null;
         InstallAsReplace = pkg.UseReplace;
         ReplaceText = pkg.Replace is not { } r ? ""
-            : r.Replaces.Count > 0 ? $"Replace — in place of the game's {string.Join(", ", r.Replaces)}; no new spawn name"
-            : $"Replace — in place of the game's own ({string.Join(", ", r.Files.Select(x => x.Name).Take(4))}{(r.Files.Count > 4 ? ", …" : "")})";
+            : r.Replaces.Count > 0 ? L.T($"Replace — in place of the game's {string.Join(", ", r.Replaces)}; no new spawn name")
+            : L.T($"Replace — in place of the game's own ({string.Join(", ", r.Files.Select(x => x.Name).Take(4))}{(r.Files.Count > 4 ? ", …" : "")})");
         FixKits = pkg.FixKits;
         PackName = pkg.PackName;
         _loading = false;
@@ -403,11 +408,11 @@ public sealed partial class AddonViewModel : FileModViewModel
             Checks.Clear();
             IsChecking = false;
             ChecksNeedAttention = false;
-            CheckStatus = "Choose the GTA V folder — the add-on is checked against what the game already has.";
+            CheckStatus = L.T("Choose the GTA V folder — the add-on is checked against what the game already has.");
             return;
         }
         IsChecking = true;
-        CheckStatus = "Checking against the game…";
+        CheckStatus = L.T("Checking against the game…");
         var target = MainViewModel.TargetFor(game, Shell.Edition);
         AddonCheckReport? report = null;
         string? error = null;
@@ -430,7 +435,7 @@ public sealed partial class AddonViewModel : FileModViewModel
         catch (Exception ex)
         {
             AppLog.Error("checking the add-on failed", ex);
-            error = $"The game could not be checked: {ex.Message}";
+            error = L.T($"The game could not be checked: {ex.Message}");
         }
         if (gen != _generation) return;
         IsChecking = false;
@@ -444,9 +449,9 @@ public sealed partial class AddonViewModel : FileModViewModel
         HasKitFixes = report.KitFixes.Count > 0;
         int problems = report.Items.Count(i => i.Level is CheckLevel.Warn or CheckLevel.Block);
         ChecksNeedAttention = problems > 0;
-        CheckStatus = report.Blocking is not null ? "It can't go into this game."
-            : problems > 0 ? $"{problems} thing{(problems == 1 ? "" : "s")} to look at — it can still be installed."
-            : "Nothing clashes with what the game already has.";
+        CheckStatus = report.Blocking is not null ? L.T("It can't go into this game.")
+            : problems > 0 ? (problems == 1 ? L.T("1 thing to look at — it can still be installed.") : L.T($"{problems} things to look at — it can still be installed."))
+            : L.T("Nothing clashes with what the game already has.");
         _loading = true;
         PackName = pkg.PackName;                      // a taken name was changed to a free one
         _loading = false;
@@ -456,7 +461,7 @@ public sealed partial class AddonViewModel : FileModViewModel
     private void UpdatePackDetail()
     {
         if (_pkg is not { } pkg) return;
-        PackDetail = $"mods\\update\\x64\\dlcpacks\\{pkg.PackName}  ·  mounted as {pkg.Device}" +
-                     (pkg.PackNameFrom is { } from ? $"  ·  name from {from}" : "");
+        PackDetail = L.T($"mods\\update\\x64\\dlcpacks\\{pkg.PackName}  ·  mounted as {pkg.Device}") +
+                     (pkg.PackNameFrom is { } from ? L.T($"  ·  name from {from}") : "");
     }
 }

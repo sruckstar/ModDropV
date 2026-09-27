@@ -183,7 +183,7 @@ public sealed partial class InputScanner
 
         if (result.MainModel is null)
         {
-            result.Warnings.Add("No main weapon model found (components only?).");
+            result.Warnings.Add(L.T("No main weapon model found (components only?)."));
             return result;
         }
 
@@ -193,13 +193,13 @@ public sealed partial class InputScanner
         result.TemplateFound = baseWeapon is not null;
         if (source == "class_fallback")
             result.Warnings.Add(
-                $"No exact template for '{result.MainModel}'. Using the structural template " +
+                L.T($"No exact template for '{result.MainModel}'. Using the structural template " +
                 $"of class '{result.WeaponClass}' ({baseWeapon}). For 1:1 stats, add the " +
-                "weapons.meta of the original DLC weapon to the template library.");
+                $"weapons.meta of the original DLC weapon to the template library."));
         else if (source == "none")
             result.Warnings.Add(
-                $"Could not determine the base weapon for '{result.MainModel}'. " +
-                "Specify the class/template manually.");
+                L.T($"Could not determine the base weapon for '{result.MainModel}'. " +
+                $"Specify the class/template manually."));
         return result;
     }
 

@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.Json.Serialization;
 using Mdv.Core.Util;
 
@@ -154,11 +155,11 @@ public sealed class InstallJournal
     /// <returns>true when every step was undone</returns>
     public bool Rollback()
     {
-        _log("Rolling back the changes made so far…");
+        _log(L.T("Rolling back the changes made so far…"));
         bool ok = Undo(GameDir, Steps, transaction: true, _log);
         TryDeleteEmpty(StashRoot);
         TryDeleteEmpty(Path.GetDirectoryName(StashRoot)!);
-        _log(ok ? "    Rolled back — the game folder is as it was." : "    [!] Rollback was incomplete — see above.");
+        _log(ok ? L.T("    Rolled back — the game folder is as it was.") : L.T("    [!] Rollback was incomplete — see above."));
         return ok;
     }
 
@@ -189,7 +190,7 @@ public sealed class InstallJournal
                     var target = Abs(m.Path);
                     if (!File.Exists(stash) && !Directory.Exists(stash))
                     {
-                        _log($"    [!] No saved copy of {m.Path} to restore — left as it is.");
+                        _log(L.T($"    [!] No saved copy of {m.Path} to restore — left as it is."));
                         break;
                     }
                     if (File.Exists(target) || Directory.Exists(target)) MoveAside(target, keep: false);
@@ -230,7 +231,7 @@ public sealed class InstallJournal
             catch (Exception ex)
             {
                 ok = false;
-                log($"    [!] Could not undo {steps[i]}: {ex.Message}");
+                log(L.T($"    [!] Could not undo {steps[i]}: {ex.Message}"));
             }
         }
         return ok;
@@ -252,8 +253,8 @@ public sealed class InstallJournal
                 var target = Abs(gameDir, m.Path);
                 if (!File.Exists(stash) && !Directory.Exists(stash))
                 {
-                    if (transaction) throw new FileNotFoundException($"the saved copy is gone: {stash}");
-                    log($"    [!] No saved copy of {m.Path} to restore — left as it is.");
+                    if (transaction) throw new FileNotFoundException(L.T($"the saved copy is gone: {stash}"));
+                    log(L.T($"    [!] No saved copy of {m.Path} to restore — left as it is."));
                     break;
                 }
                 DeletePath(target);

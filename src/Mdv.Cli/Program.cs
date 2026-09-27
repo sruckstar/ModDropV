@@ -63,6 +63,7 @@ internal static class Program
                 "raise" => Raise(rest),
                 "overlay" => Overlay(rest),
                 "refresh" => Refresh(rest),
+                "limits" => Limits(rest),
                 "compact" => Compact(rest),
                 "install" => Install(rest),
                 "remove" => Remove(rest),
@@ -137,6 +138,11 @@ internal static class Program
                   put a mod's files on top of other mods changing the same files
               overlay <game_dir>
                   archive copies in mods (stale after a game update?) and the files mods changed
+              limits <game_dir> [--edition legacy|enhanced|auto] [--big] [--reset]
+                  raise the game's limits in gameconfig.xml for mods as an install does (--big: the
+                  higher ones of a big mod; limits raised too high for the edition are set again;
+                  Enhanced also gets Heap Adjuster and Packfile Limit Adjuster);
+                  --reset puts the game's own back
               refresh <game_dir> [archive ...]
                   after a game update: fresh copies of the stale archives (or the ones named),
                   with the mods' changes and added dlclist entries put back
@@ -155,7 +161,8 @@ internal static class Program
                   of the peds.meta written for peds that come without one; liveries print the vehicle and
                   which texture each picture replaces — --vehicle picks the vehicle (a game one or an
                   installed add-on), --slot sends a picture to another texture of it; clothing prints whose clothes
-                  they are and where each file goes — --wearer michael|franklin|trevor|mp_male|mp_female or a
+                  they are and where each file goes (MP clothes as an add-on: new slots at the end of the game's
+                  last collection of the ped) — --wearer michael|franklin|trevor|mp_male|mp_female or a
                   collection folder (mp_m_freemode_01_mp_m_x), --replace puts loose models in place of the
                   wearer's own, --new-slots adds them as new clothes (new slots in the wearer's ymt); maps print what
                   they place and the models the game lacks — --as menyoo / mapeditor installs the mod's Menyoo / Map
@@ -713,7 +720,7 @@ internal static class Program
         try
         {
             var dropped = SourceIntake.Gather(a.Positional[1..], work, Console.WriteLine);
-            var analysis = ModLibrary.Analyze(dropped, new HandlerEnv(Path.Combine(AppContext.BaseDirectory, "data")));
+            var analysis = ModLibrary.Analyze(dropped, new HandlerEnv(Path.Combine(AppContext.BaseDirectory, "data")) { Edition = target.Edition });
             Console.WriteLine($"Found: {analysis.Report.Summary()}");
             foreach (var (cat, why) in analysis.Problems) Console.WriteLine($"  {cat.DisplayName()}: can't install — {why}");
             foreach (var p in analysis.Packages) Console.WriteLine($"  {p.Category.ShortName(),-8} «{p.Name}»  {string.Join(" · ", p.Parts)}");
@@ -729,7 +736,7 @@ internal static class Program
             if (pkg is AddonPackage ap) PrintAddon(ap, a, target);
             if (pkg is LiveryPackage lp) PrintLivery(lp, a, target);
             if (pkg is PlacementPackage pp) PrintPlacement(pp, target);
-            var plan = ModLibrary.HandlerFor(pkg.Category).PlanInstall(pkg, target);
+            var plan = ModLibrary.PlanInstall(pkg, target);
             plan.Warnings.InsertRange(0, pkg.Warnings);
             Console.WriteLine($"{plan.Title}:");
             int i = 0;
@@ -808,6 +815,19 @@ internal static class Program
         {
             if (ap.Replace is null) throw new UsageException("--replace: the mod has no Replace version");
             ap.UseReplace = true;
+            return;
+        }
+        if (ap.Kind == ModCategory.Clothing && ap.Slots is { } slots)
+        {
+            ReplacementHandler.Resolve(slots, Mdv.Core.Index.GameIndex.Open(target.GameDir, target.IndexCacheRoot));
+            Console.WriteLine("    new clothes: new slots at the end of the game's last collection (the game can't take a collection more)");
+            if (ap.LooseClothing is { } lc) Console.WriteLine($"    for {ClothingNames.PedLabel(lc.Ped)} (--wearer mp_female / mp_male to change)");
+            if (slots.SlotsProblem is { } why) Console.WriteLine($"    [!] no new slots: {why}");
+            foreach (var note in slots.SlotNotes) Console.WriteLine($"    [!] {note}");
+            foreach (var f in slots.Files)
+                Console.WriteLine($"    {f.Name,-28} -> {f.Target ?? "(skipped)"}{(f.NewNumber is { } n ? $"  [{f.SlotWearer?.Label} {n}]" : "")}" +
+                                  (f.Part is { Kind: ClothingPartKind.Drawable } p && f.TrainerNumber is { } tn ? $"  in a trainer: {ClothingNames.InTrainer(p.Prop, p.Slot, tn)}" : ""));
+            if (ap.Replace is { } alt) Console.WriteLine($"    (a Replace version is there too — --replace installs it: {alt.Files.Count} file(s))");
             return;
         }
         if (a.Opt("--as") is { } way && way != "addon")
@@ -1082,6 +1102,36 @@ internal static class Program
             return 0;
         }
         return RunPlan(new InstallPlan { Title = "Refresh archive copies" }.Add(new RefreshCopiesOp(archives)), TargetFor(game, null));
+    }
+
+    private static int Limits(string[] argv)
+    {
+        var a = Parse(argv, ["--edition"], ["--big", "--reset"]);
+        NeedPositional(a, 1, 1, "game_dir");
+        var target = TargetFor(a.Positional[0], a.Opt("--edition"));
+        var plan = new InstallPlan { Title = "Game limits" };
+        if (a.Flags.Contains("--reset"))
+        {
+            if (!File.Exists(ModsOverlay.StatePath(target.GameDir)) || ModsOverlay.Load(target.GameDir).PathsOf(GamePools.LimitsOwner).Count == 0)
+            {
+                Console.WriteLine("The game's limits are its own.");
+                return 0;
+            }
+            plan.Add(new ActionOp("Put the game's own limits back in gameconfig.xml", ctx => ctx.Overlay.RemoveMod(GamePools.LimitsOwner)));
+        }
+        else
+        {
+            if (GamePools.LimitsOp(target.GameDir, target.Edition, a.Flags.Contains("--big") ? LimitsProfile.Large : LimitsProfile.Standard) is { } op)
+                plan.Add(op);
+            if (LimitAdjusters.Op(target.GameDir, target.Edition, Path.Combine(AppContext.BaseDirectory, "data", "plugins")) is { } adjusters)
+                plan.Add(adjusters);
+            if (plan.Ops.Count == 0)
+            {
+                Console.WriteLine("The game's limits are raised already (or it has no gameconfig.xml).");
+                return 0;
+            }
+        }
+        return RunPlan(plan, target);
     }
 
     private static int Compact(string[] argv)

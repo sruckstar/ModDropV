@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -202,7 +203,7 @@ public sealed class ModsOverlay
         for (int i = 0; i < parts.Length - 1; i++)
             if (parts[i].EndsWith(".rpf", StringComparison.OrdinalIgnoreCase))
                 return (string.Join('/', parts[..(i + 1)]).ToLowerInvariant(), string.Join('/', parts[(i + 1)..]).ToLowerInvariant());
-        throw new ArgumentException($"{gamePath} is not a path inside a game archive (like x64e.rpf/levels/gta5/vehicles.rpf/adder.yft).");
+        throw new ArgumentException(L.T($"{gamePath} is not a path inside a game archive (like x64e.rpf/levels/gta5/vehicles.rpf/adder.yft)."));
     }
 
     public static string KeyOf(string gamePath)
@@ -228,7 +229,7 @@ public sealed class ModsOverlay
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
-            _log($"    [!] The game's archive keys could not be read: {ex.Message}");
+            _log(L.T($"    [!] The game's archive keys could not be read: {ex.Message}"));
         }
         return _crypto;
     }
@@ -269,6 +270,22 @@ public sealed class ModsOverlay
         if (_editors.ContainsKey(top)) Commit();
         var file = ArchiveFile(top);
         if (file is null) return null;
+        using var arc = RpfArchive.Open(file, crypto: Crypto());
+        byte[]? content = null;
+        Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), (a, e) =>
+        {
+            content = e.IsDir ? null : a.ReadContent(e);
+            return content is not null;
+        });
+        return content;
+    }
+
+    /// <summary>The game's own version of the file at <paramref name="gamePath"/> (no mod applied), decompressed; null when absent.</summary>
+    public byte[]? ReadOriginal(string gamePath)
+    {
+        var (top, inner) = Split(gamePath);
+        var file = GameFile(top);
+        if (!File.Exists(file)) return null;
         using var arc = RpfArchive.Open(file, crypto: Crypto());
         byte[]? content = null;
         Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), (a, e) =>
@@ -329,10 +346,10 @@ public sealed class ModsOverlay
             int owned = State.Entries.Count(kv => TopOf(kv.Key) == top);
             string? stale;
             if (State.Copies.TryGetValue(top, out var c))
-                stale = c.Exe != exe ? $"the game was updated ({c.Exe} → {exe})"
-                    : c.GameLength != game.Length || c.GameWrite != game.LastWriteTimeUtc.Ticks ? $"the game's {top} changed since it was copied"
+                stale = c.Exe != exe ? L.T($"the game was updated ({c.Exe} → {exe})")
+                    : c.GameLength != game.Length || c.GameWrite != game.LastWriteTimeUtc.Ticks ? L.T($"the game's {top} changed since it was copied")
                     : null;
-            else stale = game.LastWriteTimeUtc > fi.LastWriteTimeUtc ? $"the game's {top} is newer than the copy" : null;
+            else stale = game.LastWriteTimeUtc > fi.LastWriteTimeUtc ? L.T($"the game's {top} is newer than the copy") : null;
             list.Add(new CopyStatus(top, c is not null, c?.Created ?? false, stale, owned, fi.Length));
         }
         return list;
@@ -357,7 +374,7 @@ public sealed class ModsOverlay
         var (top, inner) = Split(gamePath);
         if (!File.Exists(CopyPath(top)) && ReadGame(top, inner) is null)
         {
-            _log($"    {top}/{inner}: not in the game — nothing to delete.");     // no copy made for nothing
+            _log(L.T($"    {top}/{inner}: not in the game — nothing to delete."));     // no copy made for nothing
             return;
         }
         Change(modId, gamePath, _ => null);
@@ -373,7 +390,7 @@ public sealed class ModsOverlay
         var data = make(current);
         if (data is null && current is null && !State.Entries.ContainsKey(key))
         {
-            _log($"    {key}: not there — nothing to delete.");
+            _log(L.T($"    {key}: not there — nothing to delete."));
             return;
         }
         if (!State.Entries.TryGetValue(key, out var entry))
@@ -549,8 +566,8 @@ public sealed class ModsOverlay
     {
         var top = archive.Replace('\\', '/').ToLowerInvariant();
         var copyPath = CopyPath(top);
-        if (!File.Exists(copyPath)) throw new FileNotFoundException($"mods/{top} is not there.", copyPath);
-        if (!File.Exists(GameFile(top))) throw new FileNotFoundException($"{top} is not in the game folder.", GameFile(top));
+        if (!File.Exists(copyPath)) throw new FileNotFoundException(L.T($"mods/{top} is not there."), copyPath);
+        if (!File.Exists(GameFile(top))) throw new FileNotFoundException(L.T($"{top} is not in the game folder."), GameFile(top));
         Commit();
 
         var owned = State.Entries.Where(kv => TopOf(kv.Key) == top).ToList();
@@ -562,9 +579,9 @@ public sealed class ModsOverlay
         }
         if (top == UpdateRpf) packs = AddedPacks(copyPath);
         if (!State.Copies.TryGetValue(top, out var info) || !info.Created)
-            _log($"    [!] mods/{top} wasn't made by ModDrop V — changes other tools made to it are not carried over.");
+            _log(L.T($"    [!] mods/{top} wasn't made by ModDrop V — changes other tools made to it are not carried over."));
 
-        _log($"    Refreshing mods/{top} from the game…");
+        _log(L.T($"    Refreshing mods/{top} from the game…"));
         if (_journal is not null) _journal.MoveAside(copyPath, keep: false);
         else File.Delete(copyPath);
         State.Copies.Remove(top);
@@ -579,7 +596,7 @@ public sealed class ModsOverlay
         Commit();
         foreach (var p in packs) GameInstaller.RegisterInDlclist(GameDir, p, _log, _journal);
         if (packs.Count > 0) Stamp(top);
-        _log($"    mods/{top}: {owned.Count} changed file(s) and {packs.Count} dlclist entr{(packs.Count == 1 ? "y" : "ies")} put back.");
+        _log(L.T($"    mods/{top}: {owned.Count} changed file(s) and {packs.Count} dlclist entr(ies) put back."));
     }
 
     /// <summary>Refresh every stale copy (see <see cref="Status"/>). Returns the archives refreshed.</summary>
@@ -709,19 +726,19 @@ public sealed class ModsOverlay
         if (!HasRoomFor(path, before)) return;
         try
         {
-            _log($"    Compacting mods/{top} ({MergedPack.FmtSize(before)})…");
+            _log(L.T($"    Compacting mods/{top} ({MergedPack.FmtSize(before)})…"));
             var temp = InstallJournal.Abs(GameDir, TempRel);
             RpfEditor.Compact(path, tmp, temp, Crypto());
             try { if (Directory.Exists(temp) && !Directory.EnumerateFileSystemEntries(temp).Any()) Directory.Delete(temp); }
             catch (IOException) { }
             File.Move(tmp, path, overwrite: true);
             Stamp(top);
-            _log($"    mods/{top}: {MergedPack.FmtSize(before)} → {MergedPack.FmtSize(new FileInfo(path).Length)}.");
+            _log(L.T($"    mods/{top}: {MergedPack.FmtSize(before)} → {MergedPack.FmtSize(new FileInfo(path).Length)}."));
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
             try { File.Delete(tmp); } catch (IOException) { }
-            _log($"    [!] Could not compact mods/{top}: {ex.Message}");
+            _log(L.T($"    [!] Could not compact mods/{top}: {ex.Message}"));
         }
     }
 
@@ -734,20 +751,20 @@ public sealed class ModsOverlay
         var copy = CopyPath(top);
         if (Directory.Exists(copy))
             throw new NotSupportedException(
-                $"mods/{top} is an unpacked folder — ModDrop V changes archive copies only. Pack it back into an " +
-                ".rpf (OpenIV / CodeWalker) or remove it.");
+                L.T($"mods/{top} is an unpacked folder — ModDrop V changes archive copies only. Pack it back into an " +
+                $".rpf (OpenIV / CodeWalker) or remove it."));
         if (File.Exists(copy))
         {
             if (!State.Copies.ContainsKey(top)) State.Copies[top] = Describe(top, created: false);
             return copy;
         }
         var game = GameFile(top);
-        if (!File.Exists(game)) throw new FileNotFoundException($"{top} is not in the game folder.", game);
+        if (!File.Exists(game)) throw new FileNotFoundException(L.T($"{top} is not in the game folder."), game);
         long size = new FileInfo(game).Length;
         if (!HasRoomFor(copy, size))
-            throw new IOException($"Not enough disk space to copy {top} into mods: it needs {MergedPack.FmtSize(size)}.");
+            throw new IOException(L.T($"Not enough disk space to copy {top} into mods: it needs {MergedPack.FmtSize(size)}."));
 
-        _log($"    Copying {top} into mods ({MergedPack.FmtSize(size)}) — the first change to this archive, this takes a while…");
+        _log(L.T($"    Copying {top} into mods ({MergedPack.FmtSize(size)}) — the first change to this archive, this takes a while…"));
         EnsureDir(Path.GetDirectoryName(copy)!);
         var tmp = copy + ".tmp";
         try
@@ -826,7 +843,7 @@ public sealed class ModsOverlay
             }
             catch (IOException) { break; }
         }
-        _log($"    mods/{top} holds no mod's files any more — the copy was removed.");
+        _log(L.T($"    mods/{top} holds no mod's files any more — the copy was removed."));
     }
 
     private RpfEditor Editor(string top)
@@ -904,9 +921,9 @@ public sealed class ModsOverlay
     private StoredEntry LoadBlob(string reference)
     {
         if (!reference.StartsWith(BlobPrefix, StringComparison.Ordinal))
-            throw new InvalidDataException($"not a saved version: {reference}");
+            throw new InvalidDataException(L.T($"not a saved version: {reference}"));
         var path = BlobPath(reference[BlobPrefix.Length..]);
-        if (!File.Exists(path)) throw new FileNotFoundException("A saved version of a file is missing from mods\\.moddropv\\blobs.", path);
+        if (!File.Exists(path)) throw new FileNotFoundException(L.T("A saved version of a file is missing from mods\\.moddropv\\blobs."), path);
         return StoredEntry.FromBlob(File.ReadAllBytes(path));
     }
 

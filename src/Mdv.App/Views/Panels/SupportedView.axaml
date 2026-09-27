@@ -1,5 +1,6 @@
 <!-- Side slot when there's no panel to analyse: what ModDrop V installs (player) or builds (modder), now and later. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              x:Class="Mdv.App.Views.Panels.SupportedView"
@@ -18,7 +19,7 @@
           <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" />
           <TextBlock Text="{Binding Detail}" Classes="desc" FontSize="11.5" />
         </StackPanel>
-        <TextBlock Grid.Column="2" Text="soon" FontSize="10.5" VerticalAlignment="Top" Margin="0,2,0,0"
+        <TextBlock Grid.Column="2" Text="{l:Tr 'soon'}" FontSize="10.5" VerticalAlignment="Top" Margin="0,2,0,0"
                    FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Text3Brush}" IsVisible="{Binding Soon}" />
       </Grid>
     </DataTemplate>
@@ -26,12 +27,12 @@
 
   <Border Classes="card" Padding="16,13">
     <StackPanel Spacing="10">
-      <TextBlock Classes="h" Text="WHAT MODDROP V INSTALLS" IsVisible="{Binding IsPlayer}" />
-      <TextBlock Classes="h" Text="WHAT MODDROP V BUILDS" IsVisible="{Binding IsModder}" />
+      <TextBlock Classes="h" Text="{l:Tr 'WHAT MODDROP V INSTALLS'}" IsVisible="{Binding IsPlayer}" />
+      <TextBlock Classes="h" Text="{l:Tr 'WHAT MODDROP V BUILDS'}" IsVisible="{Binding IsModder}" />
       <TextBlock Classes="desc" IsVisible="{Binding IsPlayer}"
-                 Text="Drop a mod as you downloaded it — ModDrop V looks inside, says what it is and shows every step before it touches the game." />
+                 Text="{l:Tr 'Drop a mod as you downloaded it — ModDrop V looks inside, says what it is and shows every step before it touches the game.'}" />
       <TextBlock Classes="desc" IsVisible="{Binding IsModder}"
-                 Text="Turn loose models into a finished add-on DLC, for Legacy or Enhanced." />
+                 Text="{l:Tr 'Turn loose models into a finished add-on DLC, for Legacy or Enhanced.'}" />
       <ItemsControl ItemsSource="{Binding PlayerKinds}" IsVisible="{Binding IsPlayer}" />
       <ItemsControl ItemsSource="{Binding ModderKinds}" IsVisible="{Binding IsModder}" />
     </StackPanel>

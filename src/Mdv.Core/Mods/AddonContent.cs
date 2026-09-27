@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Mdv.Core.Rpf;
@@ -116,7 +117,7 @@ public sealed partial class AddonContent
             : Peds.Count > 0 ? Peds.Select(p => p.Name)
             : Collections.Count > 0 ? Collections.Select(c => $"{ClothingNames.PedLabel(c.Ped)} · {c.DlcName}")
             : Kind == ModCategory.Map
-                ? Maps.Count > 0 ? Maps.Select(m => $"{m.Name} ({m.Entities} object{(m.Entities == 1 ? "" : "s")})")
+                ? Maps.Count > 0 ? Maps.Select(m => L.T($"{m.Name} ({m.Entities} object(s))"))
                                  : Ymaps.Select(y => Path.GetFileNameWithoutExtension(y.Split('/')[^1]))
             : Archetypes;
 
@@ -250,7 +251,7 @@ public sealed partial class AddonContent
                            RegexOptions.IgnoreCase);
         var updated = re.Replace(text, m => m.Groups[1].Value + newId + m.Groups[2].Value, 1);
         if (updated == text)
-            throw new InvalidDataException($"{kit.File}: the modkit {kit.Name} (id {kit.Id}) could not be found to renumber.");
+            throw new InvalidDataException(L.T($"{kit.File}: the modkit {kit.Name} (id {kit.Id}) could not be found to renumber."));
         return updated;
     }
 
@@ -281,7 +282,7 @@ public sealed partial class AddonContent
             }
             catch (InvalidDataException ex)
             {
-                warnings.Add($"{file} could not be read ({ex.Message}) — the game may not be able to either.");
+                warnings.Add(L.T($"{file} could not be read ({ex.Message}) — the game may not be able to either."));
             }
         }
     }
@@ -365,7 +366,7 @@ public sealed partial class AddonContent
             return hit is null ? null : TextIo.DecodeUtf8Sig(arc.ReadContent(hit.Entry), strict: false);
         }
 
-        var setup = Text("setup2.xml") ?? throw new InvalidDataException($"{System.IO.Path.GetFileName(dlcRpf)} has no setup2.xml — not an add-on pack.");
+        var setup = Text("setup2.xml") ?? throw new InvalidDataException(L.T($"{System.IO.Path.GetFileName(dlcRpf)} has no setup2.xml — not an add-on pack."));
         var pack = new FinishedPack
         {
             Path = dlcRpf,
@@ -383,7 +384,7 @@ public sealed partial class AddonContent
             pack.Content.DataTypes.Add(f.Type);
             if (f.Type is not ("VEHICLE_METADATA_FILE" or "PED_METADATA_FILE" or "CARCOLS_FILE" or "SHOP_PED_APPAREL_META_FILE")) continue;
             if (Text(f.Path) is { } text) pack.Content.AddData(f.Type, text, f.Path);
-            else pack.Warnings.Add($"content.xml lists {f.Path}, but the pack has no such file.");
+            else pack.Warnings.Add(L.T($"content.xml lists {f.Path}, but the pack has no such file."));
         }
 
         Walk(arc, "", 0);
@@ -394,7 +395,7 @@ public sealed partial class AddonContent
                 var sub = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(dlcRpf)!, $"dlc{i}.rpf");
                 if (!File.Exists(sub))
                 {
-                    pack.Warnings.Add($"setup2.xml says the pack has {subs} sub-pack(s), but dlc{i}.rpf is not next to its dlc.rpf — the game can crash without it.");
+                    pack.Warnings.Add(L.T($"setup2.xml says the pack has {subs} sub-pack(s), but dlc{i}.rpf is not next to its dlc.rpf — the game can crash without it."));
                     continue;
                 }
                 pack.SubPacks.Add(sub);

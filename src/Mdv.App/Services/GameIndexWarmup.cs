@@ -24,6 +24,7 @@ public static class GameIndexWarmup
     public static void Attach(MainViewModel vm)
     {
         _vm = vm;
+        lock (Gate) _current = "";   // a new window (language switch) gets the game's state again
         static bool IsGame(string game) =>
             game.Length > 0 && (GameEditions.Detect(game) is not null || GameEditions.IsAmbiguous(game));
 

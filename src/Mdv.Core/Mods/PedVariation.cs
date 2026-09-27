@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
@@ -44,9 +45,9 @@ public static class PedVariation
         var file = new YmtFile();
         file.Load(data, entry);
         var xml = MetaXml.GetXml(file, out _);
-        if (string.IsNullOrEmpty(xml)) throw new InvalidDataException("not a ped variations file");
+        if (string.IsNullOrEmpty(xml)) throw new InvalidDataException(L.T("not a ped variations file"));
         var doc = XDocument.Parse(xml);
-        if (doc.Root?.Name.LocalName != "CPedVariationInfo") throw new InvalidDataException($"not a ped variations file ({doc.Root?.Name})");
+        if (doc.Root?.Name.LocalName != "CPedVariationInfo") throw new InvalidDataException(L.T($"not a ped variations file ({doc.Root?.Name})"));
         return doc;
     }
 
@@ -55,13 +56,17 @@ public static class PedVariation
     {
         var x = new XmlDocument();
         x.LoadXml(doc.ToString(SaveOptions.DisableFormatting));
-        return XmlMeta.GetData(x, MetaFormat.RSC, "variations.ymt") ?? throw new InvalidDataException("the ped variations could not be built");
+        return XmlMeta.GetData(x, MetaFormat.RSC, "variations.ymt") ?? throw new InvalidDataException(L.T("the ped variations could not be built"));
     }
 
-    /// <summary>A new, empty variations file of an MP collection (<paramref name="dlcName"/>: <c>mp_m_mycollection</c>).</summary>
+    /// <summary>
+    /// A new, empty variations file of an MP collection (<paramref name="dlcName"/>: <c>mp_m_mycollection</c>), headed as
+    /// Rockstar's collections (and hand-made MP packs) are: named after it, no texture or drawable variations flagged.
+    /// A collection flagged as the ped's own ymt is (both true) went with the game crashing as the MP ped loaded.
+    /// </summary>
     public static XDocument Empty(string dlcName) => new(
-        new XElement("CPedVariationInfo",
-            Val("bHasTexVariations", "false"), Val("bHasDrawblVariations", "true"), Val("bHasLowLODs", "false"), Val("bIsSuperLOD", "false"),
+        new XElement("CPedVariationInfo", new XAttribute("name", dlcName),
+            Val("bHasTexVariations", "false"), Val("bHasDrawblVariations", "false"), Val("bHasLowLODs", "false"), Val("bIsSuperLOD", "false"),
             new XElement("availComp", string.Join(' ', Enumerable.Repeat("255", 12))),
             Arr("aComponentData3", "CPVComponentData"), Arr("aSelectionSets", "CPedSelectionSet"), Arr("compInfos", "CComponentInfo"),
             new XElement("propInfo", Val("numAvailProps", "0"), Arr("aPropMetaData", "CPedPropMetaData"), Arr("aAnchors", "CAnchorProps")),

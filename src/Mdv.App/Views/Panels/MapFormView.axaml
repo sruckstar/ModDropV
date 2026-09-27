@@ -1,6 +1,7 @@
 <!-- Map / props panel, form slot: what the mod places, the way in (add-on pack or a trainer's map), the parts it comes
      with, the dlcpacks folder it goes into. -->
 <UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Mdv.App.ViewModels"
              x:Class="Mdv.App.Views.Panels.MapFormView"
@@ -19,7 +20,7 @@
 
       <!-- the mod ships the map both ways: a pack that loads with the game, or a trainer's map file -->
       <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,10,0" IsVisible="{Binding HasPlacementChoice}">
-        <TextBlock Classes="label" Text="INSTALL AS" Margin="0" />
+        <TextBlock Classes="label" Text="{l:Tr 'INSTALL AS'}" Margin="0" />
         <RadioButton Classes="found" GroupName="map-as" IsChecked="{Binding InstallAsPack}">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
             <Panel Width="16" Height="16" VerticalAlignment="Center">
@@ -69,9 +70,9 @@
 
       <StackPanel Grid.Row="4" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <TextBlock Classes="kv-key" Text="Pack folder" VerticalAlignment="Center" />
+          <TextBlock Classes="kv-key" Text="{l:Tr 'Pack folder'}" VerticalAlignment="Center" />
           <TextBox Grid.Column="1" Classes="path" Text="{Binding PackName}" MaxLength="32"
-                   ToolTip.Tip="The folder under mods\update\x64\dlcpacks — latin letters, digits and _ only" />
+                   ToolTip.Tip="{l:Tr 'The folder under mods\\update\\x64\\dlcpacks — latin letters, digits and _ only'}" />
         </Grid>
         <TextBlock Text="{Binding PackDetail}" FontSize="10.5" FontFamily="{StaticResource MonoFont}"
                    Foreground="{DynamicResource Text3Brush}" TextWrapping="Wrap" />

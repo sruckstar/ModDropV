@@ -129,15 +129,15 @@ public static partial class SourceIntake
     {
         var sources = paths.Select(p => p.Trim()).Where(p => p.Length > 0).Select(Path.GetFullPath)
                            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        if (sources.Count == 0) throw new IntakeException("Nothing was dropped.");
+        if (sources.Count == 0) throw new IntakeException(L.T("Nothing was dropped."));
         foreach (var s in sources)
         {
             if (!File.Exists(s) && !Directory.Exists(s))
-                throw new IntakeException($"«{Path.GetFileName(s)}» not found.");
+                throw new IntakeException(L.T($"«{Path.GetFileName(s)}» not found."));
             if (Directory.Exists(s) && (File.Exists(Path.Combine(s, "GTA5.exe")) || File.Exists(Path.Combine(s, "x64a.rpf"))
                                         || Directory.Exists(Path.Combine(s, "update", "x64", "dlcpacks"))))
-                throw new IntakeException("That is the GTA V game folder — drop the weapon mod's folder or archive instead " +
-                                          "(the game folder is set under Installation).");
+                throw new IntakeException(L.T("That is the GTA V game folder — drop the weapon mod's folder or archive instead " +
+                                          "(the game folder is set under Installation)."));
         }
 
         var work = Path.Combine(workRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
@@ -201,7 +201,7 @@ public static partial class SourceIntake
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    Warnings.Add($"Cannot read «{origin}»: {ex.Message}");
+                    Warnings.Add(L.T($"Cannot read «{origin}»: {ex.Message}"));
                     continue;
                 }
                 foreach (var f in files) AddFile(f, Join(origin, Path.GetFileName(f)), backup, nesting);
@@ -217,7 +217,7 @@ public static partial class SourceIntake
         public void AddFile(string path, string origin, bool inBackup, int nesting)
         {
             if (Files.Count >= MaxFiles)
-                throw new IntakeException($"Too many files (over {MaxFiles}) — drop the weapon's own folder or archive, not a whole drive or game folder.");
+                throw new IntakeException(L.T($"Too many files (over {MaxFiles}) — drop the weapon's own folder or archive, not a whole drive or game folder."));
             var name = Path.GetFileName(path);
             if (name.StartsWith("._", StringComparison.Ordinal)) return;            // macOS resource forks
             var ext = PathUtil.SuffixLower(name);
@@ -226,7 +226,7 @@ public static partial class SourceIntake
                 if (LaterVolumeRe().IsMatch(name)) return;                          // read through volume 1
                 if (nesting >= MaxNesting)
                 {
-                    Warnings.Add($"«{origin}»: archive nested too deep — skipped.");
+                    Warnings.Add(L.T($"«{origin}»: archive nested too deep — skipped."));
                     return;
                 }
                 Unpack(path, origin, inBackup, nesting + 1);
@@ -242,7 +242,7 @@ public static partial class SourceIntake
         {
             var dest = Path.Combine(unpackRoot, $"{++_archiveNo:D2}_{Slug(Path.GetFileNameWithoutExtension(archive))}");
             Directory.CreateDirectory(dest);
-            progress($"Unpacking {Path.GetFileName(archive)}…");
+            progress(L.T($"Unpacking {Path.GetFileName(archive)}…"));
             Archives.Add(origin);
             ExtractArchive(archive, origin, dest, this, ct);
             AddFolder(dest, origin, inBackup, nesting);
@@ -264,11 +264,11 @@ public static partial class SourceIntake
         }
         catch (Exception ex) when (IsPasswordError(ex))
         {
-            throw new IntakeException($"«{origin}» is password-protected — unpack it yourself and drop the folder.", ex);
+            throw new IntakeException(L.T($"«{origin}» is password-protected — unpack it yourself and drop the folder."), ex);
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not IntakeException)
         {
-            throw new IntakeException($"«{origin}» is not a readable zip / rar / 7z archive ({ex.Message}).", ex);
+            throw new IntakeException(L.T($"«{origin}» is not a readable zip / rar / 7z archive ({ex.Message})."), ex);
         }
 
         using (arc)
@@ -309,11 +309,11 @@ public static partial class SourceIntake
             }
             catch (Exception ex) when (IsPasswordError(ex))
             {
-                throw new IntakeException($"«{origin}» is password-protected — unpack it yourself and drop the folder.", ex);
+                throw new IntakeException(L.T($"«{origin}» is password-protected — unpack it yourself and drop the folder."), ex);
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not IntakeException)
             {
-                throw new IntakeException($"«{origin}» could not be unpacked — it may be damaged or incomplete ({ex.Message}).", ex);
+                throw new IntakeException(L.T($"«{origin}» could not be unpacked — it may be damaged or incomplete ({ex.Message})."), ex);
             }
         }
     }
@@ -358,10 +358,10 @@ public static partial class SourceIntake
                       || (Textures.TextureImages.IsTexture(name) && entry.Size <= MaxImageBytes);   // a livery's pictures
         if (!wanted) return null;
         if (entry.IsEncrypted)
-            throw new IntakeException($"«{origin}» is password-protected — unpack it yourself and drop the folder.");
+            throw new IntakeException(L.T($"«{origin}» is password-protected — unpack it yourself and drop the folder."));
         g.Unpacked += Math.Max(entry.Size, 0);
         if (g.Unpacked > MaxUnpackedBytes)
-            throw new IntakeException($"«{origin}» unpacks to more than {MergedPack.FmtSize(MaxUnpackedBytes)} — too much for one mod.");
+            throw new IntakeException(L.T($"«{origin}» unpacks to more than {MergedPack.FmtSize(MaxUnpackedBytes)} — too much for one mod."));
 
         var target = Path.GetFullPath(Path.Combine([dest, .. parts]));
         var root = Path.GetFullPath(dest) + Path.DirectorySeparatorChar;
@@ -393,7 +393,7 @@ public static partial class SourceIntake
     /// </summary>
     public static IntakeResult PrepareWeapon(DroppedSource src, string? templatesDir = null, Action<string>? progress = null)
     {
-        progress?.Invoke("Looking for models and configs…");
+        progress?.Invoke(L.T("Looking for models and configs…"));
 
         var display = GuessName(src.Sources);
         var input = Path.Combine(src.WorkDir, "input", FolderName(display));
@@ -415,7 +415,7 @@ public static partial class SourceIntake
         {
             if (c.InBackupDir && anyModFiles)
             {
-                if (IsInteresting(c.Name)) r.Ignored.Add($"{c.Origin}  (backup of the original game files)");
+                if (IsInteresting(c.Name)) r.Ignored.Add(L.T($"{c.Origin}  (backup of the original game files)"));
                 continue;
             }
             var ext = PathUtil.SuffixLower(c.Name);
@@ -429,16 +429,16 @@ public static partial class SourceIntake
         // ---- a finished add-on pack wins: the pipeline installs / merges it as-is
         var packs = rpfs.Where(c => IsDlcPack(c.FullPath)).ToList();
         foreach (var c in rpfs.Except(packs))
-            r.Ignored.Add($"{c.Origin}  (not a DLC pack — no setup2.xml inside)");
+            r.Ignored.Add(L.T($"{c.Origin}  (not a DLC pack — no setup2.xml inside)"));
         if (packs.Count > 0)
         {
             var pick = packs[0];
             PathUtil.Copy2(pick.FullPath, Path.Combine(input, "dlc.rpf"));
             r.PrebuiltRpf = new IntakeFile(pick.Origin, "dlc.rpf");
             foreach (var other in packs.Skip(1))
-                r.Warnings.Add($"Several finished packs found — using «{pick.Origin}», not «{other.Origin}». Drop the others separately.");
+                r.Warnings.Add(L.T($"Several finished packs found — using «{pick.Origin}», not «{other.Origin}». Drop the others separately."));
             if (resources.Count > 0)
-                r.Ignored.Add($"{resources.Count} loose model/texture file(s) — the finished pack already contains the weapon");
+                r.Ignored.Add(L.T($"{resources.Count} loose model/texture file(s) — the finished pack already contains the weapon"));
             return r;
         }
 
@@ -446,12 +446,12 @@ public static partial class SourceIntake
         SelectConfigs(texts, input, used, templatesDir, r);
 
         if (r.Models.Count > 0 && !r.Models.Any(m => PathUtil.SuffixLower(m.Name) is ".ydr" or ".yft" or ".ydd"))
-            r.Warnings.Add("Only textures (.ytd) were found, no weapon model (.ydr) — this looks like a retexture " +
-                           "of a stock gun; the add-on would have no model of its own.");
+            r.Warnings.Add(L.T("Only textures (.ytd) were found, no weapon model (.ydr) — this looks like a retexture " +
+                           "of a stock gun; the add-on would have no model of its own."));
         if (r.Models.Count == 0)
             throw new IntakeException(r.Configs.Count > 0
-                ? "Found only config files — no weapon models (.ydr / .ytd) or finished dlc.rpf."
-                : "No weapon models (.ydr / .ytd), configs or finished dlc.rpf found in what was dropped.");
+                ? L.T("Found only config files — no weapon models (.ydr / .ytd) or finished dlc.rpf.")
+                : L.T("No weapon models (.ydr / .ytd), configs or finished dlc.rpf found in what was dropped."));
         return r;
     }
 
@@ -488,12 +488,12 @@ public static partial class SourceIntake
         {
             if (hasWeaponAssets && !c.Name.StartsWith("w_", StringComparison.OrdinalIgnoreCase))
             {
-                r.Ignored.Add($"{c.Origin}  (not a weapon asset)");
+                r.Ignored.Add(L.T($"{c.Origin}  (not a weapon asset)"));
                 continue;
             }
             if (!LooksLikeResource(c.FullPath))
             {
-                r.Ignored.Add($"{c.Origin}  (not a RAGE resource file)");
+                r.Ignored.Add(L.T($"{c.Origin}  (not a RAGE resource file)"));
                 continue;
             }
             if (byName.TryGetValue(c.Name, out var first))
@@ -520,8 +520,8 @@ public static partial class SourceIntake
         foreach (var grp in byDir)
         {
             var usedDirs = grp.Select(x => DirOf(byName[x.File].Origin)).Distinct().ToList();
-            r.Warnings.Add($"Alternative version in «{grp.Key}» ({grp.Count()} file(s)) — using «{string.Join("», «", usedDirs)}». " +
-                           "To install that variant instead, drop its folder on its own.");
+            r.Warnings.Add(L.T($"Alternative version in «{grp.Key}» ({grp.Count()} file(s)) — using «{string.Join("», «", usedDirs)}». " +
+                           $"To install that variant instead, drop its folder on its own."));
         }
     }
 
@@ -578,7 +578,7 @@ public static partial class SourceIntake
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                r.Warnings.Add($"Cannot read «{c.Origin}»: {ex.Message}");
+                r.Warnings.Add(L.T($"Cannot read «{c.Origin}»: {ex.Message}"));
                 continue;
             }
             var slot = Overrides.ClassifyXml(text);
@@ -586,9 +586,9 @@ public static partial class SourceIntake
             {
                 bool isXmlExt = PathUtil.SuffixLower(c.Name) is ".meta" or ".xml";
                 if (FragmentRe().IsMatch(text))
-                    r.Warnings.Add($"«{c.Origin}» is a piece of a game config, not a whole file — it can't be installed as-is and is ignored.");
+                    r.Warnings.Add(L.T($"«{c.Origin}» is a piece of a game config, not a whole file — it can't be installed as-is and is ignored."));
                 else
-                    r.Ignored.Add($"{c.Origin}  ({(isXmlExt ? "not a weapon config" : "text / readme")})");
+                    r.Ignored.Add($"{c.Origin}  ({(isXmlExt ? L.T("not a weapon config") : "text / readme")})");
                 continue;
             }
             // A second copy of a config (Enhanced + Legacy builds of one mod…) and a Replace-mod

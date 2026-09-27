@@ -28,7 +28,7 @@ public sealed partial class DetectedModViewModel : ObservableObject
     }
 
     public ModCategory Category { get; }
-    public string CategoryName => Category.ShortName();
+    public string CategoryName => Category.ShortLabel();
     public string Title { get; }
     /// <summary>What was found ("22 model / texture file(s) · own config …") or the evidence.</summary>
     public string Detail { get; }
@@ -89,7 +89,7 @@ public sealed partial class MainViewModel
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private async Task BrowseSourceFolder()
     {
-        var path = await Pick("Folder with the mod");
+        var path = await Pick(L.T("Folder with the mod"));
         if (path is not null) await LoadPlayerSourceAsync([path]);
     }
 
@@ -97,7 +97,7 @@ public sealed partial class MainViewModel
     private async Task BrowseSourceArchive()
     {
         if (PickArchives is null) return;
-        var files = await PickArchives("Mod archive");
+        var files = await PickArchives(L.T("Mod archive"));
         if (files.Count > 0) await LoadPlayerSourceAsync(files);
     }
 
@@ -148,9 +148,10 @@ public sealed partial class MainViewModel
         IsPreparing = true;
         DropError = null;
         ForgetDrop();                                 // the new drop replaces the old one
-        PrepareStatus = $"Reading {Path.GetFileName(Path.TrimEndingDirectorySeparator(paths[0]))}…";
+        PrepareStatus = L.T($"Reading {Path.GetFileName(Path.TrimEndingDirectorySeparator(paths[0]))}…");
         AppLog.Info($"player source: {string.Join(" | ", paths)}");
 
+        var edition = Edition;
         DroppedSource? dropped = null;
         DropAnalysis? analysis = null;
         string? error = null;
@@ -165,8 +166,8 @@ public sealed partial class MainViewModel
                     if (gen == _prepGeneration) PrepareStatus = msg;
                 });
                 var d = SourceIntake.Gather(paths, AppPaths.SourcesDir, Progress, cts.Token);
-                Progress("Looking at what's inside…");
-                return (d, ModLibrary.Analyze(d, new HandlerEnv(AppPaths.Data)));
+                Progress(L.T("Looking at what's inside…"));
+                return (d, ModLibrary.Analyze(d, new HandlerEnv(AppPaths.Data) { Edition = edition }));
             });
         }
         catch (OperationCanceledException)
@@ -181,7 +182,7 @@ public sealed partial class MainViewModel
         catch (Exception ex)
         {
             AppLog.Error("player source failed", ex);
-            error = $"Could not read what was dropped: {ex.Message}";
+            error = L.T($"Could not read what was dropped: {ex.Message}");
         }
 
         if (gen != _prepGeneration)
@@ -221,7 +222,7 @@ public sealed partial class MainViewModel
     private static string Summarize(DroppedSource d)
     {
         var parts = new List<string> { d.Files.Count == 1 ? "1 file" : $"{d.Files.Count} files" };
-        if (d.Archives.Count > 0) parts.Add(d.Archives.Count == 1 ? "unpacked" : $"{d.Archives.Count} archives unpacked");
+        if (d.Archives.Count > 0) parts.Add(d.Archives.Count == 1 ? L.T("unpacked") : L.T($"{d.Archives.Count} archives unpacked"));
         return string.Join("  ·  ", parts);
     }
 
@@ -234,7 +235,7 @@ public sealed partial class MainViewModel
     {
         var items = new List<DetectedModViewModel>();
         foreach (var p in a.Packages)
-            items.Add(new DetectedModViewModel(p.Category, p.Name, string.Join("  ·  ", p.Parts), p, "ready", OnDetectedPicked));
+            items.Add(new DetectedModViewModel(p.Category, p.Name, string.Join("  ·  ", p.Parts), p, L.T("ready"), OnDetectedPicked));
         int top = a.Report.Primary?.Score ?? 0;
         foreach (var d in a.Report.Found)
         {
@@ -247,7 +248,7 @@ public sealed partial class MainViewModel
                 items.Add(new DetectedModViewModel(d.Category, d.Category.DisplayName(), why, null, "can't install"));
             else if (main || (d.Score >= 3 && d.Score * 4 > top))
                 items.Add(new DetectedModViewModel(d.Category, d.Category.DisplayName(),
-                                                   string.Join(", ", d.Evidence.Take(3)), null, "coming soon"));
+                                                   string.Join(", ", d.Evidence.Take(3)), null, L.T("coming soon")));
         }
         return items;
     }
@@ -256,11 +257,11 @@ public sealed partial class MainViewModel
     private static string NothingToInstall(DropAnalysis a)
     {
         if (a.Report.Primary is not { } p)
-            return "Nothing ModDrop V recognises was found in what was dropped — no weapon models, OIV package, " +
-                   "game files to replace (.ytd / .yft / .awc / .meta …), scripts or add-on packs.";
+            return L.T("Nothing ModDrop V recognises was found in what was dropped — no weapon models, OIV package, " +
+                   "game files to replace (.ytd / .yft / .awc / .meta …), scripts or add-on packs.");
         if (a.Problems.TryGetValue(p.Category, out var why)) return why;
-        return $"This looks like a {p.Category.DisplayName().ToLowerInvariant()} mod ({string.Join(", ", p.Evidence.Take(2))}). " +
-               "ModDrop V installs weapons, vehicles, peds, liveries, clothes, OIV packages, file replacements and scripts for now — other mod types are on the way.";
+        return L.T($"This looks like a {p.Category.DisplayName().ToLowerInvariant()} mod ({string.Join(", ", p.Evidence.Take(2))}). " +
+               $"ModDrop V installs weapons, vehicles, peds, liveries, clothes, OIV packages, file replacements and scripts for now — other mod types are on the way.");
     }
 
     /// <summary>A mod of the drop was picked: the others are unpicked and its panel takes over.</summary>

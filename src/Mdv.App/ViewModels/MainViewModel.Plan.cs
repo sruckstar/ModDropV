@@ -49,7 +49,7 @@ public sealed partial class MainViewModel
         var (job, error) = PrepareJob();
         if (job is null)
         {
-            ShowResult(false, "Couldn't start", error ?? "Unknown error.", null);
+            ShowResult(false, "Couldn't start", error ?? L.T("Unknown error."), null);
             return;
         }
         if (job.Package is not { } pkg)
@@ -61,12 +61,12 @@ public sealed partial class MainViewModel
         InstallPlan plan;
         try
         {
-            plan = ModLibrary.HandlerFor(pkg.Category).PlanInstall(pkg, TargetFor(game, Edition));
+            plan = ModLibrary.PlanInstall(pkg, TargetFor(game, Edition));
         }
         catch (Exception ex)
         {
             AppLog.Error("planning the install failed", ex);
-            ShowResult(false, "Couldn't plan the install", ex.Message, null);
+            ShowResult(false, L.T("Couldn't plan the install"), ex.Message, null);
             return;
         }
         plan.Warnings.InsertRange(0, pkg.Warnings);
@@ -74,14 +74,14 @@ public sealed partial class MainViewModel
         bool gameFolder = plan.Ops.Any(o => o is FileEditOp or DeleteFileOp or CopyFilesOp ||
                                             o is CopyFileOp c && !c.GameRel.StartsWith("mods/", StringComparison.OrdinalIgnoreCase));
         var note = pkg.Category == ModCategory.Script
-            ? "Scripts live in the game folder: files it replaces are kept and come back when the mod is removed. " +
-              "Switch it off or remove it any time in the Library."
+            ? L.T("Scripts live in the game folder: files it replaces are kept and come back when the mod is removed. " +
+              "Switch it off or remove it any time in the Library.")
             : gameFolder
-                ? "The game's own archives stay untouched — changes to them go into copies under mods. Files for the " +
-                  "game folder are copied there; removing the mod in the Library takes them back."
-                : "The game's own files stay untouched — everything goes into the mods folder. " +
-                  "Switch it off or remove it any time in the Library.";
-        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Install", () => RunJobAsync(job), note);
+                ? L.T("The game's own archives stay untouched — changes to them go into copies under mods. Files for the " +
+                  "game folder are copied there; removing the mod in the Library takes them back.")
+                : L.T("The game's own files stay untouched — everything goes into the mods folder. " +
+                  "Switch it off or remove it any time in the Library.");
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Install"), () => RunJobAsync(job), note);
     }
 
     internal void OpenPlan(InstallPlan plan, string target, string confirm, Func<Task> run, string note)
@@ -123,16 +123,16 @@ public sealed partial class MainViewModel
         }
         var parts = new List<string>();
         if (f.InArchives > 0)
-            parts.Add($"Changes {f.InArchives} file{(f.InArchives == 1 ? "" : "s")} inside {f.Archives.Count} game archive{(f.Archives.Count == 1 ? "" : "s")}");
+            parts.Add(L.T($"Changes {f.InArchives} file(s) inside {f.Archives.Count} game archive(s)"));
         if (f.NewCopies.Count > 0)
-            parts.Add($"copies {(f.NewCopies.Count == 1 ? f.NewCopies[0] : $"{f.NewCopies.Count} archives")} into mods first (the game's own stay untouched)");
+            parts.Add((f.NewCopies.Count == 1 ? L.T($"copies {f.NewCopies[0]} into mods first (the game's own stay untouched)") : L.T($"copies {f.NewCopies.Count} archives into mods first (the game's own stay untouched)")));
         PlanFootprint = parts.Count == 0 ? "" : string.Join("; ", parts) + ".";
         if (f.Bytes >= 64L << 20)
         {
             var drive = Path.GetPathRoot(Path.GetFullPath(game));
-            PlanSpace = $"Needs about {Size(f.Bytes)} on {drive}" +
-                        (f.Free is { } free ? $" — {Size(free)} free." : ".") +
-                        (f.TooBig ? " Not enough room: free some space first, or the install stops and takes itself back." : "");
+            PlanSpace = L.T($"Needs about {Size(f.Bytes)} on {drive}") +
+                        (f.Free is { } free ? L.T($" — {Size(free)} free.") : ".") +
+                        (f.TooBig ? L.T(" Not enough room: free some space first, or the install stops and takes itself back.") : "");
             PlanTooBig = f.TooBig;
         }
         HasPlanFootprint = PlanFootprint.Length > 0 || (PlanSpace.Length > 0 && !PlanTooBig);
@@ -164,7 +164,7 @@ public sealed partial class MainViewModel
         StartLog([]);
         IsBuilding = true;
         StageStatus = stage;
-        StageHint = "Getting ready";
+        StageHint = L.T("Getting ready");
         var run = new PlanRun();
         Follow(run);
         try
@@ -174,13 +174,13 @@ public sealed partial class MainViewModel
         }
         catch (OperationCanceledException)
         {
-            ShowResult(false, "Cancelled — nothing changed", "Every step done so far was taken back; the game is as it was.", null);
+            ShowResult(false, L.T("Cancelled — nothing changed"), L.T("Every step done so far was taken back; the game is as it was."), null);
         }
         catch (Exception ex)
         {
             AppLog.Error($"{plan.Title} failed", ex);
             FailLog(ex);
-            ShowResult(false, $"{plan.Title} — failed", $"{ex.Message}\n\nSee the log for details.", null);
+            ShowResult(false, L.T($"{plan.Title} — failed"), L.T($"{ex.Message}\n\nSee the log for details."), null);
         }
         finally
         {

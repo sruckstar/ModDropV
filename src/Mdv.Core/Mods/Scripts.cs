@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Text.RegularExpressions;
 using Mdv.Core.Util;
 
@@ -55,12 +56,12 @@ public sealed class ScriptFile
     /// <summary>"asi plugin", "shvdn v3 script"… for a tag.</summary>
     public string KindText => Kind switch
     {
-        ScriptFileKind.Asi => "asi plugin",
-        ScriptFileKind.ShvdnScript => Api is { } a ? $"shvdn {a} script" : "shvdn script",
-        ScriptFileKind.ShvdnSource => "shvdn source",
-        ScriptFileKind.RphPlugin => Dest.StartsWith("plugins/LSPDFR/", StringComparison.OrdinalIgnoreCase) ? "lspdfr plugin" : "rph plugin",
+        ScriptFileKind.Asi => L.T("asi plugin"),
+        ScriptFileKind.ShvdnScript => Api is { } a ? L.T($"shvdn {a} script") : L.T("shvdn script"),
+        ScriptFileKind.ShvdnSource => L.T("shvdn source"),
+        ScriptFileKind.RphPlugin => Dest.StartsWith("plugins/LSPDFR/", StringComparison.OrdinalIgnoreCase) ? L.T("lspdfr plugin") : L.T("rph plugin"),
         ScriptFileKind.Library => DependencyId is null ? "library" : "dependency",
-        ScriptFileKind.Native => DependencyId is null ? "native dll" : "dependency",
+        ScriptFileKind.Native => DependencyId is null ? L.T("native dll") : "dependency",
         _ => DependencyId is null ? "" : "dependency",
     };
 }
@@ -68,7 +69,7 @@ public sealed class ScriptFile
 /// <summary>One way the mod can be installed — most mods have one; some ship a folder per game edition or option.</summary>
 public sealed record ScriptVariant(string Name, List<ScriptFile> Files, List<string> LeftOut)
 {
-    public override string ToString() => Name.Length == 0 ? "(the mod)" : Name;
+    public override string ToString() => Name.Length == 0 ? L.T("(the mod)") : Name;
 }
 
 /// <summary>ASI plugins, ScriptHookVDotNet scripts and RAGE Plugin Hook plugins, laid out the way the game folder wants them.</summary>
@@ -140,9 +141,9 @@ public sealed partial class ScriptHandler : FileModHandler
         if (!files.Any(c => IsEntryKind(c.Kind) || (c.Dependency is not null && c.Pe is not null)))
         {
             if (x86.Count > 0)
-                throw new IntakeException($"{string.Join(", ", x86.Select(c => c.File.Name).Take(3))} " +
-                                          $"{(x86.Count == 1 ? "is a 32-bit plugin" : "are 32-bit plugins")} — made for an older GTA " +
-                                          "(San Andreas, IV…), not GTA V.");
+                throw new IntakeException(L.T($"{string.Join(", ", x86.Select(c => c.File.Name).Take(3))} " +
+                                          $"{(x86.Count == 1 ? L.T("is a 32-bit plugin") : L.T("are 32-bit plugins"))} — made for an older GTA " +
+                                          $"(San Andreas, IV…), not GTA V."));
             return null;
         }
 
@@ -155,7 +156,7 @@ public sealed partial class ScriptHandler : FileModHandler
             Source = source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null,
         };
         foreach (var c in x86)
-            pkg.Warnings.Add($"{c.File.Name} is a 32-bit plugin — made for an older GTA, not GTA V; it is left out.");
+            pkg.Warnings.Add(L.T($"{c.File.Name} is a 32-bit plugin — made for an older GTA, not GTA V; it is left out."));
         Layout(files, source.Files.Where(f => !f.InBackupDir).ToList(), pkg);
         foreach (var v in pkg.Variants)
         {
@@ -182,28 +183,28 @@ public sealed partial class ScriptHandler : FileModHandler
             int n = files.Count(f => f.Kind == k && !f.Shared);
             if (n > 0) kinds.Add(n == 1 ? one : $"{n} {many}");
         }
-        Count(ScriptFileKind.Asi, "ASI plugin", "ASI plugins");
+        Count(ScriptFileKind.Asi, L.T("ASI plugin"), L.T("ASI plugins"));
         var apis = files.Where(f => f.Kind == ScriptFileKind.ShvdnScript && f.Api is not null).Select(f => f.Api).Distinct().ToList();
-        Count(ScriptFileKind.ShvdnScript, $"ScriptHookVDotNet{(apis.Count == 1 ? " " + apis[0] : "")} script",
-              $"ScriptHookVDotNet{(apis.Count == 1 ? " " + apis[0] : "")} scripts");
-        Count(ScriptFileKind.ShvdnSource, "ScriptHookVDotNet source script", "ScriptHookVDotNet source scripts");
-        Count(ScriptFileKind.RphPlugin, "RAGE Plugin Hook plugin", "RAGE Plugin Hook plugins");
-        if (kinds.Count == 0 && files.Any(f => f.DependencyId is not null)) kinds.Add("script runtime / library");
+        Count(ScriptFileKind.ShvdnScript, L.T($"ScriptHookVDotNet{(apis.Count == 1 ? " " + apis[0] : "")} script"),
+              L.T($"ScriptHookVDotNet{(apis.Count == 1 ? " " + apis[0] : "")} scripts"));
+        Count(ScriptFileKind.ShvdnSource, L.T("ScriptHookVDotNet source script"), L.T("ScriptHookVDotNet source scripts"));
+        Count(ScriptFileKind.RphPlugin, L.T("RAGE Plugin Hook plugin"), L.T("RAGE Plugin Hook plugins"));
+        if (kinds.Count == 0 && files.Any(f => f.DependencyId is not null)) kinds.Add(L.T("script runtime / library"));
         pkg.Parts.Add(string.Join(" · ", kinds));
-        var where = files.GroupBy(f => Folder(f.Dest)).Select(g => $"{g.Count()} into {g.Key}").ToList();
+        var where = files.GroupBy(f => Folder(f.Dest)).Select(g => L.T($"{g.Count()} into {g.Key}")).ToList();
         pkg.Parts.Add(string.Join(", ", where));
-        if (pkg.Variants.Count > 1) pkg.Parts.Add($"{pkg.Variants.Count} versions: {string.Join(", ", pkg.Variants)}");
+        if (pkg.Variants.Count > 1) pkg.Parts.Add(L.T($"{pkg.Variants.Count} versions: {string.Join(", ", pkg.Variants)}"));
     }
 
     /// <summary>"scripts\", "plugins\", "the game folder".</summary>
     public static string Folder(string dest)
     {
         int i = dest.IndexOf('/');
-        if (i < 0) return "the game folder";
+        if (i < 0) return L.T("the game folder");
         var top = dest[..i];
         return top.Equals("scripts", StringComparison.OrdinalIgnoreCase) || top.Equals("plugins", StringComparison.OrdinalIgnoreCase)
             ? top.ToLowerInvariant() + "\\"
-            : "the game folder";
+            : L.T("the game folder");
     }
 
     // ================================================================ what each file is
@@ -344,7 +345,7 @@ public sealed partial class ScriptHandler : FileModHandler
                 if (byDest.TryGetValue(dest, out var first))
                 {
                     if (!pkg.Warnings.Any(w => w.StartsWith(f.Name + " is in the mod more than once", StringComparison.Ordinal)))
-                        pkg.Warnings.Add($"{f.Name} is in the mod more than once — {first.Origin} is used, {f.Origin} is left out.");
+                        pkg.Warnings.Add(L.T($"{f.Name} is in the mod more than once — {first.Origin} is used, {f.Origin} is left out."));
                     continue;
                 }
                 var sf = new ScriptFile
@@ -359,8 +360,8 @@ public sealed partial class ScriptHandler : FileModHandler
             pkg.Variants.Add(variant);
         }
         if (pkg.Variants.Count > 1)
-            pkg.Warnings.Add($"The mod comes in {pkg.Variants.Count} versions ({string.Join(", ", pkg.Variants)}) — one is installed; " +
-                             "pick the one you want.");
+            pkg.Warnings.Add(L.T($"The mod comes in {pkg.Variants.Count} versions ({string.Join(", ", pkg.Variants)}) — one is installed; " +
+                             $"pick the one you want."));
     }
 
     /// <summary>
@@ -471,8 +472,8 @@ public sealed partial class ScriptHandler : FileModHandler
             var mine = PeInfo.VersionOf(f.Source);
             var name = catalog[f.DependencyId!]?.Name ?? f.Name;
             if (mine is null || have is null || mine <= have)
-                f.Skip = have is null ? $"The game has {f.Name} already — it is kept."
-                    : $"The game has {name} {PeInfo.Show(have)} already{(mine is not null && mine < have ? $" (newer than the mod's {PeInfo.Show(mine)})" : "")} — it is kept.";
+                f.Skip = have is null ? L.T($"The game has {f.Name} already — it is kept.")
+                    : L.T($"The game has {name} {PeInfo.Show(have)} already{(mine is not null && mine < have ? L.T($" (newer than the mod's {PeInfo.Show(mine)})") : "")} — it is kept.");
         }
         Describe(pkg);
         pkg.Dependencies.Clear();
@@ -494,8 +495,8 @@ public sealed partial class ScriptHandler : FileModHandler
             if (catalog[d.Id] is { } info)
                 sharedFiles.AddRange(catalog.BundleFiles(info, target.Edition));
         if (sharedFiles.Count > 0)
-            shared.Add(new CopyFilesOp(sharedFiles, $"Add what the mod needs: {string.Join(", ", sharedFiles.Select(f => Path.GetFileName(f.Item2)).Distinct().Take(5))}" +
-                                                    " (shared with other mods — stays when this one is removed)") { Shared = true });
+            shared.Add(new CopyFilesOp(sharedFiles, L.T($"Add what the mod needs: {string.Join(", ", sharedFiles.Select(f => Path.GetFileName(f.Item2)).Distinct().Take(5))}" +
+                                                    $" (shared with other mods — stays when this one is removed)")) { Shared = true });
 
         var plan = BeginInstall(id, pkg.Name, target, modsLoader: false, shared);
         var own = pkg.Files.Where(f => !f.Shared).ToList();
@@ -503,32 +504,30 @@ public sealed partial class ScriptHandler : FileModHandler
         {
             var list = g.ToList();
             plan.Add(new CopyFilesOp(list.Select(f => (f.Source, f.Dest)).ToList(),
-                $"Copy {Count(list.Count, "file")} into {g.Key} ({string.Join(", ", list.Take(4).Select(f => f.Dest[(f.Dest.LastIndexOf('/') + 1)..]))}" +
-                $"{(list.Count > 4 ? ", …" : "")})"));
+                L.T($"Copy {list.Count} file(s) into {g.Key} ({string.Join(", ", list.Take(4).Select(f => f.Dest[(f.Dest.LastIndexOf('/') + 1)..])) + (list.Count > 4 ? ", …" : "")})")));
         }
 
         foreach (var d in pkg.Dependencies.Where(d => d.IsProblem))
             plan.Warnings.Add($"{d.Name} — {d.StateText}: {d.Detail}");
         foreach (var f in pkg.Files.Where(f => f.Skip is not null)) plan.Warnings.Add(f.Skip!);
-        if (pkg.Variants.Count > 1) plan.Warnings.Add($"Installing the «{pkg.Variant}» version of the mod.");
+        if (pkg.Variants.Count > 1) plan.Warnings.Add(L.T($"Installing the «{pkg.Variant}» version of the mod."));
         var there = own.Where(f => File.Exists(Path.Combine(target.GameDir, f.Dest))).Select(f => f.Dest).ToList();
         if (there.Count > 0)
-            plan.Warnings.Add($"{(there.Count == 1 ? there[0] + " is" : $"{there.Count} of its files are")} already in the game" +
-                              $"{(there.Count == 1 ? "" : $" ({string.Join(", ", there.Take(3))}{(there.Count > 3 ? ", …" : "")})")}" +
-                              $" — replaced now, {(there.Count == 1 ? "it comes" : "they come")} back when the mod is removed.");
+            plan.Warnings.Add(there.Count == 1
+                ? L.T($"{there[0]} is already in the game — replaced now, it comes back when the mod is removed.")
+                : L.T($"{there.Count} of its files are already in the game ({string.Join(", ", there.Take(3))}{(there.Count > 3 ? ", …" : "")}) — replaced now, they come back when the mod is removed."));
 
         var entries = own.Where(f => f.IsEntry).Select(f => f.Dest).ToList();
-        var where = string.Join(", ", own.GroupBy(f => Folder(f.Dest)).Select(g => $"{Count(g.Count(), "file")} in {g.Key}"));
+        var where = string.Join(", ", own.GroupBy(f => Folder(f.Dest)).Select(g => L.T($"{g.Count()} file(s) in {g.Key}")));
         var data = new Dictionary<string, string>();
         if (entries.Count > 0) data["entry"] = string.Join('|', entries);
         var folder = own.Select(f => f.Dest).FirstOrDefault(d => d.StartsWith("scripts/", StringComparison.OrdinalIgnoreCase) ||
                                                                   d.StartsWith("plugins/", StringComparison.OrdinalIgnoreCase));
         if (folder is not null) data["folder"] = folder[..folder.LastIndexOf('/')];
-        plan.Add(Register(id, ModCategory.Script, pkg, target, where.Length == 0 ? "shared files only" : where, data));
+        plan.Add(Register(id, ModCategory.Script, pkg, target, where.Length == 0 ? L.T("shared files only") : where, data));
         return plan;
     }
 
-    private static string Count(int n, string what) => n == 1 ? $"1 {what}" : $"{n} {what}s";
 
     // ================================================================ switching and removing
 
@@ -543,8 +542,8 @@ public sealed partial class ScriptHandler : FileModHandler
     {
         var entries = Entries(m);
         yield return new RenameEntriesOp(entries, on,
-            on ? $"Switch on «{m.Name}»: {string.Join(", ", entries.Select(Path.GetFileName))} back under {(entries.Count == 1 ? "its name" : "their names")}"
-               : $"Switch off «{m.Name}»: rename {string.Join(", ", entries.Select(Path.GetFileName))} to *{DisabledSuffix} (the game skips them)");
+            on ? L.T($"Switch on «{m.Name}»: {string.Join(", ", entries.Select(Path.GetFileName))} back under {(entries.Count == 1 ? L.T("its name") : L.T("their names"))}")
+               : L.T($"Switch off «{m.Name}»: rename {string.Join(", ", entries.Select(Path.GetFileName))} to *{DisabledSuffix} (the game skips them)"));
         yield return new ActionOp("", ctx => ctx.Switched[m.Id] = on) { Hidden = true };
     }
 
@@ -589,7 +588,7 @@ public sealed class RenameEntriesOp(IReadOnlyList<string> entries, bool on, stri
             var (from, to) = on ? (off, live) : (live, off);
             if (!File.Exists(from))
             {
-                if (!File.Exists(to)) ctx.Log($"    [!] {e} is not in the game folder any more — skipped.");
+                if (!File.Exists(to)) ctx.Log(L.T($"    [!] {e} is not in the game folder any more — skipped."));
                 continue;
             }
             if (File.Exists(to)) ctx.Journal.MoveAside(to, keep: false);

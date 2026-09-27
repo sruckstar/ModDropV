@@ -56,7 +56,7 @@ public sealed partial class MainViewModel
             StatusRows.Clear();
             HasStatus = false;
             StatusHasWarnings = false;
-            StatusSummary = "No game chosen";
+            StatusSummary = L.T("No game chosen");
             HasStaleCopies = false;
             return;
         }
@@ -76,19 +76,18 @@ public sealed partial class MainViewModel
         if (report is null)
         {
             HasStatus = false;
-            StatusSummary = "Status unknown";
+            StatusSummary = L.T("Status unknown");
             return;
         }
         foreach (var i in report.Items) StatusRows.Add(new StatusRow(i.Label, i.Value, i.Level, i.Detail));
         HasStatus = true;
         int warnings = report.Items.Count(i => i.Level == StatusLevel.Warning);
         StatusHasWarnings = warnings > 0;
-        StatusSummary = warnings == 0 ? "Game ready for mods" : warnings == 1 ? "1 thing to check" : $"{warnings} things to check";
+        StatusSummary = warnings == 0 ? L.T("Game ready for mods") : warnings == 1 ? L.T("1 thing to check") : L.T($"{warnings} things to check");
         _staleCopies = report.StaleCopies;
         HasStaleCopies = _staleCopies.Count > 0;
         StaleCopiesText = HasStaleCopies
-            ? $"The game was updated after {string.Join(", ", _staleCopies.Select(a => "mods/" + a))} " +
-              (_staleCopies.Count == 1 ? "was" : "were") + " copied. Old copies are a common cause of crashes."
+            ? L.T($"The game was updated after these were copied: {string.Join(", ", _staleCopies.Select(a => "mods/" + a))}. Old copies are a common cause of crashes.")
             : "";
     }
 
@@ -102,9 +101,9 @@ public sealed partial class MainViewModel
     private void UpdateCopies()
     {
         var game = GameFolder.Trim();
-        var plan = new InstallPlan { Title = "Updating the copies in mods" }.Add(new RefreshCopiesOp(_staleCopies.ToList()));
-        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", "Update copies",
-                 () => RunPlanAsync(plan, "Updating the copies in mods…", "Copies in mods updated"),
-                 "Each copy is taken fresh from the updated game; the files your mods changed in it are put back.");
+        var plan = new InstallPlan { Title = L.T("Updating the copies in mods") }.Add(new RefreshCopiesOp(_staleCopies.ToList()));
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Update copies"),
+                 () => RunPlanAsync(plan, L.T("Updating the copies in mods…"), L.T("Copies in mods updated")),
+                 L.T("Each copy is taken fresh from the updated game; the files your mods changed in it are put back."));
     }
 }

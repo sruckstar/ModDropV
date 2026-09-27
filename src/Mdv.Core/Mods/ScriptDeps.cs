@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Reflection.Metadata;
@@ -184,7 +185,7 @@ public sealed class DependencyInfo
     /// <summary>A different note per edition, when there is one.</summary>
     [JsonPropertyName("notes")] public Dictionary<string, string> Notes { get; set; } = [];
 
-    public string? NoteFor(GameEdition e) => Notes.TryGetValue(WeaponHandler.EditionKey(e), out var n) ? n : Note;
+    public string? NoteFor(GameEdition e) => (Notes.TryGetValue(WeaponHandler.EditionKey(e), out var n) ? n : Note) is { } note ? L.T(note) : null;
 
     public string? LinkFor(GameEdition e) => Links.TryGetValue(WeaponHandler.EditionKey(e), out var l) ? l : Link;
 
@@ -224,7 +225,7 @@ public sealed class DependencyCatalog
     {
         Id = AsiLoaderId, Name = "ASI loader", Kind = "runtime", Files = [.. GameInstaller.AsiLoaders],
         Link = "http://www.dev-c.com/gtav/scripthookv/", Redistributable = true,
-        Note = "Loads .asi plugins; ScriptHookV comes with one.",
+        Note = L.N("Loads .asi plugins; ScriptHookV comes with one."),
     };
 
     private static readonly Dictionary<string, DependencyCatalog> Cache = new(StringComparer.OrdinalIgnoreCase);
@@ -327,13 +328,13 @@ public sealed record ScriptDependency(string Id, string Name, DependencyState St
     /// <summary>"ok", "in mod", "missing"… for a badge.</summary>
     public string StateText => State switch
     {
-        DependencyState.Ok => "installed",
-        DependencyState.InMod => "in the mod",
-        DependencyState.Bundled => "added",
-        DependencyState.Needed => "needed",
-        DependencyState.Missing => "missing",
-        DependencyState.Outdated => "outdated",
-        _ => "not for this game",
+        DependencyState.Ok => L.T("installed"),
+        DependencyState.InMod => L.T("in the mod"),
+        DependencyState.Bundled => L.T("added"),
+        DependencyState.Needed => L.T("needed"),
+        DependencyState.Missing => L.T("missing"),
+        DependencyState.Outdated => L.T("outdated"),
+        _ => L.T("not for this game"),
     };
 }
 
@@ -465,8 +466,8 @@ public static class DependencyCheck
         {
             bool vc = IsVcRuntime(dll);
             result.Add(new ScriptDependency("file:" + dll, dll, gameDir is null ? DependencyState.Needed : DependencyState.Missing,
-                vc ? $"{dll} comes with the Microsoft Visual C++ Redistributable (x64) — install it from Microsoft."
-                   : $"{dll} is neither in the mod, nor in the game folder, nor part of Windows — the mod's page should say where to get it.",
+                vc ? L.T($"{dll} comes with the Microsoft Visual C++ Redistributable (x64) — install it from Microsoft.")
+                   : L.T($"{dll} is neither in the mod, nor in the game folder, nor part of Windows — the mod's page should say where to get it."),
                 vc ? "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist" : null, need.By));
         }
         // the hooks first, then libraries; problems before the rest
@@ -513,7 +514,7 @@ public static class DependencyCheck
     {
         var link = d.LinkFor(edition);
         var support = d.Support(edition);
-        string early = support == "early" ? $" Its {edition.DisplayName()} support is early — not everything may work." : "";
+        string early = support == "early" ? L.T($" Its {edition.DisplayName()} support is early — not everything may work.") : "";
 
         // the mod brings it along
         var own = files.Where(f => f.DependencyId == d.Id).ToList();
@@ -521,23 +522,23 @@ public static class DependencyCheck
         {
             var kept = own.Where(f => f.Skip is not null).Select(f => f.Skip!).FirstOrDefault();
             return new(d.Id, d.Name, DependencyState.InMod,
-                       (kept ?? $"The mod comes with it ({string.Join(", ", own.Select(f => f.Name))}).") + early, link, need.By);
+                       (kept ?? L.T($"The mod comes with it ({string.Join(", ", own.Select(f => f.Name))}).")) + early, link, need.By);
         }
         if (support == "no")
             return new(d.Id, d.Name, DependencyState.Unsupported,
-                       $"{d.Name} doesn't run on {edition.DisplayName()}." + (d.NoteFor(edition) is { } n ? " " + n : ""), link, need.By);
+                       L.T($"{d.Name} doesn't run on {edition.DisplayName()}.") + (d.NoteFor(edition) is { } n ? " " + n : ""), link, need.By);
         if (gameDir is null)
-            return new(d.Id, d.Name, DependencyState.Needed, $"Needed by {string.Join(", ", need.By.Take(3))}.{early}", link, need.By);
+            return new(d.Id, d.Name, DependencyState.Needed, L.T($"Needed by {string.Join(", ", need.By.Take(3))}.{early}"), link, need.By);
 
         var present = Present(d, gameDir);
         if (present is null)
         {
             if (catalog.BundleFiles(d, edition).Count > 0)
                 return new(d.Id, d.Name, DependencyState.Bundled,
-                           $"Not in the game — ModDrop V installs {(d.Id == DependencyCatalog.AsiLoaderId ? GameInstaller.BundledAsiLoader(edition) : d.Name)} " +
-                           $"with the mod{(d.License is { } lic ? $" ({lic} licence)" : "")}.", link, need.By);
+                           L.T($"Not in the game — ModDrop V installs {(d.Id == DependencyCatalog.AsiLoaderId ? GameInstaller.BundledAsiLoader(edition) : d.Name)} " +
+                           $"with the mod{(d.License is { } lic ? L.T($" ({lic} licence)") : "")}."), link, need.By);
             return new(d.Id, d.Name, DependencyState.Missing,
-                       $"Not in the game — the mod won't work without it. {(d.Redistributable ? "Download" : "Get")} it from its official page." +
+                       (d.Redistributable ? L.T("Not in the game — the mod won't work without it. Download it from its official page.") : L.T("Not in the game — the mod won't work without it. Get it from its official page.")) +
                        (d.NoteFor(edition) is { } n ? " " + n : ""), link, need.By);
         }
 
@@ -547,12 +548,12 @@ public static class DependencyCheck
             var path = Path.Combine(gameDir, d.AssemblyPath(asm));
             if (!File.Exists(path))
                 return new(d.Id, d.Name, DependencyState.Missing,
-                           $"{d.Name} is installed, but without {asm}.dll — {string.Join(", ", need.By.Take(2))} need{(need.By.Count == 1 ? "s" : "")} it." +
-                           (asm.EndsWith('2') ? " Install the full package (it includes the v2 API)." : ""), link, need.By);
+                           L.T($"{d.Name} is installed, but without {asm}.dll — needed by {string.Join(", ", need.By.Take(2))}.") +
+                           (asm.EndsWith('2') ? L.T(" Install the full package (it includes the v2 API).") : ""), link, need.By);
             var have = PeInfo.VersionOf(path);
             if (have is not null && Trim(have) < Trim(wanted))
                 return new(d.Id, d.Name, DependencyState.Outdated,
-                           $"The game has {asm} {PeInfo.Show(have)}; the mod was built for {PeInfo.Show(wanted)} — update {d.Name}.", link, need.By);
+                           L.T($"The game has {asm} {PeInfo.Show(have)}; the mod was built for {PeInfo.Show(wanted)} — update {d.Name}."), link, need.By);
         }
 
         var version = PeInfo.VersionOf(Path.Combine(gameDir, present));
@@ -573,7 +574,7 @@ public static class DependencyCheck
                 return new(d.Id, d.Name, DependencyState.Ok, $"{item.Value} — {char.ToLowerInvariant(supports[0])}{supports[1..]}", link, need.By);
         }
         var shown = d.Id == DependencyCatalog.AsiLoaderId ? Path.GetFileName(present)
-            : version is null ? $"In the game ({Path.GetFileName(present)})" : "v" + PeInfo.Show(version);
+            : version is null ? L.T($"In the game ({Path.GetFileName(present)})") : "v" + PeInfo.Show(version);
         return new(d.Id, d.Name, DependencyState.Ok, shown + "." + early, link, need.By);
     }
 

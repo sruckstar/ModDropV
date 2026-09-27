@@ -1,3 +1,4 @@
+using Mdv.Core;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -37,11 +38,12 @@ public static class Diagnostics
         var body = new List<string> { summary };
         if (!string.IsNullOrEmpty(detail)) body.Add(detail);
         if (ex is not null) body.Add($"{ex.GetType().Name}: {ex.Message}");
-        body.Add($"Details were written to:\n{AppLog.FilePath}");
+        body.Add(L.T($"Details were written to:\n{AppLog.FilePath}"));
         MessageBox(string.Join("\n\n", body));
     }
 
-    public static string Report()
+    /// <param name="withGame">add how the last chosen game stands for mods (the --diagnose report; not at startup)</param>
+    public static string Report(bool withGame = false)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"{AppPaths.AppName} diagnostics");
@@ -50,24 +52,54 @@ public static class Diagnostics
         sb.AppendLine($"Machine      : {RuntimeInformation.OSArchitecture}");
         sb.AppendLine($"Runtime      : {RuntimeInformation.FrameworkDescription}");
         sb.AppendLine($"Launched     : {Environment.ProcessPath}");
-        sb.AppendLine($"App folder   : {AppPaths.Root}");
-        sb.AppendLine($"Data folder  : {AppPaths.AppData}");
+        sb.AppendLine(L.T($"App folder   : {AppPaths.Root}"));
+        sb.AppendLine(L.T($"Data folder  : {AppPaths.AppData}"));
         foreach (var rel in new[] { "data/templates/_index.json", "data/weapons.meta", "data/weaponcomponents.meta",
                                     "data/weaponarchetypes.meta", "data/weaponanimations.meta",
-                                    "data/plugins/OpenIV.asi", "data/plugins/dinput8.dll",
-                                    "data/plugins/DSOUND.dll", "data/plugins/xinput1_4.dll",
+                                    "data/plugins/dinput8.dll", "data/plugins/xinput1_4.dll",
+                                    "data/plugins/limits-enhanced/HeapAdjuster.asi",
+                                    "data/plugins/limits-enhanced/PackfileLimitAdjusterEnhanced.asi",
                                     "ShadersGen9Conversion.xml" })
         {
             var ok = File.Exists(Path.Combine(AppPaths.Root, rel));
             sb.AppendLine($"{rel,-28}: {(ok ? "ok" : "MISSING")}");
         }
+        if (withGame) AppendGame(sb);
         return sb.ToString();
+    }
+
+    private static void AppendGame(StringBuilder sb)
+    {
+        sb.AppendLine();
+        try
+        {
+            var settings = Settings.Load();
+            sb.AppendLine($"Language     : {(settings.Language is { Length: > 0 } lang ? lang : $"{L.SystemLanguage()} (Windows)")}");
+            if (settings.LastGame is not { Length: > 0 } game)
+            {
+                sb.AppendLine("Game         : (not chosen yet)");
+                return;
+            }
+            sb.AppendLine($"Game         : {game}");
+            var status = GameStatus.Read(game, GameEditions.Detect(game), null);
+            foreach (var i in status.Items)
+            {
+                var mark = i.Level switch { StatusLevel.Ok => "ok ", StatusLevel.Warning => "[!]", _ => " - " };
+                sb.AppendLine($"  {mark} {i.Label,-18} {i.Value}");
+                if (i.Level == StatusLevel.Warning && i.Detail is { } d)
+                    foreach (var line in d.Split('\n')) sb.AppendLine($"      {line}");
+            }
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine($"Game         : could not read ({ex.GetType().Name}: {ex.Message})");
+        }
     }
 
     /// <summary><c>ModDropV.exe --diagnose</c>: write the host report and open it.</summary>
     public static void WriteAndOpenReport()
     {
-        var report = Report();
+        var report = Report(withGame: true);
         var path = Path.Combine(AppPaths.LogDir, "diagnose.txt");
         try
         {
@@ -91,11 +123,11 @@ public static class Diagnostics
         var templates = Path.Combine(AppPaths.Templates, "_index.json");
         var metas = Path.Combine(AppPaths.Data, "weapons.meta");
         if (File.Exists(templates) || File.Exists(metas)) return true;
-        Fatal("Some of the program's files are missing, so it cannot start.",
-              "This usually means the archive was only partly unpacked, or an antivirus removed " +
-              "files from the folder.\n\nUnpack the whole archive to a normal folder (for example " +
-              "C:\\ModDropV) and add that folder to your antivirus exclusions.\n\n" +
-              $"Not found:\n{AppPaths.Templates}");
+        Fatal(L.T("Some of the program's files are missing, so it cannot start."),
+              L.T($"This usually means the archive was only partly unpacked, or an antivirus removed " +
+              $"files from the folder.\n\nUnpack the whole archive to a normal folder (for example " +
+              $"C:\\ModDropV) and add that folder to your antivirus exclusions.\n\n" +
+              $"Not found:\n{AppPaths.Templates}"));
         return false;
     }
 
