@@ -35,20 +35,35 @@ public sealed class InstallPlan
         var archives = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int inArchives = 0;
         long files = 0;
+        // with Onigiri a change copies the archive nested in the game's (or nothing, for a loose file)
+        var onigiri = ModsLayout.UsesOnigiri(target.GameDir) ? ModsOverlay.Load(target.GameDir) : null;
         void Touch(string gamePath)
         {
             string top;
             try
             {
-                top = ModsOverlay.Split(gamePath).Archive;
+                top = onigiri?.Place(gamePath).Top ?? ModsOverlay.Split(gamePath).Archive;
             }
-            catch (ArgumentException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
             {
                 return;
             }
             inArchives++;
             archives.Add(top);
-            if (newCopies.ContainsKey(top) || File.Exists(Path.Combine(target.ModsDir, top))) return;
+            if (newCopies.ContainsKey(top)) return;
+            if (onigiri is not null)
+            {
+                try
+                {
+                    if (onigiri.NewCopy(gamePath) is { } copy) newCopies[top] = copy;
+                }
+                catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+                {
+                    // can't tell — the install checks the room itself
+                }
+                return;
+            }
+            if (File.Exists(Path.Combine(target.ModsDir, top))) return;
             var game = new FileInfo(Path.Combine(target.GameDir, top));
             if (game.Exists) newCopies[top] = game.Length;
         }
@@ -180,11 +195,17 @@ public sealed class ActionOp(string description, Action<InstallContext> run) : P
     public override void Execute(InstallContext ctx) => run(ctx);
 }
 
-/// <summary>Make sure the game loads the mods folder: a mods-folder plugin, mods\, mods\update\update.rpf.</summary>
+/// <summary>
+/// Make sure the game loads the mods folder: a mods-folder plugin, mods\, mods\update\update.rpf — or, in a game that
+/// runs Onigiri, the onigiri folder (an ASI loader for onigiri.asi).
+/// </summary>
 /// <param name="pluginsDir">bundled mods-folder plugins and ASI loaders (data/plugins)</param>
-public sealed class EnsureModsLoaderOp(string pluginsDir) : PlanOp
+/// <param name="gameDir">the game it prepares (for the description)</param>
+public sealed class EnsureModsLoaderOp(string pluginsDir, string? gameDir = null) : PlanOp
 {
-    public override string Describe() => L.T("Make sure the game loads the mods folder (mods-folder plugin, mods\\update\\update.rpf)");
+    public override string Describe() => gameDir is not null && ModsLayout.UsesOnigiri(gameDir)
+        ? L.T("Make sure the game loads the onigiri folder (Onigiri is installed: no mods folder, no copy of update.rpf)")
+        : L.T("Make sure the game loads the mods folder (mods-folder plugin, mods\\update\\update.rpf)");
 
     public override void Execute(InstallContext ctx) =>
         GameInstaller.PrepareGame(ctx.GameDir, ctx.Target.Edition, pluginsDir, ctx.Log, ctx.Journal);
@@ -271,12 +292,12 @@ public sealed class RpfPutOp(string gamePath, string source, string modId) : Pla
     public string GamePath { get; } = gamePath;
     public string Source { get; } = source;
 
-    public override string Describe() => L.T($"Replace {GamePath} with {Path.GetFileName(source)} (in a copy of its archive under mods)");
+    public override string Describe() => L.T($"Replace {GamePath} with {Path.GetFileName(source)} (the game's own file stays untouched)");
 
     public override void Execute(InstallContext ctx)
     {
         ctx.Overlay.Put(modId, GamePath, File.ReadAllBytes(source));
-        ctx.Log(L.T($"    {Path.GetFileName(source)} -> mods/{ModsOverlay.KeyOf(GamePath)}"));
+        ctx.Log(L.T($"    {Path.GetFileName(source)} -> {ctx.Overlay.Shown(ctx.Overlay.KeyFor(GamePath))}"));
     }
 }
 
@@ -285,12 +306,12 @@ public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
 {
     public string GamePath { get; } = gamePath;
 
-    public override string Describe() => L.T($"Delete {GamePath} (in a copy of its archive under mods)");
+    public override string Describe() => L.T($"Delete {GamePath} (in a copy of its archive — the game's own stays untouched)");
 
     public override void Execute(InstallContext ctx)
     {
         ctx.Overlay.Delete(modId, GamePath);
-        ctx.Log(L.T($"    deleted mods/{ModsOverlay.KeyOf(GamePath)}"));
+        ctx.Log(L.T($"    deleted {ctx.Overlay.Shown(ctx.Overlay.KeyFor(GamePath))}"));
     }
 }
 
@@ -369,7 +390,7 @@ public sealed class OverlayRemoveOp(string modId, string name, bool reinstall = 
     public override void Execute(InstallContext ctx)
     {
         int n = ctx.Overlay.RemoveMod(modId, keepCopies: reinstall);
-        ctx.Log(L.T($"    «{name}»: {n} file(s) taken out of the archive copies in mods."));
+        ctx.Log(L.T($"    «{name}»: {n} file(s) taken out of the copies in {ModsLayout.RootRel(ctx.GameDir)}."));
     }
 }
 
@@ -509,8 +530,7 @@ public static class InstallExecutor
             if (ctx.LoadedOverlay is not null)
             {
                 ModsOverlay.CollectGarbage(target.GameDir);
-                ModsOverlay.TightenAfterRollback(target.GameDir,
-                    journal.Steps.OfType<RpfEntrySet>().Select(s => s.Archive[GameIndex.ModsPrefix.Length..]), log);
+                ModsOverlay.TightenAfterRollback(target.GameDir, journal.Steps.OfType<RpfEntrySet>().Select(s => s.Archive), log);
             }
             throw;
         }
@@ -550,7 +570,7 @@ public static class InstallExecutor
     /// </summary>
     internal static List<JournalStep> OwnSteps(IEnumerable<JournalStep> steps, ModsOverlay? overlay)
     {
-        var copies = overlay?.State.Copies.Keys.Select(k => GameIndex.ModsPrefix + k).ToList() ?? [];
+        var copies = overlay?.State.Copies.Keys.Select(overlay.Shown).ToList() ?? [];
         bool UnderCopy(string path) =>
             copies.Any(c => c.Equals(path, StringComparison.OrdinalIgnoreCase) ||
                             c.StartsWith(path.TrimEnd('/') + "/", StringComparison.OrdinalIgnoreCase));

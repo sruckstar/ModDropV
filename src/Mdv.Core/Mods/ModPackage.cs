@@ -143,7 +143,8 @@ public abstract class ModPackage
 public sealed record InstallTarget(string GameDir, GameEdition Edition, string StagingDir, string? PluginsDir = null,
                                    IReadOnlyList<string>? ImportStagingDirs = null)
 {
-    public string ModsDir => Path.Combine(GameDir, "mods");
+    /// <summary>The folder the game reads mods from: <c>mods</c>, or <c>onigiri</c> (<see cref="ModsLayout"/>).</summary>
+    public string ModsDir => ModsLayout.Root(GameDir);
     /// <summary>Where the game's file index is cached (null: build it afresh when a handler needs it).</summary>
     public string? IndexCacheRoot { get; init; }
 }

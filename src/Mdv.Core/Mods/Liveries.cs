@@ -414,7 +414,7 @@ public sealed partial class LiveryHandler : FileModHandler
 
     /// <summary>The game path of the copy of <paramref name="file"/> the game loads (a copy in mods counts as the archive it replaces).</summary>
     private static string? Winner(GameIndex index, string file) =>
-        index.Resolve(file) is { } h ? (h.InMods ? h.GamePath[GameIndex.ModsPrefix.Length..] : h.GamePath) : null;
+        index.Resolve(file)?.TargetPath;
 
     /// <summary>Each picture's slot: its own name, else a slot its name ends with, else the livery slot of the same number.</summary>
     internal static void PlaceTextures(LiveryPackage pkg, LiveryResolution r)
@@ -461,7 +461,7 @@ public sealed partial class LiveryHandler : FileModHandler
             r.KitProblem = L.T($"The game has no {vehicle}.yft — the livery models have nowhere to go.");
             return;
         }
-        var nearPath = near.InMods ? near.GamePath[GameIndex.ModsPrefix.Length..] : near.GamePath;
+        var nearPath = near.TargetPath;
         r.ModelsDir = nearPath[..nearPath.LastIndexOf('/')];
         foreach (var m in added) m.Target = $"{r.ModelsDir}/{m.Name}.yft";
 
@@ -508,7 +508,7 @@ public sealed partial class LiveryHandler : FileModHandler
     }
 
     private static IEnumerable<string> Winners(GameIndex index, string file) =>
-        index.Find(file).Where(h => h.Winner && h.Active).Select(h => h.InMods ? h.GamePath[GameIndex.ModsPrefix.Length..] : h.GamePath);
+        index.Find(file).Where(h => h.Winner && h.Active).Select(h => h.TargetPath);
 
     private static string? ReadText(ModsOverlay overlay, string path)
     {
@@ -552,7 +552,7 @@ public sealed partial class LiveryHandler : FileModHandler
             if (mine.Count == 0) continue;
             var file = Path.GetFileName(path);
             plan.Add(new RpfEditOp(path, id,
-                L.T($"Put {mine.Count} livery texture(s) into the {r.Vehicle}'s {file}: {string.Join(", ", mine.Take(4).Select(m => m.Item1)) + (mine.Count > 4 ? ", …" : "")} (in a copy of its archive under mods)"),
+                L.T($"Put {mine.Count} livery texture(s) into the {r.Vehicle}'s {file}: {string.Join(", ", mine.Take(4).Select(m => m.Item1)) + (mine.Count > 4 ? ", …" : "")} (the game's own file stays untouched)"),
                 (data, log) => data is null ? null : Ytd.Edit(data, [.. mine.Select(m => Edit(m.t))], file, log)));
             touched.Add(path);
         }

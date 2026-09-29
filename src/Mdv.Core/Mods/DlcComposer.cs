@@ -29,7 +29,35 @@ public sealed class ComposeSpec
     public List<NewCollection> NewCollections { get; } = [];
     /// <summary>The resource being read streams a map / props (its archetype requests go into the map's archives).</summary>
     internal ModCategory? MapKind { get; set; }
+    /// <summary>
+    /// Handling / layouts files a fxmanifest names that the resource doesn't have — whether its vehicles need them is
+    /// told by <see cref="VehicleGaps"/>.
+    /// </summary>
+    public List<MissingFile> MissingFiles { get; } = [];
+
+    /// <summary>The same add-on with other files and content.xml entries.</summary>
+    public ComposeSpec With(List<ComposeFile> files, List<ComposeData> data)
+    {
+        var c = new ComposeSpec { MapKind = MapKind };
+        c.Files.AddRange(files);
+        c.Data.AddRange(data);
+        c.Warnings.AddRange(Warnings);
+        c.Resources.AddRange(Resources);
+        c.NewPeds.AddRange(NewPeds);
+        c.NewCollections.AddRange(NewCollections);
+        c.MissingFiles.AddRange(MissingFiles);
+        foreach (var (h, s) in Content.Labels) c.Content.Labels[h] = s;
+        c.Content.DataTypes.UnionWith(Content.DataTypes);
+        c.Content.Vehicles.AddRange(Content.Vehicles);
+        c.Content.Peds.AddRange(Content.Peds);
+        c.Content.Streamed.AddRange(Content.Streamed);
+        c.Content.ModelEditions.UnionWith(Content.ModelEditions);
+        return c;
+    }
 }
+
+/// <summary>A data file a fxmanifest names (<c>data_file 'HANDLING_FILE' 'handling.meta'</c>) that isn't in the resource.</summary>
+public sealed record MissingFile(string Resource, string Pattern, string Type);
 
 /// <summary>
 /// An MP clothing collection written on packing: the shop meta it lacks, and — made of loose models — its files laid
@@ -131,10 +159,25 @@ public static partial class DlcComposer
         if (roots.Count > 0)
         {
             var groups = files.GroupBy(f => roots.FirstOrDefault(r => r.Length == 0 || f.Origin.Replace('\\', '/').StartsWith(r + "/", StringComparison.OrdinalIgnoreCase)))
-                              .Where(g => g.Key is not null).ToList();
-            bool several = groups.Count > 1;
-            foreach (var g in groups.OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
-                AddResource(spec, g.Key!, [.. g], several, streamed);
+                              .Where(g => g.Key is not null).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase).ToList();
+            // versions of one add-on side by side (FSeriesAmbo, FSeriesAmbo (Optimized)): the same vehicles twice in a pack
+            // crash the game — the first one goes in
+            var kept = new List<IGrouping<string?, DroppedFile>>();
+            var declared = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);         // model → the resource declaring it
+            foreach (var g in groups)
+            {
+                var name = g.Key!.Length == 0 ? "resource" : g.Key.Split('/')[^1];
+                var models = DeclaredModels(g);
+                if (models.Count > 0 && models.All(declared.ContainsKey))
+                {
+                    spec.Warnings.Add(L.T($"«{name}» declares the same {string.Join(", ", models.Take(3))} as «{declared[models[0]]}» — " +
+                                          $"another version of it, left out. To install this one instead, drop its folder on its own."));
+                    continue;
+                }
+                foreach (var m in models) declared.TryAdd(m, name);
+                kept.Add(g);
+            }
+            foreach (var g in kept) AddResource(spec, g.Key!, [.. g], kept.Count > 1, streamed);
         }
         else AddLoose(spec, files, streamed);
 
@@ -145,6 +188,20 @@ public static partial class DlcComposer
         ReadMaps(spec);
         CheckStreamed(spec, src);
         return spec;
+    }
+
+    /// <summary>The vehicles / peds a resource's vehicles.meta / peds.meta files declare.</summary>
+    private static List<string> DeclaredModels(IEnumerable<DroppedFile> files)
+    {
+        var c = new AddonContent();
+        foreach (var f in files.Where(f => PathUtil.SuffixLower(f.Name) is ".meta" or ".xml" && new FileInfo(f.FullPath).Length < (16 << 20)))
+        {
+            var text = TextIo.DecodeUtf8Sig(File.ReadAllBytes(f.FullPath), strict: false);
+            if (ModDetector.RootTag(text) is { } root && AddonContent.TypeByRoot.TryGetValue(root, out var type) &&
+                type is VehicleBuilder.InitType or "PED_METADATA_FILE")
+                c.AddData(type, text, f.Origin);
+        }
+        return [.. c.Vehicles.Select(v => v.Model).Concat(c.Peds.Select(p => p.Name))];
     }
 
     /// <summary>
@@ -447,7 +504,8 @@ public static partial class DlcComposer
                 hits = byRel.Where(kv => kv.Key.StartsWith(pattern.ToLowerInvariant().TrimEnd('/'), StringComparison.Ordinal)).Select(kv => kv.Value).ToList();
             if (hits.Count == 0)
             {
-                spec.Warnings.Add(L.T($"{name}: fxmanifest names {pattern} ({type}), but there is no such file — left out."));
+                if (type is VehicleBuilder.HandlingType or "VEHICLE_LAYOUTS_FILE") spec.MissingFiles.Add(new MissingFile(name, pattern, type));
+                else spec.Warnings.Add(L.T($"{name}: fxmanifest names {pattern} ({type}), but there is no such file — left out."));
                 continue;
             }
             foreach (var f in hits)
@@ -609,7 +667,7 @@ public static partial class DlcComposer
         if (ResourceEditions.EditionOf(ext, ResourceVersion(f.FullPath)) is { } ed) spec.Content.ModelEditions.Add(ed);
     }
 
-    private static int ResourceVersion(string path)
+    internal static int ResourceVersion(string path)
     {
         try
         {
@@ -646,10 +704,11 @@ public static partial class DlcComposer
     /// <summary>
     /// Lay the pack out and pack it into <paramref name="outDir"/>/dlc.rpf: content.xml and setup2.xml for
     /// <paramref name="device"/> (<c>dlc_mycar</c>), the files, the image archives, global.gxt2 in every
-    /// language when there are labels. Legacy models are converted for Enhanced on the way.
+    /// language when there are labels. Legacy models are converted for Enhanced on the way. Not
+    /// <paramref name="pack"/>ed: the tree is laid out in <paramref name="outDir"/> itself, its archives as folders.
     /// </summary>
     public static string Compose(ComposeSpec spec, string device, string outDir, GameEdition edition, Action<string> log,
-                                 Func<uint, bool>? gameTypes = null)
+                                 Func<uint, bool>? gameTypes = null, bool pack = true)
     {
         var tree = PathUtil.MakeTempDir();
         try
@@ -703,6 +762,27 @@ public static partial class DlcComposer
                 TextIo.WriteText(Path.Combine(tree, "content.xml"),
                                  DlcAssembler.ContentXml(device, changeset, data.Select(d => (d.PackPath.Replace("x64/", "%PLATFORM%/"), d.Type, d.Persistent))));
                 TextIo.WriteText(Path.Combine(tree, "setup2.xml"), DlcAssembler.Setup2Xml(device, changeset));
+            }
+
+            if (!pack)
+            {
+                // loose folders (the *.rpf ones to pack with CodeWalker): the models already in the edition's form
+                foreach (var file in Directory.EnumerateFiles(tree, "*", SearchOption.AllDirectories))
+                {
+                    if (!Rpf7.IsResourceExt(Path.GetExtension(file))) continue;
+                    var raw = File.ReadAllBytes(file);
+                    if (ResourceEditions.NeedsConversion(file, raw, edition))
+                        File.WriteAllBytes(file, ResourceEditions.ForEdition(raw, Path.GetFileName(file), edition));
+                }
+                if (Directory.Exists(outDir)) PathUtil.DeleteDir(outDir);
+                foreach (var file in Directory.EnumerateFiles(tree, "*", SearchOption.AllDirectories))
+                {
+                    var dst = Path.Combine(outDir, Path.GetRelativePath(tree, file));
+                    Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
+                    File.Copy(file, dst);
+                }
+                log(L.T($"    Laid out unpacked in {outDir} — pack its *.rpf folders with CodeWalker."));
+                return outDir;
             }
 
             // inner archives first (deepest first), each packed in place of its folder

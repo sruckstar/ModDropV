@@ -53,7 +53,7 @@ public abstract partial class FileModHandler : IModHandler
             plan.Ops.AddRange(RemoveOps(old, IsOff(old, LoadOverlay(target)), unregister: false, reinstall: true));
         }
         if (modsLoader)
-            plan.Add(new EnsureModsLoaderOp(target.PluginsDir ?? Path.Combine(AppContext.BaseDirectory, "data", "plugins")));
+            plan.Add(new EnsureModsLoaderOp(target.PluginsDir ?? Path.Combine(AppContext.BaseDirectory, "data", "plugins"), target.GameDir));
         plan.Ops.AddRange(shared ?? []);
         plan.Add(new ActionOp("", ctx => ctx.Items[MarkKey] = ctx.Journal.Steps.Count) { Hidden = true });
         return plan;
@@ -114,7 +114,7 @@ public abstract partial class FileModHandler : IModHandler
             yield return new ActionOp(L.T($"Switch on «{m.Name}»: put its files back into the game archives"), ctx =>
             {
                 int n = ctx.Overlay.Unpark(m.Id);
-                ctx.Log(L.T($"    «{m.Name}»: {n} file(s) back in the archive copies in mods."));
+                ctx.Log(L.T($"    «{m.Name}»: {n} file(s) back in the copies in {ModsLayout.RootRel(ctx.GameDir)}."));
                 ctx.Switched[m.Id] = true;
             });
         else

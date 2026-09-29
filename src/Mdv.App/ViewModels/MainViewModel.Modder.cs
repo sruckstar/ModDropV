@@ -28,7 +28,7 @@ public sealed record SupportedKind(string Title, string Detail, bool Ready)
     public bool Soon => !Ready;
 }
 
-/// <summary>Modder flow: which kind of add-on is being built. Weapons are ready; the rest say what they'll do.</summary>
+/// <summary>Modder flow: which kind of add-on is being built. Weapons and vehicles are ready; the rest say what they'll do.</summary>
 public sealed partial class MainViewModel
 {
     private readonly Dictionary<ModCategory, ModPanelViewModel> _modderPanels = [];
@@ -52,7 +52,7 @@ public sealed partial class MainViewModel
     public IReadOnlyList<SupportedKind> ModderKinds { get; } =
     [
         new(L.T("Weapon"), L.T("Replace files → a complete add-on weapon DLC"), true),
-        new(L.T("Vehicle"), L.T("From a vanilla base car"), false),
+        new(L.T("Vehicle"), L.T("Models → an add-on vehicle DLC, on the base of a game vehicle"), true),
         new(L.T("Ped"), L.T("peds.meta from a template, .ymt generated"), false),
         new(L.T("Prop"), L.T(".ytyp with bounds from the model"), false),
         new(L.T("MP clothing"), L.T(".ymt and shop meta, slots sorted"), false),
@@ -61,9 +61,7 @@ public sealed partial class MainViewModel
     private static (ModCategory Category, string Label, string What, string Blurb)[] AddonTypes =>
     [
         (ModCategory.Weapon, L.T("Weapon"), L.T("Weapon add-ons"), ""),
-        (ModCategory.Vehicle, L.T("Vehicle"), L.T("Vehicle add-ons"),
-         L.T("Pick a vanilla car as the base — handling, layout, sounds and class come from it — drop in the .yft / .ytd " +
-         "and get a ready dlc.rpf: vehicles.meta, handling, variations, modkits and the in-game name generated.")),
+        (ModCategory.Vehicle, L.T("Vehicle"), L.T("Vehicle add-ons"), ""),
         (ModCategory.Ped, L.T("Ped"), L.T("Ped add-ons"),
          L.T("Models, textures and variations (.ydd / .yft / .ytd / .ymt) into an add-on ped: peds.meta from a template " +
          "for its kind, the .ymt generated from the components when the mod has none.")),
@@ -78,7 +76,7 @@ public sealed partial class MainViewModel
     private void InitModderTypes()
     {
         foreach (var t in AddonTypes)
-            ModderTypes.Add(new AddonTypeViewModel(t.Category, t.Label, t.Category == ModCategory.Weapon, OnAddonTypePicked));
+            ModderTypes.Add(new AddonTypeViewModel(t.Category, t.Label, t.Category is ModCategory.Weapon or ModCategory.Vehicle, OnAddonTypePicked));
         var stored = Enum.TryParse<ModCategory>(Settings.AddonType, ignoreCase: true, out var c) ? c : ModCategory.Weapon;
         (ModderTypes.FirstOrDefault(t => t.Category == stored) ?? ModderTypes[0]).IsSelected = true;
     }
@@ -106,6 +104,7 @@ public sealed partial class MainViewModel
     private ModPanelViewModel PanelFor(ModCategory category)
     {
         if (category == ModCategory.Weapon) return Weapon;
+        if (category == ModCategory.Vehicle) return VehicleBuild;
         if (!_modderPanels.TryGetValue(category, out var panel))
         {
             var t = AddonTypes.First(a => a.Category == category);

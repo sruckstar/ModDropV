@@ -98,11 +98,8 @@ public sealed partial class ReplacementHandler
     private static bool CanAddSlots(Wearer w, FileHit ymt, string gameDir)
     {
         if (!w.IsMp) return true;
-        if (!ymt.InMods) return false;
-        var segs = ymt.Archive.RelPath.Split('/');
-        // mods/update/x64/dlcpacks/<pack>/dlc.rpf — an add-on unless the game has a pack of that name
-        return segs.Length >= 6 && segs[4].Length > 0 && segs[3].Equals("dlcpacks", StringComparison.OrdinalIgnoreCase) &&
-               !Directory.Exists(Path.Combine(gameDir, "update", "x64", "dlcpacks", segs[4]));
+        // a pack in mods/update/x64/dlcpacks (onigiri/dlcpacks) — an add-on unless the game has a pack of that name
+        return ymt.InstalledPack is { } pack && !Directory.Exists(Path.Combine(gameDir, "update", "x64", "dlcpacks", pack));
     }
 
     /// <summary>

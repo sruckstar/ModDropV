@@ -306,7 +306,7 @@ public sealed partial class ReplacementHandler : FileModHandler
     }
 
     /// <summary>A hit's game path; a copy in mods counts as the game's archive it replaces.</summary>
-    private static string Norm(FileHit h) => h.InMods ? h.GamePath[GameIndex.ModsPrefix.Length..] : h.GamePath;
+    private static string Norm(FileHit h) => h.TargetPath;
 
     public override InstallPlan PlanInstall(ModPackage package, InstallTarget target)
     {

@@ -433,12 +433,12 @@ public sealed partial class ScriptHandler : FileModHandler
         return DocStemRe().IsMatch(Path.GetFileNameWithoutExtension(name)) && ext is ".txt" or "" or ".nfo";
     }
 
-    /// <summary>Never into the game's archives, the mods folder or over the game's executables.</summary>
+    /// <summary>Never into the game's archives, the mods / onigiri folder or over the game's executables.</summary>
     private static bool Safe(string dest)
     {
         var segs = dest.Split('/');
         if (segs.Any(s => s is "" or "." or "..") || dest.Contains(':')) return false;
-        if (segs[0].ToLowerInvariant() is "update" or "x64" or "mods" or ".moddropv") return false;
+        if (segs[0].ToLowerInvariant() is "update" or "x64" or "mods" or "onigiri" or ".moddropv") return false;
         if (dest.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase)) return false;
         return !(segs.Length == 1 && GameExes.Contains(segs[0]));
     }

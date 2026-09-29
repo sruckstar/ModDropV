@@ -50,7 +50,7 @@ public sealed partial class MainViewModel
     private string? InstalledGameDir()
     {
         var game = GameFolder.Trim();
-        return game.Length > 0 && Directory.Exists(Path.Combine(game, "mods")) ? game : null;
+        return game.Length > 0 && Directory.Exists(game) && Directory.Exists(ModsLayout.Root(game)) ? game : null;
     }
 
     /// <summary>Re-read what is installed in the selected game (player mode only).</summary>

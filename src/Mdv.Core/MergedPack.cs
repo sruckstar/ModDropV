@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Mdv.Core.Mods;
 using Mdv.Core.Rpf;
 using Mdv.Core.Util;
 
@@ -380,8 +381,9 @@ public sealed partial class MergedPack
             // per-weapon metas + labels
             var allLabels = new Dictionary<string, string>();
             var allHashes = new Dictionary<uint, string>();
-            // (a switched-off weapon's metas are packed too, but content.xml doesn't list them)
-            foreach (var (_, w) in Data.Weapons)
+            // (a switched-off weapon's metas are packed too, but content.xml doesn't list them;
+            // one using another weapon's components is listed after it, or the game stops loading)
+            foreach (var w in DlcOrder.Ordered(Data.Weapons.Values))
             {
                 if (!w.Disabled)
                 {
@@ -467,7 +469,7 @@ public sealed class MergedPackSet
     /// </summary>
     public void SyncWithGame(string gameDir)
     {
-        var dlcpacks = Path.Combine(gameDir, "mods", "update", "x64", "dlcpacks");
+        var dlcpacks = GameInstaller.DlcpacksDir(gameDir);
         bool dropped = false;
         foreach (var pack in Packs)
         {

@@ -27,19 +27,16 @@ public sealed partial class ReplacementHandler
         foreach (var g in index.Find($"{ped}_*.ymt", 5000).GroupBy(h => h.File.Name, StringComparer.OrdinalIgnoreCase))
         {
             if (ClothingNames.WearerOfYmt(g.Key) is not { Collection: not null } w || !w.Ped.Equals(ped, StringComparison.OrdinalIgnoreCase)) continue;
-            var own = g.Where(h => h.Active && !(h.InMods && h.Role == ArchiveRole.Dlc && !GamePack(h, index.GameDir))).ToList();
+            var own = g.Where(h => h.Active && !(h.Installed && h.Role == ArchiveRole.Dlc && !GamePack(h, index.GameDir))).ToList();
             if (own.Count == 0 || g.FirstOrDefault(h => h.Winner) is not { } winner) continue;
             list.Add(new GameCollection(w, Norm(winner), own.Min(h => h.Rank)));
         }
         return [.. list.OrderBy(c => c.Order).ThenBy(c => c.Wearer.Folder, StringComparer.OrdinalIgnoreCase)];
     }
 
-    /// <summary>A pack in mods that is a copy of one the game has (not an add-on).</summary>
-    private static bool GamePack(FileHit h, string gameDir)
-    {
-        var segs = h.Archive.RelPath.Split('/');
-        return segs.Length >= 6 && Directory.Exists(Path.Combine(gameDir, "update", "x64", "dlcpacks", segs[4]));
-    }
+    /// <summary>A pack in mods (onigiri) that is a copy of one the game has (not an add-on).</summary>
+    private static bool GamePack(FileHit h, string gameDir) =>
+        h.InstalledPack is { } pack && Directory.Exists(Path.Combine(gameDir, "update", "x64", "dlcpacks", pack));
 
     /// <summary>Give every model a new slot in the last collection of its ped that has room for it.</summary>
     private static void ResolveSlots(ReplacementPackage pkg, GameIndex index)

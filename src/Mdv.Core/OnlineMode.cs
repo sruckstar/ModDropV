@@ -119,7 +119,7 @@ public static class OnlineMode
     /// <summary>Data files of the game and its launcher — never taken for a mod's settings.</summary>
     private static readonly HashSet<string> GameData = new(StringComparer.OrdinalIgnoreCase)
     {
-        "index.bin", "rpf.cache", "title.rgl", "version.txt", "versioninfo.txt", "commandline.txt", "args.txt",
+        "index.bin", "rpf.cache", GameInstaller.RpfCacheSwitch, "title.rgl", "version.txt", "versioninfo.txt", "commandline.txt", "args.txt",
     };
 
     // ---------------------------------------------------------------- what mods look like
@@ -143,7 +143,7 @@ public static class OnlineMode
     /// <summary>Folders only mods make.</summary>
     private static readonly Dictionary<string, StashKind> ModFolders = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["mods"] = StashKind.ModsFolder,
+        ["mods"] = StashKind.ModsFolder, [ModsLayout.OnigiriRoot] = StashKind.ModsFolder,     // onigiri: Onigiri's loose files (NaturalVision Enhanced)
         ["scripts"] = StashKind.ScriptHook, ["plugins"] = StashKind.ScriptHook, ["lspdfr"] = StashKind.ScriptHook,
         ["menyooStuff"] = StashKind.Other, ["RampageFiles"] = StashKind.Other, ["reshade-shaders"] = StashKind.Other,
         ["reshade-presets"] = StashKind.Other, ["enbseries"] = StashKind.Other, ["enbcache"] = StashKind.Other,

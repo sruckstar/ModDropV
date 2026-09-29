@@ -22,7 +22,7 @@
       <TextBlock Text="{Binding Blurb}" TextWrapping="Wrap" TextAlignment="Center" FontSize="13"
                  Foreground="{DynamicResource Text2Brush}" LineHeight="20" />
       <TextBlock Classes="desc" TextAlignment="Center" HorizontalAlignment="Center"
-                 Text="{l:Tr 'It’s planned for a later version. Weapons are ready today — pick «Weapon» above.'}" />
+                 Text="{l:Tr 'It’s planned for a later version. Weapons and vehicles are ready today — pick «Weapon» or «Vehicle» above.'}" />
     </StackPanel>
   </Border>
 </UserControl>

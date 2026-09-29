@@ -103,6 +103,19 @@ public static class AddonChecks
             r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Converted for GTA V Enhanced"),
                 L.T("Its models are Legacy ones — they are converted to the Enhanced (gen9) format while installing.")));
 
+        // ---- what its vehicles name that neither the mod nor the game has
+        if (pkg.Gaps.Count > 0)
+        {
+            var what = string.Join(", ", pkg.Gaps.Select(g => $"{g.Text} ({g.Model})"));
+            r.Items.Add(AddonPackHandler.GapBaseOf(pkg) is { } from
+                ? new AddonCheck(CheckLevel.Info, L.T("Missing parts taken from a game vehicle"),
+                    L.T($"Its vehicles.meta names {what}, which neither the mod nor the game has — the game would crash spawning it. " +
+                        $"They are taken from {from.Title} ({from.Model}); pick another vehicle if one fits better."))
+                : new AddonCheck(CheckLevel.Block, L.T("Missing parts"),
+                    L.T($"Its vehicles.meta names {what}, which neither the mod nor the game has — the game would crash spawning it. " +
+                        $"Pick a game vehicle to take them from.")));
+        }
+
         // ---- earlier installs of the same pack; the dlcpacks folder
         var mine = reg.Mods.Where(m => handler.Owns(m.Id)).ToList();
         foreach (var old in mine.Where(m => pkg.Device.Equals(m.Get("device"), StringComparison.OrdinalIgnoreCase) &&
@@ -125,11 +138,11 @@ public static class AddonChecks
             r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Pack folder renamed"),
                 gameFolders.Contains(pkg.PackName)
                     ? L.T($"The game has a pack named «{pkg.PackName}» of its own — this one goes in as «{free}».")
-                    : L.T($"Another pack is already in mods\\update\\x64\\dlcpacks\\{pkg.PackName} — this one goes in as «{free}».")));
+                    : L.T($"Another pack is already in {ModsLayout.DlcpacksShown(target.GameDir)}\\{pkg.PackName} — this one goes in as «{free}».")));
         }
         else if (others.FirstOrDefault(o => o.Folder.Equals(pkg.PackName, StringComparison.OrdinalIgnoreCase)) is { } same)
             r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Already in the game"),
-                L.T($"This pack is already in mods\\update\\x64\\dlcpacks\\{same.Folder} (not put there by ModDrop V) — it is replaced by this copy.")));
+                L.T($"This pack is already in {ModsLayout.DlcpacksShown(target.GameDir)}\\{same.Folder} (not put there by ModDrop V) — it is replaced by this copy.")));
         foreach (var o in others.Where(o => o.On && pkg.Device.Equals(o.Device, StringComparison.OrdinalIgnoreCase) &&
                                             !o.Folder.Equals(pkg.PackName, StringComparison.OrdinalIgnoreCase)))
             r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Installed twice"),
@@ -175,6 +188,9 @@ public static class AddonChecks
                 r.Items.Add(new AddonCheck(CheckLevel.Ok, colls.Count == 1 ? L.T("Collection name is free") : L.T("Collection names are free"),
                     string.Join(", ", colls.Select(c => c.FullName))));
         }
+
+        // ---- weapon components from another mod: listed after it, or the game stops loading without it
+        r.Items.AddRange(DlcOrder.Checks(game, target.Edition, pkg.DataDir, new(content.ComponentsDefined, content.ComponentsUsed), ownFolders));
 
         // ---- maps: what they place must exist; placements named like the game's replace them
         if (pkg.Kind == ModCategory.Map && index is not null) MapChecks(pkg, index, ownFolders, r);
@@ -258,7 +274,7 @@ public static class AddonChecks
     }
 
     private static bool InFolder(FileHit h, HashSet<string> folders) =>
-        folders.Any(f => h.Archive.RelPath.StartsWith($"mods/update/x64/dlcpacks/{f}/", StringComparison.OrdinalIgnoreCase));
+        h.InstalledPack is { } pack && folders.Contains(pack);
 
     /// <summary>The game's own DLC folder names (update\x64\dlcpacks) — a pack in mods under one of them would replace it.</summary>
     private static HashSet<string> GameDlcFolders(string game)

@@ -4,28 +4,36 @@ namespace Mdv.Core.Mods;
 
 /// <summary>
 /// The plugins GTA V Enhanced needs next to the raised gameconfig.xml limits: without Heap Adjuster and Packfile Limit
-/// Adjuster (their Enhanced builds, MIT, shipped in data/plugins/limits-enhanced) the game crashes with them. They go in
-/// with the limits and stay when the last mod is removed — without mods they change nothing that matters.
-/// A plugin the game has is kept, unless it is a build for Legacy (Heap Adjuster has the same file name in both).
+/// Adjuster (their Enhanced builds, MIT, shipped in data/plugins/limits-enhanced) the game crashes with them. Weapon Limits
+/// Adjuster (ModDrop V's own port, plugins/WeaponLimitsAdjusterEnhanced) makes room for weapon components past the game's
+/// 470. They go in with the limits and stay when the last mod is removed — without mods they change nothing that matters.
+/// A plugin the game has is kept, unless it is a build for Legacy (Heap Adjuster has the same file name in both); any
+/// Enhanced WeaponLimitsAdjuster*.asi counts as the weapon one — two of them would patch the same code.
 /// </summary>
 public static class LimitAdjusters
 {
     public const string Folder = "limits-enhanced";
 
-    public static readonly (string Name, string Asi, string Ini)[] Plugins =
+    public const string WeaponAsi = "WeaponLimitsAdjusterEnhanced.asi";
+
+    /// <summary>The plugins; <c>Present</c> is the file pattern of the ones that count as already there.</summary>
+    public static readonly (string Name, string Asi, string Ini, string Present)[] Plugins =
     [
-        ("Heap Adjuster", "HeapAdjuster.asi", "HeapAdjuster.ini"),
-        ("Packfile Limit Adjuster", "PackfileLimitAdjusterEnhanced.asi", "PackfileLimitAdjusterEnhanced.ini"),
+        ("Heap Adjuster", "HeapAdjuster.asi", "HeapAdjuster.ini", "HeapAdjuster.asi"),
+        ("Packfile Limit Adjuster", "PackfileLimitAdjusterEnhanced.asi", "PackfileLimitAdjusterEnhanced.ini", "PackfileLimitAdjusterEnhanced.asi"),
+        ("Weapon Limits Adjuster", WeaponAsi, "WeaponLimitsAdjusterEnhanced.ini", "WeaponLimitsAdjuster*.asi"),
     ];
 
     private static readonly byte[] EnhancedMark = Encoding.ASCII.GetBytes(GameEditions.EnhancedExe);
+    private static readonly byte[] EnhancedMarkWide = Encoding.Unicode.GetBytes(GameEditions.EnhancedExe);
 
-    /// <summary>An .asi made for GTA V Enhanced: it looks for the Enhanced executable by name.</summary>
+    /// <summary>An .asi made for GTA V Enhanced: it looks for the Enhanced executable by name (in ASCII or UTF-16).</summary>
     public static bool ForEnhanced(string asi)
     {
         try
         {
-            return File.ReadAllBytes(asi).AsSpan().IndexOf(EnhancedMark) >= 0;
+            var bytes = File.ReadAllBytes(asi).AsSpan();
+            return bytes.IndexOf(EnhancedMark) >= 0 || bytes.IndexOf(EnhancedMarkWide) >= 0;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -42,11 +50,11 @@ public static class LimitAdjusters
         var list = new List<(string, string)>();
         if (edition != GameEdition.Enhanced) return list;
         var dir = Path.Combine(pluginsDir, Folder);
-        foreach (var (_, asi, ini) in Plugins)
+        foreach (var (_, asi, ini, present) in Plugins)
         {
             if (!File.Exists(Path.Combine(dir, asi))) continue;
             var there = Path.Combine(gameDir, asi);
-            if (File.Exists(there) && ForEnhanced(there)) continue;
+            if (Directory.Exists(gameDir) && Directory.EnumerateFiles(gameDir, present).Any(ForEnhanced)) continue;
             list.Add((Path.Combine(dir, asi), asi));
             if (File.Exists(Path.Combine(dir, ini)) && (File.Exists(there) || !File.Exists(Path.Combine(gameDir, ini))))
                 list.Add((Path.Combine(dir, ini), ini));

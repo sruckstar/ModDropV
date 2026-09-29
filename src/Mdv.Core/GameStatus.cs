@@ -52,7 +52,7 @@ public static class GameStatus
 {
     public const string GameKey = "game", ModsKey = "mods", LoaderKey = "loader", AsiKey = "asi",
                         ShvKey = "shv", ShvdnKey = "shvdn", RphKey = "rph", DlcKey = "dlc", CopiesKey = "copies",
-                        OnlineKey = "online";
+                        OnlineKey = "online", RpfCacheKey = "rpfcache";
 
     /// <param name="dlcs">from the game's file index, once built: the number of DLC packs mounted</param>
     public static GameStatusReport Read(string gameDir, GameEdition? edition = null, MountedDlcs? dlcs = null)
@@ -87,7 +87,9 @@ public static class GameStatus
         // the mods folder and what makes the game read it
         var mods = Path.Combine(gameDir, "mods");
         var modsUpdate = Path.Combine(mods, "update", "update.rpf");
-        if (File.Exists(modsUpdate) || Directory.Exists(modsUpdate))
+        bool onigiri = ModsLayout.UsesOnigiri(gameDir);
+        if (onigiri) OnigiriItems(gameDir, r);
+        else if (File.Exists(modsUpdate) || Directory.Exists(modsUpdate))
             r.Items.Add(new(ModsKey, L.T("Mods folder"), L.T("set up"), StatusLevel.Ok, L.T("mods\\update\\update.rpf is in place.")));
         else if (Directory.Exists(mods))
             r.Items.Add(new(ModsKey, L.T("Mods folder"), L.T("no update.rpf copy yet"), StatusLevel.Info,
@@ -98,7 +100,8 @@ public static class GameStatus
 
         var plugins = GameInstaller.ModFolderPlugins.Where(p => File.Exists(Path.Combine(gameDir, p))).ToList();
         var usable = plugins.Where(p => GameInstaller.Serves(p, e)).ToList();
-        if (usable.Count > 0)
+        if (onigiri) { }                                  // OnigiriItems said it
+        else if (usable.Count > 0)
             r.Items.Add(new(LoaderKey, L.T("Mods loader"), string.Join(", ", usable), StatusLevel.Ok,
                             L.T("Lets the game load the files in the mods folder instead of its own.")));
         else if (plugins.Count > 0 && plugins.All(GameInstaller.IsSuperseded))
@@ -112,6 +115,20 @@ public static class GameStatus
         else
             r.Items.Add(new(LoaderKey, L.T("Mods loader"), L.T("none yet"), StatusLevel.Info,
                             L.T($"ModDrop V adds {GameInstaller.BundledPlugin(e)} on the first install.")));
+
+        // Enhanced's RPF cache: while it's on, the game can take the archives from it and pass over the mods folder
+        if (e == GameEdition.Enhanced && !onigiri)
+        {
+            var sw = GameInstaller.RpfCacheSwitch;
+            if (File.Exists(Path.Combine(gameDir, sw)))
+                r.Items.Add(new(RpfCacheKey, L.T("RPF cache"), L.T("off"), StatusLevel.Ok,
+                                L.T($"{sw} is in the game folder: the game reads the archives in mods, not its cached copy of them.")));
+            else
+                r.Items.Add(new(RpfCacheKey, L.T("RPF cache"), L.T($"on — no {sw}"),
+                                Directory.Exists(mods) ? StatusLevel.Warning : StatusLevel.Info,
+                                L.T($"With the cache on, the game can ignore the mods folder. ModDrop V adds the empty {sw} on the next install " +
+                                $"(or create it in the game folder yourself).")));
+        }
 
         // ASI loader
         var loaders = GameInstaller.AsiLoaders.Where(l => File.Exists(Path.Combine(gameDir, l))).ToList();
@@ -167,9 +184,12 @@ public static class GameStatus
         // DLC packs: what the game mounts (from the index), and the add-on packs in mods
         var dlcpacks = GameInstaller.DlcpacksDir(gameDir);
         int addons = Directory.Exists(dlcpacks)
-            ? Directory.EnumerateDirectories(dlcpacks).Count(d => File.Exists(Path.Combine(d, "dlc.rpf")))
-            : 0;
-        var addonText = addons == 1 ? L.T("1 add-on pack in mods") : L.T($"{addons} add-on packs in mods");
+            ? Directory.EnumerateDirectories(dlcpacks).Count(d => File.Exists(Path.Combine(d, "dlc.rpf")) &&
+                                                                  !Directory.Exists(Path.Combine(gameDir, "update", "x64", "dlcpacks", Path.GetFileName(d))))
+            : 0;                                              // a copy of one of the game's packs isn't an add-on
+        var addonText = onigiri
+            ? addons == 1 ? L.T("1 add-on pack in onigiri") : L.T($"{addons} add-on packs in onigiri")
+            : addons == 1 ? L.T("1 add-on pack in mods") : L.T($"{addons} add-on packs in mods");
         r.Items.Add(dlcs is null
             ? new(DlcKey, L.T("DLC packs"), addonText, StatusLevel.Info, L.T("Reading the game's files for the full count…"))
             : new(DlcKey, L.T("DLC packs"), L.T($"{dlcs.Count} mounted · {addons} add-on"), StatusLevel.Ok,
@@ -186,17 +206,47 @@ public static class GameStatus
             return r;
         }
         var stale = r.Copies.Where(c => c.Stale is not null).ToList();
+        var copiesLabel = onigiri ? L.T("Copies in onigiri") : L.T("Copies in mods");
         if (r.Copies.Count == 0)
-            r.Items.Add(new(CopiesKey, L.T("Copies in mods"), L.T("none"), StatusLevel.Info,
-                            L.T("Game archives are copied into mods only when a mod changes them.")));
+            r.Items.Add(new(CopiesKey, copiesLabel, L.T("none"), StatusLevel.Info,
+                            onigiri ? L.T("Game archives are copied into onigiri only when a mod changes a file inside one; other files lie there loose.")
+                                    : L.T("Game archives are copied into mods only when a mod changes them.")));
         else if (stale.Count > 0)
-            r.Items.Add(new(CopiesKey, L.T("Copies in mods"), L.T($"{stale.Count} of {r.Copies.Count} outdated"), StatusLevel.Warning,
+            r.Items.Add(new(CopiesKey, copiesLabel, L.T($"{stale.Count} of {r.Copies.Count} outdated"), StatusLevel.Warning,
                             L.T("The game was updated after these were copied — an old copy is a common reason for crashes:\n") +
-                            string.Join("\n", stale.Select(c => $"mods/{c.Archive}: {c.Stale}"))));
+                            string.Join("\n", stale.Select(c => $"{c.Shown}: {c.Stale}"))));
         else
-            r.Items.Add(new(CopiesKey, L.T("Copies in mods"), r.Copies.Count == 1 ? L.T("1, up to date") : L.T($"{r.Copies.Count}, up to date"),
-                            StatusLevel.Ok, string.Join("\n", r.Copies.Select(c => "mods/" + c.Archive))));
+            r.Items.Add(new(CopiesKey, copiesLabel, r.Copies.Count == 1 ? L.T("1, up to date") : L.T($"{r.Copies.Count}, up to date"),
+                            StatusLevel.Ok, string.Join("\n", r.Copies.Select(c => c.Shown))));
         return r;
+    }
+
+    /// <summary>
+    /// A game with Onigiri: the onigiri folder is where mods go (the mods line), onigiri.asi is what loads it (the loader
+    /// line) — with a warning when a mods-folder plugin sits beside it, or ModDrop V's earlier mods wait in a mods folder
+    /// the game no longer reads.
+    /// </summary>
+    private static void OnigiriItems(string gameDir, GameStatusReport r)
+    {
+        var root = Path.Combine(gameDir, ModsLayout.OnigiriRoot);
+        var oldRegistry = Path.Combine(gameDir, "mods", ModRegistry.FileName);
+        if (File.Exists(oldRegistry))
+            r.Items.Add(new(ModsKey, L.T("Mods folder"), L.T("onigiri — mods folder not read"), StatusLevel.Warning,
+                            L.T("The game runs Onigiri, which reads the onigiri folder and not the mods folder: what ModDrop V installed " +
+                            "into the mods folder before doesn't show in the game. Install those mods again — they go into onigiri now.")));
+        else
+            r.Items.Add(new(ModsKey, L.T("Mods folder"), Directory.Exists(root) ? "onigiri" : L.T("onigiri, not made yet"), StatusLevel.Ok,
+                            L.T("The game runs Onigiri: mods go into the onigiri folder as loose files (onigiri\\common = update.rpf\\common, " +
+                            "onigiri\\platform = update.rpf\\x64, onigiri\\dlcpacks = update\\x64\\dlcpacks) — the game's archives aren't copied.")));
+
+        var others = GameInstaller.ModFolderPlugins.Where(p => File.Exists(Path.Combine(gameDir, p))).ToList();
+        if (others.Count > 0)
+            r.Items.Add(new(LoaderKey, L.T("Mods loader"), $"{ModsLayout.OnigiriAsi} + {string.Join(", ", others)}", StatusLevel.Warning,
+                            L.T($"Onigiri isn't made to run with a mods-folder plugin ({string.Join(", ", others)}) — NaturalVision " +
+                            $"Enhanced warns about it. If the game misbehaves, take the plugin out.")));
+        else
+            r.Items.Add(new(LoaderKey, L.T("Mods loader"), ModsLayout.OnigiriAsi, StatusLevel.Ok,
+                            L.T("Onigiri (it comes with NaturalVision Enhanced) loads the loose files in the onigiri folder over the game's.")));
     }
 
     /// <summary>

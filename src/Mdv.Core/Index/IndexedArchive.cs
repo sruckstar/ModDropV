@@ -88,6 +88,75 @@ public sealed class IndexedArchive
         };
     }
 
+    /// <summary>
+    /// The loose files under a folder (Onigiri's <c>onigiri\common</c>, <c>onigiri\platform</c>) listed like an archive's —
+    /// the archives among them are listed on their own (<see cref="Scan"/>), not walked into. Not cached: only file
+    /// headers are read. The folder's <c>data\dlclist.xml</c> is read too.
+    /// </summary>
+    public static IndexedArchive ScanLoose(string dir, string relPath, CancellationToken ct = default)
+    {
+        var dirs = new List<string>();
+        var dirIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var files = new List<IndexedFile>();
+        var errors = new List<string>();
+        int DirId(string rel)
+        {
+            if (dirIds.TryGetValue(rel, out var id)) return id;
+            dirs.Add(rel);
+            return dirIds[rel] = dirs.Count - 1;
+        }
+        DirId("");
+        var opts = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
+        foreach (var file in Directory.EnumerateFiles(dir, "*", opts))
+        {
+            ct.ThrowIfCancellationRequested();
+            var rel = Path.GetRelativePath(dir, file).Replace('\\', '/');
+            if (rel.StartsWith('.') || rel.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)) continue;
+            var name = Path.GetFileName(rel);
+            var parent = rel.Length > name.Length ? rel[..(rel.Length - name.Length - 1)] : "";
+            try
+            {
+                var fi = new FileInfo(file);
+                var kind = RpfEntryKind.Raw;
+                byte version = 0;
+                if (!name.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase) && fi.Length >= 16)
+                {
+                    Span<byte> h = stackalloc byte[16];
+                    using (var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) fs.ReadExactly(h);
+                    if (BitConverter.ToUInt32(h) == Rpf7.Rsc7Magic)
+                    {
+                        kind = RpfEntryKind.Resource;
+                        version = (byte)BitConverter.ToUInt32(h[4..]);
+                    }
+                    else kind = RpfEntryKind.Binary;
+                }
+                files.Add(new IndexedFile(DirId(parent), name, fi.Length, kind, version));
+            }
+            catch (IOException ex)
+            {
+                errors.Add($"{rel}: {ex.Message}");
+            }
+        }
+        string[]? dlcList = null;
+        var list = Path.Combine(dir, "data", "dlclist.xml");
+        if (File.Exists(list))
+        {
+            try
+            {
+                dlcList = ParseDlcList(XDocument.Parse(File.ReadAllText(list).TrimStart('﻿', '\0')).Root!);
+            }
+            catch (Exception ex) when (ex is IOException or System.Xml.XmlException)
+            {
+                errors.Add($"data/dlclist.xml: {ex.Message}");
+            }
+        }
+        return new IndexedArchive
+        {
+            RelPath = relPath, Dirs = [.. dirs], Files = [.. files], DlcList = dlcList,
+            Error = errors.Count == 0 ? null : string.Join("; ", errors),
+        };
+    }
+
     private static void Walk(RpfArchive rpf, string prefix, List<string> dirs, List<IndexedFile> files,
                              List<string> errors, CancellationToken ct)
     {

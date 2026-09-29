@@ -85,7 +85,8 @@ public sealed class ModRegistry
     /// <summary>The loaded file was migrated or took over another registry — worth saving.</summary>
     [JsonIgnore] public bool Upgraded { get; private set; }
 
-    public static string PathFor(string gameDir) => Path.Combine(gameDir, "mods", FileName);
+    /// <summary><c>mods\ModDropV.json</c> — <c>onigiri\ModDropV.json</c> in a game that runs Onigiri.</summary>
+    public static string PathFor(string gameDir) => Path.Combine(ModsLayout.Root(gameDir), FileName);
 
     public static ModRegistry Load(string gameDir)
     {

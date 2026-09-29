@@ -27,7 +27,7 @@ public sealed record CreatedDir([property: JsonPropertyName("path")] string Path
 
 /// <summary>
 /// An existing file or folder that was replaced, edited or deleted: its previous state sits
-/// in <paramref name="Stash"/> (under mods/.moddropv/stash). Undo: put it back. A stash with
+/// in <paramref name="Stash"/> (under mods/.moddropv/stash or onigiri/.moddropv/stash). Undo: put it back. A stash with
 /// <paramref name="Keep"/> = false only guards the transaction and is dropped on commit.
 /// </summary>
 public sealed record MovedAside([property: JsonPropertyName("path")] string Path,
@@ -72,8 +72,9 @@ public sealed record RpfEntrySet([property: JsonPropertyName("archive")] string 
 /// </summary>
 public sealed class InstallJournal
 {
-    /// <summary>Game-relative folder for ModDrop V's own housekeeping (stashes).</summary>
-    public const string HomeDir = "mods/.moddropv";
+    /// <summary>Game-relative folder for ModDrop V's own housekeeping (stashes): <c>mods/.moddropv</c>, or
+    /// <c>onigiri/.moddropv</c> in a game that runs Onigiri (<see cref="ModsLayout"/>).</summary>
+    public string HomeDir { get; }
 
     private readonly Action<string> _log;
     private int _stashNo;
@@ -86,6 +87,7 @@ public sealed class InstallJournal
     {
         GameDir = Path.GetFullPath(gameDir);
         TxnId = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6];
+        HomeDir = ModsLayout.HomeRel(GameDir);
         _log = log ?? (_ => { });
     }
 

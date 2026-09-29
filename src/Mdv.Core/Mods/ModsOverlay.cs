@@ -1,4 +1,5 @@
 using Mdv.Core;
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -23,6 +24,85 @@ public sealed class ModsCopy
     /// <summary>The copy as ModDrop V last left it — anything else means another tool changed it since.</summary>
     [JsonPropertyName("length")] public long Length { get; set; }
     [JsonPropertyName("write")] public long Write { get; set; }
+    /// <summary>With Onigiri: the game path the copy was taken from (<c>x64e.rpf/levels/gta5/vehicles.rpf</c>).</summary>
+    [JsonPropertyName("source")] [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Source { get; set; }
+}
+
+/// <summary>
+/// What the mods layer edits one place through: a copy of an archive, or — with Onigiri — a folder of loose files.
+/// Changes wait until <see cref="Commit"/>; <see cref="IDisposable.Dispose"/> without a commit drops them.
+/// </summary>
+internal interface IEntryStore : IDisposable
+{
+    bool Exists(string inner);
+    StoredEntry? Get(string inner);
+    void Put(string inner, StoredEntry data);
+    void Delete(string inner);
+    void Commit();
+}
+
+/// <summary>An archive copy, through <see cref="RpfEditor"/>.</summary>
+internal sealed class ArchiveStore(RpfEditor ed) : IEntryStore
+{
+    public bool Exists(string inner) => ed.Exists(inner);
+    public StoredEntry? Get(string inner) => ed.Get(inner);
+    public void Put(string inner, StoredEntry data) => ed.Put(inner, data);
+    public void Delete(string inner) => ed.Delete(inner);
+    public void Commit() => ed.Commit();
+    public void Dispose() => ed.Dispose();
+}
+
+/// <summary>
+/// Loose files under a folder (<c>onigiri\common</c>, <c>onigiri\platform</c>): an entry is the file as it lies on disk
+/// (<see cref="StoredEntry.OfLooseFile"/>), written the way a loose-file loader reads it (<see cref="StoredEntry.ToLooseFile"/>).
+/// </summary>
+internal sealed class LooseStore(string root) : IEntryStore
+{
+    private readonly Dictionary<string, byte[]?> _pending = new(StringComparer.OrdinalIgnoreCase);
+
+    public string FileOf(string inner) => Path.Combine(root, inner.Replace('/', Path.DirectorySeparatorChar));
+
+    public bool Exists(string inner) => _pending.TryGetValue(inner, out var p) ? p is not null : File.Exists(FileOf(inner));
+
+    public StoredEntry? Get(string inner)
+    {
+        if (_pending.TryGetValue(inner, out var p)) return p is null ? null : StoredEntry.OfLooseFile(p);
+        var file = FileOf(inner);
+        return File.Exists(file) ? StoredEntry.OfLooseFile(File.ReadAllBytes(file)) : null;
+    }
+
+    public void Put(string inner, StoredEntry data) => _pending[inner] = data.ToLooseFile();
+    public void Delete(string inner) => _pending[inner] = null;
+
+    public void Commit()
+    {
+        foreach (var (inner, data) in _pending)
+        {
+            var file = FileOf(inner);
+            if (data is null)
+            {
+                if (!File.Exists(file)) continue;
+                File.Delete(file);
+                // folders only the file needed go with it (the root stays)
+                for (var d = Path.GetDirectoryName(file); d is not null && d.Length > root.TrimEnd('\\', '/').Length; d = Path.GetDirectoryName(d))
+                {
+                    try
+                    {
+                        if (Directory.EnumerateFileSystemEntries(d).Any()) break;
+                        Directory.Delete(d);
+                    }
+                    catch (IOException) { break; }
+                }
+                continue;
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+            File.WriteAllBytes(file + ".tmp", data);
+            File.Move(file + ".tmp", file, overwrite: true);
+        }
+        _pending.Clear();
+    }
+
+    public void Dispose() => _pending.Clear();
 }
 
 /// <summary>One mod's version of a file inside a game archive.</summary>
@@ -63,7 +143,13 @@ public sealed record OverlayConflict(string GamePath, IReadOnlyList<string> Owne
 /// <param name="Tracked">ModDrop V has changed something in it</param>
 /// <param name="Stale">why the copy is out of date with the game, or null</param>
 /// <param name="Owned">files mods changed in it</param>
-public sealed record CopyStatus(string Archive, bool Tracked, bool Created, string? Stale, int Owned, long Length);
+public sealed record CopyStatus(string Archive, bool Tracked, bool Created, string? Stale, int Owned, long Length)
+{
+    /// <summary>Where the copy is, relative to the game: <c>mods/x64e.rpf</c>, <c>onigiri/dlcpacks/mpbiker/dlc.rpf</c>.</summary>
+    public string Shown => Archive.StartsWith(ModsLayout.OnigiriRoot + "/", StringComparison.OrdinalIgnoreCase)
+        ? Archive
+        : GameIndex.ModsPrefix + Archive;
+}
 
 /// <summary>
 /// The mods layer: every change to a file inside the game's archives goes into a copy of the
@@ -83,12 +169,18 @@ public sealed record CopyStatus(string Archive, bool Tracked, bool Created, stri
 /// When the game is updated the copies go stale — <see cref="Refresh"/> takes a fresh copy and
 /// puts the mods' versions back in.
 /// </para>
+/// <para>
+/// A game that runs Onigiri (<see cref="ModsLayout"/>) gets the same layer in the onigiri folder: a place is an archive
+/// copied there (a dlcpack, or an archive nested in the game's — <see cref="OnigiriPaths"/>) or a loose file under
+/// <c>onigiri\common</c> / <c>onigiri\platform</c>. Keys are onigiri paths then; the game's own version of a loose file is
+/// simply "no file" (the game shows through), and a game file can't be taken away.
+/// </para>
 /// </summary>
 public sealed class ModsOverlay
 {
-    public const string StateRel = InstallJournal.HomeDir + "/overlay.json";
-    public const string BlobsRel = InstallJournal.HomeDir + "/blobs";
-    public const string TempRel = InstallJournal.HomeDir + "/tmp";
+    /// <summary>The mods layer's files in the mods folder (a game with Onigiri keeps them in onigiri\.moddropv).</summary>
+    public const string StateRel = "mods/.moddropv/overlay.json";
+    public const string BlobsRel = "mods/.moddropv/blobs";
     public const string Live = "live";
     public const string Absent = "absent";
     public const string Game = "game";
@@ -96,16 +188,19 @@ public sealed class ModsOverlay
     private const string UpdateRpf = "update/update.rpf";
 
     private readonly Action<string> _log;
-    private readonly Dictionary<string, RpfEditor> _editors = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IEntryStore> _editors = new(StringComparer.Ordinal);
     private readonly HashSet<string> _trusted = new(StringComparer.Ordinal);
     private readonly List<(string Top, string Inner, string Prior)> _pending = [];
     private readonly HashSet<string> _touched = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string?> _sources = new(StringComparer.Ordinal);
     private GameCrypto? _crypto;
     private bool _cryptoLoaded;
     private InstallJournal? _journal;
     private string _snapshot;
 
     public string GameDir { get; }
+    /// <summary>The game runs Onigiri: places are in the onigiri folder.</summary>
+    public bool Onigiri { get; }
     /// <summary>The game the files are stored for (Legacy models are converted for Enhanced).</summary>
     public GameEdition Edition { get; set; } = GameEdition.Legacy;
     public OverlayState State { get; private set; }
@@ -113,12 +208,15 @@ public sealed class ModsOverlay
     private ModsOverlay(string gameDir, OverlayState state, Action<string>? log)
     {
         GameDir = Path.GetFullPath(gameDir);
+        Onigiri = ModsLayout.UsesOnigiri(GameDir);
         State = state;
         _log = log ?? (_ => { });
         _snapshot = TextIo.ToJson(state);
     }
 
-    public static string StatePath(string gameDir) => InstallJournal.Abs(gameDir, StateRel);
+    private static string Home(string gameDir) => ModsLayout.HomeRel(gameDir);
+    public static string StatePath(string gameDir) => InstallJournal.Abs(gameDir, Home(gameDir) + "/overlay.json");
+    private static string BlobsDir(string gameDir) => InstallJournal.Abs(gameDir, Home(gameDir) + "/blobs");
 
     public static ModsOverlay Load(string gameDir, Action<string>? log = null) =>
         new(gameDir, ReadState(gameDir) ?? new OverlayState(), log);
@@ -173,7 +271,7 @@ public sealed class ModsOverlay
     /// <summary>Delete saved versions (blobs) the state doesn't refer to (the state on disk when null).</summary>
     public static void CollectGarbage(string gameDir, OverlayState? state = null)
     {
-        var dir = InstallJournal.Abs(gameDir, BlobsRel);
+        var dir = BlobsDir(gameDir);
         if (!Directory.Exists(dir)) return;
         state ??= ReadState(gameDir) ?? new OverlayState();
         var keep = state.Entries.Values
@@ -206,17 +304,83 @@ public sealed class ModsOverlay
         throw new ArgumentException(L.T($"{gamePath} is not a path inside a game archive (like x64e.rpf/levels/gta5/vehicles.rpf/adder.yft)."));
     }
 
+    /// <summary>The key of a game path in the standard layout (<see cref="Split"/> joined). See <see cref="KeyFor"/>.</summary>
     public static string KeyOf(string gamePath)
     {
         var (a, i) = Split(gamePath);
         return $"{a}/{i}";
     }
 
-    private static string TopOf(string key) => Split(key).Archive;
+    /// <summary>
+    /// The place a game path is changed in, and the path inside it: the top-level archive (its copy goes into mods) — or,
+    /// with Onigiri, its place in the onigiri folder (<see cref="OnigiriPaths.Map"/>). Lower case.
+    /// </summary>
+    /// <exception cref="ArgumentException">not a file inside a game archive</exception>
+    /// <exception cref="NotSupportedException">Onigiri has no place for it</exception>
+    public (string Top, string Inner) Place(string gamePath)
+    {
+        if (!Onigiri) return Split(gamePath);
+        var spot = OnigiriPaths.Map(gamePath);
+        if (spot.Inner.Length == 0)
+            throw new ArgumentException(L.T($"{gamePath} is not a path inside a game archive (like x64e.rpf/levels/gta5/vehicles.rpf/adder.yft)."));
+        return (spot.Top, spot.Inner);
+    }
 
-    /// <summary>The copy in mods of a game archive.</summary>
-    public string CopyPath(string archive) => InstallJournal.Abs(GameDir, GameIndex.ModsPrefix + archive);
-    private string GameFile(string archive) => InstallJournal.Abs(GameDir, archive);
+    /// <summary>The key a game path's changes are kept under (<see cref="OverlayState.Entries"/>).</summary>
+    public string KeyFor(string gamePath)
+    {
+        var (a, i) = Place(gamePath);
+        return $"{a}/{i}";
+    }
+
+    private string TopOf(string key) => Place(key).Top;
+
+    /// <summary>The copy of a place: <c>mods\&lt;archive&gt;</c>, or its file in onigiri (a loose root is a folder).</summary>
+    public string CopyPath(string top) => InstallJournal.Abs(GameDir, Shown(top));
+
+    /// <summary>A place relative to the game, as the player sees it: <c>mods/x64e.rpf</c>, <c>onigiri/dlcpacks/mpbiker/dlc.rpf</c>.</summary>
+    public string Shown(string top) => Onigiri ? top : GameIndex.ModsPrefix + top;
+
+    /// <summary>A loose root of Onigiri (<c>onigiri/common</c>, <c>onigiri/platform</c>): the place is a folder of loose files.</summary>
+    private bool IsLoose(string top) => Onigiri && OnigiriPaths.IsLooseRoot(top);
+
+    /// <summary>
+    /// The game's own version of a place (an archive) as a game path — the top-level archive and the archives nested in it:
+    /// the archive itself, or with Onigiri the one the game sees at that place (update2.rpf's, update.rpf's, else the base
+    /// archives'). Null: the game has none (an add-on pack, a new archive).
+    /// </summary>
+    private string? SourceOf(string top)
+    {
+        if (!Onigiri) return File.Exists(InstallJournal.Abs(GameDir, top)) ? top : null;
+        if (IsLoose(top)) return null;
+        if (_sources.TryGetValue(top, out var known)) return known;
+        var spot = OnigiriPaths.Map(top + "/x");
+        string? found;
+        if (spot.Logical is null)
+        {
+            var rel = "update/x64/dlcpacks/" + top[(ModsLayout.OnigiriDlcpacks.Length + 1)..];
+            found = File.Exists(InstallJournal.Abs(GameDir, rel)) ? rel : null;
+        }
+        else found = OnigiriPaths.Candidates(GameDir, spot.Logical).FirstOrDefault(c => AtGame(c, (_, _) => true));
+        return _sources[top] = found;
+    }
+
+    /// <summary>The game's top-level archive file that holds a place's original, or null.</summary>
+    private string? GameArchiveOf(string top) =>
+        SourceOf(top) is { } src ? InstallJournal.Abs(GameDir, Split(src + "/x").Archive) : null;
+
+    /// <summary>Where the game has a loose root's file: the first of <see cref="OnigiriPaths.Candidates"/> that is there.</summary>
+    private string? LooseSource(string top, string inner) =>
+        OnigiriPaths.Candidates(GameDir, (top.Equals(ModsLayout.OnigiriPlatform, StringComparison.OrdinalIgnoreCase) ? "x64/" : "common/") + inner)
+                    .FirstOrDefault(c => AtGame(c, (_, e) => !e.IsDir));
+
+    /// <summary>update2.rpf loads over onigiri\platform: a file the game has there can't be changed through Onigiri.</summary>
+    private static void RefuseUpdate2(string? source, string what)
+    {
+        if (source?.StartsWith("update/update2.rpf/", StringComparison.OrdinalIgnoreCase) == true)
+            throw new NotSupportedException(
+                L.T($"{what}: the game loads it from update2.rpf, which Onigiri can't override — install this mod through the mods folder instead."));
+    }
 
     private GameCrypto? Crypto()
     {
@@ -238,11 +402,11 @@ public sealed class ModsOverlay
 
     /// <summary>Mods that change <paramref name="gamePath"/>, the one the game sees first.</summary>
     public IReadOnlyList<string> OwnersOf(string gamePath) =>
-        State.Entries.TryGetValue(KeyOf(gamePath), out var e) ? e.Layers.Select(l => l.Mod).Reverse().ToList() : [];
+        State.Entries.TryGetValue(KeyFor(gamePath), out var e) ? e.Layers.Select(l => l.Mod).Reverse().ToList() : [];
 
     /// <summary>The file at <paramref name="gamePath"/> wasn't there before mods, and only <paramref name="modId"/> put it there.</summary>
     public bool AddedBy(string gamePath, string modId) =>
-        State.Entries.TryGetValue(KeyOf(gamePath), out var e) && e.Base == Absent && e.Layers.All(l => l.Mod == modId);
+        State.Entries.TryGetValue(KeyFor(gamePath), out var e) && e.Base == Absent && e.Layers.All(l => l.Mod == modId);
 
     /// <summary>Game paths a mod changes.</summary>
     public IReadOnlyList<string> PathsOf(string modId) =>
@@ -251,12 +415,9 @@ public sealed class ModsOverlay
     /// <summary>Is there a file (or nested archive) at <paramref name="gamePath"/> — in the copy in mods if there is one, else in the game?</summary>
     public bool Exists(string gamePath)
     {
-        var (top, inner) = Split(gamePath);
+        var (top, inner) = Place(gamePath);
         if (_editors.TryGetValue(top, out var ed)) return ed.Exists(inner);
-        var file = ArchiveFile(top);
-        if (file is null) return false;
-        using var arc = RpfArchive.Open(file, crypto: Crypto());
-        return Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), (_, _) => true);
+        return AtCurrent(top, inner, (_, _) => true, _ => true);
     }
 
     /// <summary>
@@ -266,16 +427,17 @@ public sealed class ModsOverlay
     /// </summary>
     public byte[]? Read(string gamePath)
     {
-        var (top, inner) = Split(gamePath);
+        var (top, inner) = Place(gamePath);
         if (_editors.ContainsKey(top)) Commit();
-        var file = ArchiveFile(top);
-        if (file is null) return null;
-        using var arc = RpfArchive.Open(file, crypto: Crypto());
         byte[]? content = null;
-        Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), (a, e) =>
+        AtCurrent(top, inner, (a, e) =>
         {
             content = e.IsDir ? null : a.ReadContent(e);
             return content is not null;
+        }, loose =>
+        {
+            content = LooseContent(File.ReadAllBytes(loose));
+            return true;
         });
         return content;
     }
@@ -283,12 +445,9 @@ public sealed class ModsOverlay
     /// <summary>The game's own version of the file at <paramref name="gamePath"/> (no mod applied), decompressed; null when absent.</summary>
     public byte[]? ReadOriginal(string gamePath)
     {
-        var (top, inner) = Split(gamePath);
-        var file = GameFile(top);
-        if (!File.Exists(file)) return null;
-        using var arc = RpfArchive.Open(file, crypto: Crypto());
+        var (top, inner) = Place(gamePath);
         byte[]? content = null;
-        Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), (a, e) =>
+        AtOriginal(top, inner, (a, e) =>
         {
             content = e.IsDir ? null : a.ReadContent(e);
             return content is not null;
@@ -296,9 +455,58 @@ public sealed class ModsOverlay
         return content;
     }
 
-    /// <summary>A top-level archive as the game reads it: the copy in mods, else the game's own; null if neither.</summary>
-    private string? ArchiveFile(string top) =>
-        File.Exists(CopyPath(top)) ? CopyPath(top) : File.Exists(GameFile(top)) ? GameFile(top) : null;
+    /// <summary>
+    /// Find the entry at a place as the game reads it now: in the copy (a loose file with Onigiri — handed to
+    /// <paramref name="loose"/>), else in the game's own archives.
+    /// </summary>
+    private bool AtCurrent(string top, string inner, Func<RpfArchive, RpfEntry, bool> found, Func<string, bool> loose)
+    {
+        var copy = CopyPath(top);
+        if (IsLoose(top))
+        {
+            var file = Path.Combine(copy, inner.Replace('/', Path.DirectorySeparatorChar));
+            return File.Exists(file) ? loose(file) : AtOriginal(top, inner, found);
+        }
+        if (!File.Exists(copy)) return AtOriginal(top, inner, found);
+        using var arc = RpfArchive.Open(copy, crypto: Crypto());
+        return Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), found);
+    }
+
+    /// <summary>Find the game's own entry at a place (no mod applied).</summary>
+    private bool AtOriginal(string top, string inner, Func<RpfArchive, RpfEntry, bool> found)
+    {
+        if (IsLoose(top)) return LooseSource(top, inner) is { } src && AtGame(src, found);
+        return SourceOf(top) is { } source && AtGame($"{source}/{inner}", found);
+    }
+
+    /// <summary>Open the game's archive a game path is in and hand its entry to <paramref name="found"/>.</summary>
+    private bool AtGame(string gamePath, Func<RpfArchive, RpfEntry, bool> found)
+    {
+        string top, inner;
+        try
+        {
+            (top, inner) = Split(gamePath);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        var file = InstallJournal.Abs(GameDir, top);
+        if (!File.Exists(file)) return false;
+        using var arc = RpfArchive.Open(file, crypto: Crypto());
+        return Locate(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries), found);
+    }
+
+    /// <summary>A loose file's content the way <see cref="RpfArchive.ReadContent"/> gives an entry's: a resource with its body inflated.</summary>
+    private static byte[] LooseContent(byte[] file)
+    {
+        if (file.Length < 16 || BinaryPrimitives.ReadUInt32LittleEndian(file) != Rpf7.Rsc7Magic) return file;
+        var body = Rpf7.Inflate(file, 16, file.Length - 16);
+        var content = new byte[16 + body.Length];
+        file.AsSpan(0, 16).CopyTo(content);
+        body.CopyTo(content, 16);
+        return content;
+    }
 
     /// <summary>Walk into nested archives to the entry at <paramref name="parts"/> and hand it to <paramref name="found"/>.</summary>
     private static bool Locate(RpfArchive arc, string[] parts, Func<RpfArchive, RpfEntry, bool> found)
@@ -317,7 +525,7 @@ public sealed class ModsOverlay
     public List<OverlayConflict> Conflicts(string modId, IEnumerable<string> gamePaths)
     {
         var list = new List<OverlayConflict>();
-        foreach (var p in gamePaths.Select(KeyOf).Distinct())
+        foreach (var p in gamePaths.Select(KeyFor).Distinct())
         {
             var owners = OwnersOf(p).Where(m => m != modId).ToList();
             if (owners.Count > 0) list.Add(new OverlayConflict(p, owners));
@@ -329,20 +537,33 @@ public sealed class ModsOverlay
     /// Every archive copy in mods with a game original, and whether it went stale: the game was
     /// updated (its executable or the archive changed) since the copy was made. Copies ModDrop V
     /// doesn't track count as stale when the game's archive is newer than the copy.
+    /// With Onigiri: the copies ModDrop V made there (the rest of the folder belongs to what came with Onigiri — NaturalVision
+    /// Enhanced and co.), and the loose dlclist.xml when a game update brought DLC packs it doesn't list.
     /// </summary>
     public List<CopyStatus> Status()
     {
         var exe = GameIndex.ExeSignature(GameDir);
         var list = new List<CopyStatus>();
-        var mods = Path.Combine(GameDir, "mods");
-        if (!Directory.Exists(mods)) return list;
-        foreach (var file in Directory.EnumerateFiles(mods, "*.rpf", SearchOption.AllDirectories))
+        IEnumerable<string> tops;
+        if (Onigiri)
         {
-            var top = Path.GetRelativePath(mods, file).Replace('\\', '/').ToLowerInvariant();
-            if (top.StartsWith(".moddropv/", StringComparison.Ordinal)) continue;
-            var game = new FileInfo(GameFile(top));
-            if (!game.Exists) continue;                                   // an add-on pack, not a copy
-            var fi = new FileInfo(file);
+            tops = State.Copies.Keys.Where(t => File.Exists(CopyPath(t))).ToList();
+            if (OnigiriDlclistStatus() is { } dl) list.Add(dl);
+        }
+        else
+        {
+            var mods = Path.Combine(GameDir, "mods");
+            if (!Directory.Exists(mods)) return list;
+            tops = Directory.EnumerateFiles(mods, "*.rpf", SearchOption.AllDirectories)
+                            .Select(f => Path.GetRelativePath(mods, f).Replace('\\', '/').ToLowerInvariant())
+                            .Where(t => !t.StartsWith(".moddropv/", StringComparison.Ordinal));
+        }
+        foreach (var top in tops)
+        {
+            if (GameArchiveOf(top) is not { } gameFile) continue;        // an add-on pack, not a copy
+            var game = new FileInfo(gameFile);
+            if (!game.Exists) continue;
+            var fi = new FileInfo(CopyPath(top));
             int owned = State.Entries.Count(kv => TopOf(kv.Key) == top);
             string? stale;
             if (State.Copies.TryGetValue(top, out var c))
@@ -355,12 +576,45 @@ public sealed class ModsOverlay
         return list;
     }
 
+    /// <summary>
+    /// Onigiri's dlclist.xml is loose — a game update doesn't touch it, so the DLC packs the update brings are missing from it
+    /// (the game then runs without them). Stale when the game's own list names packs it doesn't.
+    /// </summary>
+    private CopyStatus? OnigiriDlclistStatus()
+    {
+        var file = InstallJournal.Abs(GameDir, ModsLayout.OnigiriDlclist);
+        if (!File.Exists(file)) return null;
+        var missing = MissingGamePacks();
+        return new CopyStatus(ModsLayout.OnigiriDlclist, true, false,
+                              missing.Count == 0 ? null : L.T($"it doesn't list {missing.Count} DLC pack(s) of the game: {string.Join(", ", missing.Take(5))}"),
+                              0, new FileInfo(file).Length);
+    }
+
+    /// <summary>The packs the game's own dlclist.xml names that Onigiri's doesn't (their folder is in the game).</summary>
+    private List<string> MissingGamePacks()
+    {
+        List<string> game;
+        try
+        {
+            game = DlcPacks(TextIo.DecodeUtf8Sig(RpfTools.ReadInnerFile(InstallJournal.Abs(GameDir, UpdateRpf), GameInstaller.DlclistInner, Crypto())));
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or RpfEncryptedException)
+        {
+            return [];
+        }
+        var mine = DlcPacks(TextIo.ReadText(InstallJournal.Abs(GameDir, ModsLayout.OnigiriDlclist))).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return [.. game.Where(p => !mine.Contains(p)).Distinct(StringComparer.OrdinalIgnoreCase)];
+    }
+
+    private static List<string> DlcPacks(string xml) =>
+        [.. Regex.Matches(xml, @"<Item>\s*dlcpacks:[\\/]+([^<]+?)[\\/]*\s*</Item>", RegexOptions.IgnoreCase).Select(m => m.Groups[1].Value)];
+
     // ================================================================ changes
 
     /// <summary>Put <paramref name="content"/> (a loose file) at <paramref name="gamePath"/> on behalf of <paramref name="modId"/>.</summary>
     public void Put(string modId, string gamePath, byte[] content)
     {
-        var name = Path.GetFileName(Split(gamePath).Inner);
+        var name = Path.GetFileName(Place(gamePath).Inner);
         // an entry the game stores uncompressed (audio banks & co.) stays uncompressed
         Change(modId, gamePath, current => StoredEntry.FromFile(name, content, Edition, raw: current is { Kind: RpfEntryKind.Raw }));
     }
@@ -371,8 +625,8 @@ public sealed class ModsOverlay
     /// <summary>Delete the file at <paramref name="gamePath"/> on behalf of <paramref name="modId"/> (no-op if it isn't there).</summary>
     public void Delete(string modId, string gamePath)
     {
-        var (top, inner) = Split(gamePath);
-        if (!File.Exists(CopyPath(top)) && ReadGame(top, inner) is null)
+        var (top, inner) = Place(gamePath);
+        if ((IsLoose(top) || !File.Exists(CopyPath(top))) && !Exists(gamePath))
         {
             _log(L.T($"    {top}/{inner}: not in the game — nothing to delete."));     // no copy made for nothing
             return;
@@ -383,11 +637,15 @@ public sealed class ModsOverlay
     /// <param name="make">the new entry from the current one; null deletes it</param>
     private void Change(string modId, string gamePath, Func<StoredEntry?, StoredEntry?> make)
     {
-        var (top, inner) = Split(gamePath);
+        var (top, inner) = Place(gamePath);
         var key = $"{top}/{inner}";
+        if (IsLoose(top)) RefuseUpdate2(LooseSource(top, inner), key);
         var ed = Editor(top);
         var current = ed.Get(inner);
         var data = make(current);
+        // a loose file only lies over the game's: the game's own version can't be taken away
+        if (data is null && IsLoose(top) && LooseSource(top, inner) is not null)
+            throw new NotSupportedException(L.T($"{key}: Onigiri can't remove a file of the game — it only lays files over them."));
         if (data is null && current is null && !State.Entries.ContainsKey(key))
         {
             _log(L.T($"    {key}: not there — nothing to delete."));
@@ -419,7 +677,7 @@ public sealed class ModsOverlay
     {
         var keys = PathsOf(modId);
         // an archive that is gone (an add-on pack removed with its liveries on it) has nothing to give back
-        foreach (var key in keys.Where(k => ArchiveFile(TopOf(k)) is null).ToList())
+        foreach (var key in keys.Where(k => Gone(TopOf(k))).ToList())
         {
             var gone = State.Entries[key];
             gone.Layers.RemoveAll(l => l.Mod == modId);
@@ -433,7 +691,7 @@ public sealed class ModsOverlay
         foreach (var key in keys)
         {
             var entry = State.Entries[key];
-            var (top, inner) = Split(key);
+            var (top, inner) = Place(key);
             int i = entry.Layers.FindIndex(l => l.Mod == modId);
             bool wasTop = i == entry.Layers.Count - 1;
             entry.Layers.RemoveAt(i);
@@ -476,7 +734,7 @@ public sealed class ModsOverlay
             var entry = State.Entries[key];
             int i = entry.Layers.FindIndex(l => l.Mod == modId);
             if (i == entry.Layers.Count - 1) continue;
-            var (top, inner) = Split(key);
+            var (top, inner) = Place(key);
             var ed = Editor(top);
             var prior = Save(ed.Get(inner));
             entry.Layers[^1].Content = prior;
@@ -501,11 +759,11 @@ public sealed class ModsOverlay
         foreach (var key in PathsOf(modId))
         {
             var layer = State.Entries[key].Layers.First(l => l.Mod == modId);
-            if (ArchiveFile(TopOf(key)) is null) continue;               // its archive is gone — nothing to keep
+            if (Gone(TopOf(key))) continue;               // its archive is gone — nothing to keep
             if (layer.Content != Live) parked[key] = layer.Content;
             else
             {
-                var (top, inner) = Split(key);
+                var (top, inner) = Place(key);
                 parked[key] = Save(Editor(top).Get(inner));
             }
         }
@@ -533,8 +791,7 @@ public sealed class ModsOverlay
     /// </summary>
     public List<string> ForgetArchive(string archive)
     {
-        var top = archive.Replace('\\', '/').Trim('/').ToLowerInvariant();
-        if (top.StartsWith(GameIndex.ModsPrefix, StringComparison.Ordinal)) top = top[GameIndex.ModsPrefix.Length..];
+        var top = TopOfArchive(archive);
         var mods = new List<string>();
         foreach (var key in State.Entries.Keys.Where(k => TopOf(k) == top).ToList())
         {
@@ -551,6 +808,17 @@ public sealed class ModsOverlay
         return [.. mods.Distinct()];
     }
 
+    /// <summary>The place of a whole archive given as a game path (<c>update/x64/dlcpacks/x/dlc.rpf</c>, <c>mods/…</c>, <c>onigiri/…</c>).</summary>
+    private string TopOfArchive(string archive)
+    {
+        var top = archive.Replace('\\', '/').Trim('/').ToLowerInvariant();
+        if (Onigiri) return Place(top + "/x").Top;
+        return top.StartsWith(GameIndex.ModsPrefix, StringComparison.Ordinal) ? top[GameIndex.ModsPrefix.Length..] : top;
+    }
+
+    /// <summary>A place with neither a copy nor a game original (an add-on pack removed with its liveries on it).</summary>
+    private bool Gone(string top) => !IsLoose(top) && !File.Exists(CopyPath(top)) && SourceOf(top) is null;
+
     /// <summary>Is the mod switched off (its versions parked)?</summary>
     public bool IsParked(string modId) => State.Parked.ContainsKey(modId);
 
@@ -561,13 +829,20 @@ public sealed class ModsOverlay
     /// Replace a stale copy with a fresh one from the (updated) game and put every mod's live
     /// version back in. For <c>update/update.rpf</c> the packs added to its dlclist.xml are listed
     /// again. Changes other tools made to the copy are not carried over.
+    /// With Onigiri, <c>onigiri/common/data/dlclist.xml</c> gets the game's new DLC packs.
     /// </summary>
     public void Refresh(string archive)
     {
-        var top = archive.Replace('\\', '/').ToLowerInvariant();
+        if (Onigiri && archive.Replace('\\', '/').Equals(ModsLayout.OnigiriDlclist, StringComparison.OrdinalIgnoreCase))
+        {
+            RefreshOnigiriDlclist();
+            return;
+        }
+        var top = TopOfArchive(archive);
         var copyPath = CopyPath(top);
-        if (!File.Exists(copyPath)) throw new FileNotFoundException(L.T($"mods/{top} is not there."), copyPath);
-        if (!File.Exists(GameFile(top))) throw new FileNotFoundException(L.T($"{top} is not in the game folder."), GameFile(top));
+        if (!File.Exists(copyPath)) throw new FileNotFoundException(L.T($"{Shown(top)} is not there."), copyPath);
+        var gameFile = GameArchiveOf(top);
+        if (gameFile is null || !File.Exists(gameFile)) throw new FileNotFoundException(L.T($"{top} is not in the game folder."), gameFile ?? top);
         Commit();
 
         var owned = State.Entries.Where(kv => TopOf(kv.Key) == top).ToList();
@@ -575,31 +850,38 @@ public sealed class ModsOverlay
         List<string> packs = [];
         using (var old = OpenEditor(copyPath))
         {
-            foreach (var (key, _) in owned) live[key] = Save(old.Get(Split(key).Inner));
+            foreach (var (key, _) in owned) live[key] = Save(old.Get(Place(key).Inner));
         }
-        if (top == UpdateRpf) packs = AddedPacks(copyPath);
+        if (!Onigiri && top == UpdateRpf) packs = AddedPacks(copyPath);
         if (!State.Copies.TryGetValue(top, out var info) || !info.Created)
-            _log(L.T($"    [!] mods/{top} wasn't made by ModDrop V — changes other tools made to it are not carried over."));
+            _log(L.T($"    [!] {Shown(top)} wasn't made by ModDrop V — changes other tools made to it are not carried over."));
 
-        _log(L.T($"    Refreshing mods/{top} from the game…"));
+        _log(L.T($"    Refreshing {Shown(top)} from the game…"));
         if (_journal is not null) _journal.MoveAside(copyPath, keep: false);
         else File.Delete(copyPath);
         State.Copies.Remove(top);
+        _sources.Remove(top);                                 // the update may have moved it (a base archive's file now in update.rpf)
         EnsureCopy(top);
         var ed = Editor(top);
         foreach (var (key, entry) in owned)
         {
-            var inner = Split(key).Inner;
+            var inner = Place(key).Inner;
             entry.Base = ed.Exists(inner) ? Game : Absent;
             Apply(ed, top, inner, live[key]);
         }
         Commit();
         foreach (var p in packs) GameInstaller.RegisterInDlclist(GameDir, p, _log, _journal);
         if (packs.Count > 0) Stamp(top);
-        _log(L.T($"    mods/{top}: {owned.Count} changed file(s) and {packs.Count} dlclist entr(ies) put back."));
+        _log(L.T($"    {Shown(top)}: {owned.Count} changed file(s) and {packs.Count} dlclist entr(ies) put back."));
     }
 
-    /// <summary>Refresh every stale copy (see <see cref="Status"/>). Returns the archives refreshed.</summary>
+    /// <summary>List the game's DLC packs Onigiri's dlclist.xml is missing (a game update brought them).</summary>
+    private void RefreshOnigiriDlclist()
+    {
+        var missing = MissingGamePacks();
+        foreach (var p in missing) GameInstaller.RegisterInDlclist(GameDir, p, _log, _journal);
+        _log(L.T($"    {ModsLayout.OnigiriDlclist}: {missing.Count} DLC pack(s) of the game added."));
+    }    /// <summary>Refresh every stale copy (see <see cref="Status"/>). Returns the archives refreshed.</summary>
     public List<string> RefreshStale()
     {
         var stale = Status().Where(s => s.Stale is not null).Select(s => s.Archive).ToList();
@@ -616,7 +898,7 @@ public sealed class ModsOverlay
         try
         {
             mine = Packs(TextIo.DecodeUtf8Sig(RpfTools.ReadInnerFile(copyPath, GameInstaller.DlclistInner, Crypto())));
-            game = Packs(TextIo.DecodeUtf8Sig(RpfTools.ReadInnerFile(GameFile(UpdateRpf), GameInstaller.DlclistInner, Crypto())));
+            game = Packs(TextIo.DecodeUtf8Sig(RpfTools.ReadInnerFile(InstallJournal.Abs(GameDir, UpdateRpf), GameInstaller.DlclistInner, Crypto())));
         }
         catch (FileNotFoundException)
         {
@@ -643,7 +925,7 @@ public sealed class ModsOverlay
         _editors.Clear();
         _trusted.Clear();
         foreach (var (top, inner, prior) in _pending)
-            _journal?.Steps.Add(new RpfEntrySet(GameIndex.ModsPrefix + top, inner, prior));
+            _journal?.Steps.Add(new RpfEntrySet(Shown(top), inner, prior));
         _pending.Clear();
         _snapshot = TextIo.ToJson(State);
     }
@@ -692,15 +974,17 @@ public sealed class ModsOverlay
     /// writes — the space its versions took is holes now. A copy left with 64 MB of holes or more is rewritten tight, so a
     /// cancelled big install doesn't leave a bigger mods folder behind.
     /// </summary>
+    /// <param name="archives">the copies as journalled (<see cref="RpfEntrySet.Archive"/>: <c>mods/x64e.rpf</c>, <c>onigiri/…</c>)</param>
     public static void TightenAfterRollback(string gameDir, IEnumerable<string> archives, Action<string> log)
     {
-        var tops = archives.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        if (tops.Count == 0 || !File.Exists(StatePath(gameDir))) return;
+        var copies = archives.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (copies.Count == 0 || !File.Exists(StatePath(gameDir))) return;
         var o = Load(gameDir, log);
-        foreach (var top in tops)
+        foreach (var copy in copies)
         {
+            var top = o.TopOfCopy(copy);
             var path = o.CopyPath(top);
-            if (!File.Exists(path)) continue;
+            if (o.IsLoose(top) || !File.Exists(path)) continue;
             long length, used;
             try
             {
@@ -716,6 +1000,13 @@ public sealed class ModsOverlay
         o.Save();
     }
 
+    /// <summary>The place of a copy as journalled (<see cref="Shown"/>).</summary>
+    private string TopOfCopy(string shown)
+    {
+        var p = shown.Replace('\\', '/').Trim('/').ToLowerInvariant();
+        return !Onigiri && p.StartsWith(GameIndex.ModsPrefix, StringComparison.Ordinal) ? p[GameIndex.ModsPrefix.Length..] : p;
+    }
+
     /// <summary>Rewrite a copy without holes.</summary>
     public void Compact(string archive)
     {
@@ -726,50 +1017,59 @@ public sealed class ModsOverlay
         if (!HasRoomFor(path, before)) return;
         try
         {
-            _log(L.T($"    Compacting mods/{top} ({MergedPack.FmtSize(before)})…"));
-            var temp = InstallJournal.Abs(GameDir, TempRel);
+            _log(L.T($"    Compacting {Shown(top)} ({MergedPack.FmtSize(before)})…"));
+            var temp = InstallJournal.Abs(GameDir, Home(GameDir) + "/tmp");
             RpfEditor.Compact(path, tmp, temp, Crypto());
             try { if (Directory.Exists(temp) && !Directory.EnumerateFileSystemEntries(temp).Any()) Directory.Delete(temp); }
             catch (IOException) { }
             File.Move(tmp, path, overwrite: true);
             Stamp(top);
-            _log(L.T($"    mods/{top}: {MergedPack.FmtSize(before)} → {MergedPack.FmtSize(new FileInfo(path).Length)}."));
+            _log(L.T($"    {Shown(top)}: {MergedPack.FmtSize(before)} → {MergedPack.FmtSize(new FileInfo(path).Length)}."));
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
             try { File.Delete(tmp); } catch (IOException) { }
-            _log(L.T($"    [!] Could not compact mods/{top}: {ex.Message}"));
+            _log(L.T($"    [!] Could not compact {Shown(top)}: {ex.Message}"));
         }
     }
 
     // ================================================================ copies & archives
 
-    /// <summary>The copy of a game archive in mods — made now if there isn't one (checking the disk space first).</summary>
+    /// <summary>
+    /// The copy of a game archive in mods — made now if there isn't one (checking the disk space first). With Onigiri the
+    /// copy lies in the onigiri folder, taken from wherever the game has that archive (nested ones are copied out of
+    /// theirs); a loose root is just its folder.
+    /// </summary>
     public string EnsureCopy(string archive)
     {
         var top = archive.Replace('\\', '/').ToLowerInvariant();
         var copy = CopyPath(top);
+        if (IsLoose(top)) return copy;
         if (Directory.Exists(copy))
             throw new NotSupportedException(
-                L.T($"mods/{top} is an unpacked folder — ModDrop V changes archive copies only. Pack it back into an " +
+                L.T($"{Shown(top)} is an unpacked folder — ModDrop V changes archive copies only. Pack it back into an " +
                 $".rpf (OpenIV / CodeWalker) or remove it."));
         if (File.Exists(copy))
         {
             if (!State.Copies.ContainsKey(top)) State.Copies[top] = Describe(top, created: false);
             return copy;
         }
-        var game = GameFile(top);
-        if (!File.Exists(game)) throw new FileNotFoundException(L.T($"{top} is not in the game folder."), game);
-        long size = new FileInfo(game).Length;
+        var source = SourceOf(top);
+        if (source is null) throw new FileNotFoundException(L.T($"{top} is not in the game folder."), InstallJournal.Abs(GameDir, top));
+        RefuseUpdate2(source, top);
+        var (file, inner) = SplitSource(source);
+        long size = inner.Length == 0 ? new FileInfo(file).Length : NestedSize(file, inner);
+        var where = Onigiri ? ModsLayout.OnigiriRoot : ModsLayout.ModsRoot;
         if (!HasRoomFor(copy, size))
-            throw new IOException(L.T($"Not enough disk space to copy {top} into mods: it needs {MergedPack.FmtSize(size)}."));
+            throw new IOException(L.T($"Not enough disk space to copy {source} into {where}: it needs {MergedPack.FmtSize(size)}."));
 
-        _log(L.T($"    Copying {top} into mods ({MergedPack.FmtSize(size)}) — the first change to this archive, this takes a while…"));
+        _log(L.T($"    Copying {source} into {where} ({MergedPack.FmtSize(size)}) — the first change to this archive, this takes a while…"));
         EnsureDir(Path.GetDirectoryName(copy)!);
         var tmp = copy + ".tmp";
         try
         {
-            File.Copy(game, tmp, overwrite: true);
+            if (inner.Length == 0) File.Copy(file, tmp, overwrite: true);
+            else CopyNested(file, inner, tmp);
             File.Move(tmp, copy);
         }
         catch
@@ -782,15 +1082,64 @@ public sealed class ModsOverlay
         return copy;
     }
 
+    /// <summary>
+    /// The bytes of the copy a change at <paramref name="gamePath"/> makes first (the archive it is in, copied into mods or
+    /// onigiri); null when there is one already, or the change is a loose file.
+    /// </summary>
+    public long? NewCopy(string gamePath)
+    {
+        var (top, _) = Place(gamePath);
+        if (IsLoose(top) || File.Exists(CopyPath(top)) || SourceOf(top) is not { } source) return null;
+        var (file, inner) = SplitSource(source);
+        return inner.Length == 0 ? new FileInfo(file).Length : NestedSize(file, inner);
+    }
+
+    /// <summary>A game path of an archive → its top-level file on disk and the path of the archive inside it ("" when it is the file).</summary>
+    private (string File, string Inner) SplitSource(string source)
+    {
+        var (top, inner) = Split(source + "/x");
+        return (InstallJournal.Abs(GameDir, top), inner[..^1].TrimEnd('/'));
+    }
+
+    private long NestedSize(string file, string inner)
+    {
+        long size = 0;
+        using var arc = RpfArchive.Open(file, crypto: Crypto());
+        Locate(arc, inner.Split('/'), (_, e) =>
+        {
+            size = e.X8;
+            return true;
+        });
+        return size;
+    }
+
+    /// <summary>Copy an archive nested in a game archive out to a file, as stored (its own encryption stays until the first edit).</summary>
+    private void CopyNested(string file, string inner, string dest)
+    {
+        using var arc = RpfArchive.Open(file, crypto: Crypto());
+        bool found = Locate(arc, inner.Split('/'), (a, e) =>
+        {
+            if (!e.StoredRaw) return false;
+            using var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20);
+            const int chunk = 16 << 20;
+            for (long off = 0; off < e.X8; off += chunk)
+                fs.Write(a.ReadAt(e.Offset + off, (int)Math.Min(chunk, e.X8 - off)));
+            return true;
+        });
+        if (!found) throw new FileNotFoundException(L.T($"{inner} is not in {Path.GetFileName(file)}."), file);
+    }
+
     private ModsCopy Describe(string top, bool created)
     {
-        var game = new FileInfo(GameFile(top));
+        var gameFile = GameArchiveOf(top);
+        var game = gameFile is null ? null : new FileInfo(gameFile);
         var copy = new FileInfo(CopyPath(top));
         return new ModsCopy
         {
             Created = created, Copied = DateTime.UtcNow, Exe = GameIndex.ExeSignature(GameDir),
-            GameLength = game.Exists ? game.Length : 0, GameWrite = game.Exists ? game.LastWriteTimeUtc.Ticks : 0,
+            GameLength = game is { Exists: true } ? game.Length : 0, GameWrite = game is { Exists: true } ? game.LastWriteTimeUtc.Ticks : 0,
             Length = copy.Length, Write = copy.LastWriteTimeUtc.Ticks,
+            Source = Onigiri ? SourceOf(top) : null,
         };
     }
 
@@ -820,7 +1169,8 @@ public sealed class ModsOverlay
     /// <summary>A copy made by ModDrop V, not touched by anything else since, and not update.rpf (dlclist.xml lives there).</summary>
     private bool Deletable(string top)
     {
-        if (top == UpdateRpf || _editors.ContainsKey(top) || !State.Copies.TryGetValue(top, out var c) || !c.Created) return false;
+        if (IsLoose(top) || (!Onigiri && top == UpdateRpf) || _editors.ContainsKey(top) || !State.Copies.TryGetValue(top, out var c) || !c.Created)
+            return false;
         var fi = new FileInfo(CopyPath(top));
         return fi.Exists && fi.Length == c.Length && fi.LastWriteTimeUtc.Ticks == c.Write;
     }
@@ -832,8 +1182,8 @@ public sealed class ModsOverlay
         else File.Delete(copy);
         State.Copies.Remove(top);
         // folders the copy needed (mods/update/x64/dlcpacks/<pack>) go with it when nothing else is in them
-        var mods = Path.Combine(GameDir, "mods");
-        for (var d = Path.GetDirectoryName(copy); d is not null && d.Length > mods.Length && d.StartsWith(mods, StringComparison.OrdinalIgnoreCase);
+        var root = ModsLayout.Root(GameDir);
+        for (var d = Path.GetDirectoryName(copy); d is not null && d.Length > root.Length && d.StartsWith(root, StringComparison.OrdinalIgnoreCase);
              d = Path.GetDirectoryName(d))
         {
             try
@@ -843,15 +1193,16 @@ public sealed class ModsOverlay
             }
             catch (IOException) { break; }
         }
-        _log(L.T($"    mods/{top} holds no mod's files any more — the copy was removed."));
+        _log(L.T($"    {Shown(top)} holds no mod's files any more — the copy was removed."));
     }
 
-    private RpfEditor Editor(string top)
+    private IEntryStore Editor(string top)
     {
         if (_editors.TryGetValue(top, out var ed)) return ed;
+        if (IsLoose(top)) return _editors[top] = new LooseStore(CopyPath(top));
         EnsureCopy(top);
         if (Deletable(top)) _trusted.Add(top);               // untouched since we made it: its entries are the game's
-        return _editors[top] = OpenEditor(CopyPath(top));
+        return _editors[top] = new ArchiveStore(OpenEditor(CopyPath(top)));
     }
 
     private RpfEditor OpenEditor(string path) => RpfEditor.Open(path, Crypto());
@@ -859,6 +1210,8 @@ public sealed class ModsOverlay
     /// <summary>What an entry was before any mod: nothing, the game's own file, or (kept aside) someone else's.</summary>
     private string BaseOf(string top, string inner, StoredEntry? current)
     {
+        // a loose file: none of its own means the game's shows through (or nothing, if the game has none either)
+        if (IsLoose(top)) return current is not null ? Save(current) : LooseSource(top, inner) is not null ? Game : Absent;
         if (current is null) return Absent;
         if (_trusted.Contains(top)) return Game;
         var game = ReadGame(top, inner);
@@ -868,28 +1221,21 @@ public sealed class ModsOverlay
     /// <summary>The game's own version of an entry (verbatim, still encrypted if the game encrypted it), or null.</summary>
     private StoredEntry? ReadGame(string top, string inner)
     {
-        var game = GameFile(top);
-        if (!File.Exists(game)) return null;
-        using var arc = RpfArchive.Open(game, crypto: Crypto());
-        return ReadIn(arc, inner.Split('/', StringSplitOptions.RemoveEmptyEntries));
-    }
-
-    private static StoredEntry? ReadIn(RpfArchive arc, string[] parts)
-    {
-        for (int i = 0; i < parts.Length - 1; i++)
+        StoredEntry? entry = null;
+        AtOriginal(top, inner, (a, e) =>
         {
-            if (!parts[i].EndsWith(".rpf", StringComparison.OrdinalIgnoreCase)) continue;
-            if (arc.Locate(string.Join('/', parts[..(i + 1)])) is not { StoredRaw: true } e) continue;
-            using var nested = arc.OpenNested(e);
-            return ReadIn(nested, parts[(i + 1)..]);
-        }
-        return arc.Locate(string.Join('/', parts)) is { } f ? StoredEntry.Of(arc, f) : null;
+            if (e.IsDir) return false;
+            entry = StoredEntry.Of(a, e);
+            return true;
+        });
+        return entry;
     }
 
     /// <summary>Make the entry hold <paramref name="content"/>: <c>absent</c>, <c>game</c> or a saved blob.</summary>
-    private void Apply(RpfEditor ed, string top, string inner, string content)
+    private void Apply(IEntryStore ed, string top, string inner, string content)
     {
-        if (content == Game)
+        if (IsLoose(top) && content is Game or Absent) ed.Delete(inner);      // the game's own shows through again
+        else if (content == Game)
         {
             if (ReadGame(top, inner) is { } g) ed.Put(inner, g);
             else ed.Delete(inner);                            // the game itself no longer has it
@@ -900,7 +1246,7 @@ public sealed class ModsOverlay
 
     // ================================================================ saved versions
 
-    private string BlobPath(string sha) => InstallJournal.Abs(GameDir, $"{BlobsRel}/{sha}.bin");
+    private string BlobPath(string sha) => Path.Combine(BlobsDir(GameDir), sha + ".bin");
 
     /// <summary>Keep a version aside (content-addressed); null → <c>absent</c>.</summary>
     private string Save(StoredEntry? e)
@@ -931,10 +1277,17 @@ public sealed class ModsOverlay
     internal static void Undo(string gameDir, RpfEntrySet step, Action<string> log)
     {
         var ov = new ModsOverlay(gameDir, new OverlayState(), log);
-        var (top, _) = Split(step.Archive + "/x");
+        var top = ov.TopOfCopy(step.Archive);
         var path = InstallJournal.Abs(gameDir, step.Archive);
+        if (ov.IsLoose(top))
+        {
+            using var loose = new LooseStore(path);
+            ov.Apply(loose, top, step.Inner, step.Prior);
+            loose.Commit();
+            return;
+        }
         if (!File.Exists(path)) return;                        // the copy itself is gone
-        using var ed = ov.OpenEditor(path);
+        using var ed = new ArchiveStore(ov.OpenEditor(path));
         ov.Apply(ed, top, step.Inner, step.Prior);
         ed.Commit();
     }

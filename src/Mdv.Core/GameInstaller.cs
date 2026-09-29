@@ -20,6 +20,13 @@ namespace Mdv.Core;
 /// archive (dlclist.xml is rewritten in place inside it). A fresh copy of the game's
 /// update.rpf is still encrypted by the game: it is switched to OPEN on the first edit,
 /// with the keys read from the game executable — the same thing OpenIV/CodeWalker do.
+/// <para>
+/// A game that runs Onigiri (<see cref="ModsLayout"/>) takes packs its way instead — nothing is copied, no plugin added:
+/// <code>
+/// &lt;game&gt;/onigiri/common/data/dlclist.xml     loose; started from the game's copy if Onigiri brought none
+/// &lt;game&gt;/onigiri/dlcpacks/&lt;DLC&gt;/dlc.rpf
+/// </code>
+/// </para>
 /// </summary>
 public static partial class GameInstaller
 {
@@ -103,11 +110,49 @@ public static partial class GameInstaller
     public static void PrepareGame(string gameDir, GameEdition edition, string pluginsDir, Action<string> log,
                                    InstallJournal? journal = null)
     {
+        if (ModsLayout.UsesOnigiri(gameDir))
+        {
+            PrepareOnigiri(gameDir, edition, pluginsDir, log, journal);
+            return;
+        }
         // only touch real game installs: a folder without the executable gets no plugin
         if (GameEditions.Detect(gameDir) is not null || GameEditions.IsAmbiguous(gameDir))
+        {
             EnsureModFolderPlugin(gameDir, edition, pluginsDir, log, journal);
+            EnsureRpfCacheOff(gameDir, edition, log);
+        }
         EnsureModsFolder(gameDir, log);
         EnsureUpdateRpf(gameDir, log);
+    }
+
+    /// <summary>
+    /// A game with Onigiri: mods go into the onigiri folder, which onigiri.asi loads — no mods-folder plugin (Onigiri doesn't
+    /// get on with them: NaturalVision Enhanced warns about OpenRPF.asi) and no copy of update.rpf. Only an ASI loader is
+    /// needed for onigiri.asi.
+    /// </summary>
+    private static void PrepareOnigiri(string gameDir, GameEdition edition, string pluginsDir, Action<string> log, InstallJournal? journal)
+    {
+        var root = ModsLayout.Root(gameDir);
+        if (!Directory.Exists(root))
+        {
+            Directory.CreateDirectory(root);
+            journal?.DirCreated(root);
+            log(L.T($"    Created the onigiri folder: {root}"));
+        }
+        var others = ModFolderPlugins.Where(p => File.Exists(Path.Combine(gameDir, p))).ToList();
+        if (others.Count > 0)
+            log(L.T($"    [!] {string.Join(", ", others)} is in the game folder too — Onigiri isn't made to run with a mods-folder plugin. " +
+                $"If the game misbehaves, take it out."));
+        if (AsiLoaders.Any(l => File.Exists(Path.Combine(gameDir, l)))) return;
+        var loader = BundledAsiLoader(edition);
+        if (!File.Exists(Path.Combine(pluginsDir, loader)))
+        {
+            log(L.T($"    [!] No ASI loader in the game folder — {ModsLayout.OnigiriAsi} will not be loaded and the game will ignore " +
+                $"the onigiri folder. Install ScriptHookV or Ultimate ASI Loader ({loader} for {edition.DisplayName()})."));
+            return;
+        }
+        CopyInto(gameDir, Path.Combine(pluginsDir, loader), loader, journal);
+        log(L.T($"    Installed the ASI loader {loader} — it loads {ModsLayout.OnigiriAsi} into {edition.DisplayName()}."));
     }
 
     /// <summary>
@@ -190,6 +235,23 @@ public static partial class GameInstaller
     {
         if (journal is not null) journal.MoveAside(path, keep: true);
         else File.Move(path, path + ".bak", overwrite: true);
+    }
+
+    /// <summary>
+    /// The empty marker file that switches off Enhanced's RPF cache (&lt;game&gt;/rpf.cache): with the cache on, the game
+    /// takes archive headers from it and can ignore the copies in mods. RageOpenV skips the cache check by a code
+    /// pattern that a game update can break (OpenRPF 0.1 didn't skip it at all) — the marker works either way.
+    /// </summary>
+    public static readonly string RpfCacheSwitch = "rpf.cache.disable";
+
+    /// <summary>Put <see cref="RpfCacheSwitch"/> into an Enhanced game folder. Not journaled: like the mods folder, it stays —
+    /// the game only reads its archives without the cache.</summary>
+    public static void EnsureRpfCacheOff(string gameDir, GameEdition edition, Action<string> log)
+    {
+        var path = Path.Combine(gameDir, RpfCacheSwitch);
+        if (edition != GameEdition.Enhanced || File.Exists(path)) return;
+        File.WriteAllBytes(path, []);
+        log(L.T($"    Added {RpfCacheSwitch} — it keeps {edition.DisplayName()}'s RPF cache from hiding the mods folder."));
     }
 
     public static void EnsureModsFolder(string gameDir, Action<string> log)
@@ -334,14 +396,19 @@ public static partial class GameInstaller
 
     /// <summary>
     /// Add <c>dlcpacks:/&lt;dlcName&gt;/</c> to the game's dlclist.xml (no-op if listed).
-    /// Separate from the copy so an unchanged pack can be re-registered cheaply.
+    /// Separate from the copy so an unchanged pack can be re-registered cheaply. The mods' packs are then put in the order
+    /// their weapon components need (<see cref="DlcOrder"/>).
     /// </summary>
     /// <returns>true when the entry was added (false: already listed)</returns>
     /// <exception cref="FileNotFoundException">mods, update.rpf or dlclist.xml is missing</exception>
     public static bool RegisterInDlclist(string gameDir, string dlcName, Action<string> log, InstallJournal? journal = null)
     {
         bool changed = false;
-        EditDlclist(gameDir, text => Changed(DlclistWithEntry(text, dlcName, log), ref changed), createFromGame: true, log);
+        EditDlclist(gameDir, text =>
+        {
+            var added = Changed(DlclistWithEntry(text, dlcName, log), ref changed);
+            return DlcOrder.Sorted(added ?? text, gameDir, log) ?? added;
+        }, createFromGame: true, log);
         if (changed) journal?.DlclistAdd(dlcName);
         return changed;
     }
@@ -356,6 +423,10 @@ public static partial class GameInstaller
         return changed;
     }
 
+    /// <summary>Put the mods' packs in dlclist.xml in the order their weapon components need (<see cref="DlcOrder"/>).</summary>
+    public static void SortDlclist(string gameDir, Action<string> log) =>
+        EditDlclist(gameDir, text => DlcOrder.Sorted(text, gameDir, log), createFromGame: false, log);
+
     private static string? Changed(string? updated, ref bool changed)
     {
         changed = updated is not null;
@@ -366,6 +437,11 @@ public static partial class GameInstaller
     /// <param name="createFromGame">a loose update.rpf folder without its own dlclist.xml gets the game's copy first</param>
     private static void EditDlclist(string gameDir, Func<string, string?> edit, bool createFromGame, Action<string> log)
     {
+        if (ModsLayout.UsesOnigiri(gameDir))
+        {
+            EditLooseDlclist(gameDir, Path.Combine(gameDir, ModsLayout.OnigiriDlclist), edit, createFromGame, log);
+            return;
+        }
         var mods = Path.Combine(gameDir, "mods");
         if (!Directory.Exists(mods))
             throw new FileNotFoundException(
@@ -374,24 +450,7 @@ public static partial class GameInstaller
 
         var updateRpf = Path.Combine(mods, "update", "update.rpf");
         if (Directory.Exists(updateRpf))
-        {
-            var dlclist = Path.Combine(updateRpf, "common", "data", "dlclist.xml");
-            if (!File.Exists(dlclist))
-            {
-                if (!createFromGame) return;                 // nothing of ours can be listed there
-                // a loose-file update.rpf (override folder) without its own dlclist.xml:
-                // start it from the game's copy
-                if (!File.Exists(Path.Combine(gameDir, "update", "update.rpf")))
-                    throw new FileNotFoundException(
-                        L.T($"dlclist.xml file not found: {dlclist}\n" +
-                        $"Check that update.rpf was unpacked into mods via OpenIV."));
-                var text = GameDlclist(gameDir, log);
-                Directory.CreateDirectory(Path.GetDirectoryName(dlclist)!);
-                TextIo.WriteText(dlclist, text);
-                log(L.T($"    dlclist.xml taken from the game's update.rpf -> {dlclist}"));
-            }
-            EditDlclistFile(dlclist, edit);
-        }
+            EditLooseDlclist(gameDir, Path.Combine(updateRpf, "common", "data", "dlclist.xml"), edit, createFromGame, log);
         else if (File.Exists(updateRpf))
         {
             log(L.T($"    update.rpf is an archive, editing dlclist.xml inside: {updateRpf}"));
@@ -403,6 +462,27 @@ public static partial class GameInstaller
                 L.T($"update.rpf not found (neither folder nor archive): {updateRpf}\n" +
                 $"Check the mods/update structure in the game folder."));
         }
+    }
+
+    /// <summary>
+    /// Edit a loose dlclist.xml (an unpacked update.rpf in mods, Onigiri's onigiri\common\data): one that isn't there yet
+    /// is started from the game's own copy.
+    /// </summary>
+    private static void EditLooseDlclist(string gameDir, string dlclist, Func<string, string?> edit, bool createFromGame, Action<string> log)
+    {
+        if (!File.Exists(dlclist))
+        {
+            if (!createFromGame) return;                 // nothing of ours can be listed there
+            if (!File.Exists(Path.Combine(gameDir, "update", "update.rpf")))
+                throw new FileNotFoundException(
+                    L.T($"dlclist.xml file not found: {dlclist}\n" +
+                    $"Check that update.rpf was unpacked into mods via OpenIV."));
+            var text = GameDlclist(gameDir, log);
+            Directory.CreateDirectory(Path.GetDirectoryName(dlclist)!);
+            TextIo.WriteText(dlclist, text);
+            log(L.T($"    dlclist.xml taken from the game's update.rpf -> {dlclist}"));
+        }
+        EditDlclistFile(dlclist, edit);
     }
 
     /// <summary>Install a built dlc.rpf into the game; returns the installed path.</summary>
@@ -439,6 +519,7 @@ public static partial class GameInstaller
             PathUtil.Copy2(sub, subDest);
             log(L.T($"    {Path.GetFileName(sub)} (sub-pack) copied -> {subDest}"));
         }
+        SortDlclist(gameDir, log);                     // its components are readable only now it is in place
         // a switched-off copy of an earlier version is superseded by this one
         var parked = DisabledPackDir(gameDir, dlcName);
         if (Directory.Exists(parked))
@@ -452,12 +533,11 @@ public static partial class GameInstaller
 
     // ================================================================ switching packs off / removing them
 
-    /// <summary><c>&lt;game&gt;/mods/update/x64/dlcpacks</c></summary>
-    public static string DlcpacksDir(string gameDir) => Path.Combine(gameDir, "mods", "update", "x64", "dlcpacks");
+    /// <summary><c>&lt;game&gt;/mods/update/x64/dlcpacks</c> (<c>&lt;game&gt;/onigiri/dlcpacks</c> with Onigiri)</summary>
+    public static string DlcpacksDir(string gameDir) => InstallJournal.Abs(gameDir, ModsLayout.DlcpacksRel(gameDir));
 
     /// <summary>Where a switched-off pack is parked: beside dlcpacks, so nothing that scans it finds the pack.</summary>
-    public static string DisabledDlcpacksDir(string gameDir) =>
-        Path.Combine(gameDir, "mods", "update", "x64", "dlcpacks_disabled");
+    public static string DisabledDlcpacksDir(string gameDir) => InstallJournal.Abs(gameDir, ModsLayout.DisabledDlcpacksRel(gameDir));
 
     public static string PackDir(string gameDir, string dlcName) => Path.Combine(DlcpacksDir(gameDir), dlcName);
     public static string DisabledPackDir(string gameDir, string dlcName) => Path.Combine(DisabledDlcpacksDir(gameDir), dlcName);

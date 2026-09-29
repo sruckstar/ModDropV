@@ -111,13 +111,18 @@ public sealed class WeaponHandler : IModHandler
         var plugins = o.PluginsDir ?? Path.Combine(o.DataDir, "plugins");
         var t = target with { PluginsDir = plugins };
         var name = pkg.Name;
-        return new InstallPlan { Title = $"Installing «{name}»" }
-            .Add(new EnsureModsLoaderOp(plugins))
+        var plan = new InstallPlan { Title = $"Installing «{name}»" };
+        // components of another mod it builds on: the game stops loading when they aren't there
+        if (Directory.Exists(o.InputFolder))
+            plan.Warnings.AddRange(DlcOrder.Checks(target.GameDir, target.Edition, o.DataDir, DlcOrder.OfWeaponFolder(o.InputFolder), new HashSet<string>())
+                                           .Where(c => c.Level == CheckLevel.Warn).Select(c => c.Detail));
+        return plan
+            .Add(new EnsureModsLoaderOp(plugins, target.GameDir))
             .Add(new ActionOp(o.MergePack
                                   ? L.T($"Build «{name}» and add it to the shared AddonWeapons pack")
                                   : L.T($"Build «{name}» as an add-on pack of its own"),
                               ctx => Build(ctx, t, o)))
-            .Add(new ActionOp(L.T("Install the built pack into mods\\update\\x64\\dlcpacks and add it to dlclist.xml"),
+            .Add(new ActionOp(L.T($"Install the built pack into {ModsLayout.DlcpacksShown(target.GameDir)} and add it to dlclist.xml"),
                               ctx => InstallBuilt(ctx, pkg, o)));
     }
 
@@ -186,7 +191,7 @@ public sealed class WeaponHandler : IModHandler
             var folder = r.Installs[0].Folder;
             if (MergedPack.FolderIndex(folder) is not null) return;     // the shared pack keeps its own record
             record.Id = WeaponIds.Pack(folder);
-            record.Owns = [$"mods/update/x64/dlcpacks/{folder}/"];
+            record.Owns = [ModsLayout.PackOwns(ctx.GameDir, folder)];
             record.Data = new() { ["kind"] = "pack", ["pack"] = folder };
         }
         ctx.Registered.Add(record);

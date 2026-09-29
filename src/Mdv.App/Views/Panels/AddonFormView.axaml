@@ -1,5 +1,5 @@
 <!-- Add-on vehicle / ped panel, form slot: what the mod brings, Add-On or Replace, the template of a written peds.meta,
-     the dlcpacks folder it goes into. -->
+     the game vehicle missing parts are taken from, the dlcpacks folder it goes into. -->
 <UserControl xmlns="https://github.com/avaloniaui"
         xmlns:l="using:Mdv.App.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -7,7 +7,7 @@
              x:Class="Mdv.App.Views.Panels.AddonFormView"
              x:DataType="vm:AddonViewModel">
   <Border Classes="card" Padding="16,13,6,13">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,0,10,0">
         <TextBlock Classes="h" Text="{Binding Heading}" />
         <TextBlock Grid.Column="1" Classes="desc" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
@@ -69,7 +69,16 @@
         </Grid>
       </StackPanel>
 
-      <ScrollViewer Grid.Row="4" Padding="0,0,10,0">
+      <!-- a handling / layout its vehicles name but neither the mod nor the game has: taken from a game vehicle -->
+      <StackPanel Grid.Row="4" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowGaps}">
+        <TextBlock Classes="label" Text="{l:Tr 'MISSING PARTS FROM'}" Margin="0" />
+        <AutoCompleteBox ItemsSource="{Binding GapBases}" SelectedItem="{Binding GapBase}" FilterMode="Contains"
+                         MinimumPrefixLength="1" MaxDropDownHeight="300"
+                         PlaceholderText="{l:Tr 'type a name or model — ambulance, sultan, bati…'}" />
+        <TextBlock Classes="desc" Text="{Binding GapText}" TextWrapping="Wrap" FontSize="11.5" />
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="5" Padding="0,0,10,0">
         <ItemsControl ItemsSource="{Binding Items}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
@@ -98,7 +107,7 @@
         </ItemsControl>
       </ScrollViewer>
 
-      <StackPanel Grid.Row="5" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">
+      <StackPanel Grid.Row="6" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
           <TextBlock Classes="kv-key" Text="{l:Tr 'Pack folder'}" VerticalAlignment="Center" />
           <TextBox Grid.Column="1" Classes="path" Text="{Binding PackName}" MaxLength="32"

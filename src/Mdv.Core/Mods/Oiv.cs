@@ -436,9 +436,10 @@ public sealed class OivHandler : FileModHandler
         foreach (var a in pkg.Steps.OfType<OivArchive>())
         {
             if (made.Concat(missing).Any(p => Under(a.Path, p))) continue;
+            var placed = a.InArchive ? null : ModsLayout.ArchiveRel(target.GameDir, a.Path);
             bool exists = a.InArchive ? overlay.Exists(a.Path) && !MadeBy(overlay, id, a.Path)
-                : (File.Exists(Path.Combine(target.ModsDir, a.Path)) &&
-                   !(old?.Journal.Any(s => s is CreatedFile f && f.Path.Equals("mods/" + a.Path, StringComparison.OrdinalIgnoreCase)) ?? false))
+                : (placed is not null && File.Exists(Path.Combine(target.GameDir, placed)) &&
+                   !(old?.Journal.Any(s => s is CreatedFile f && f.Path.Equals(placed, StringComparison.OrdinalIgnoreCase)) ?? false))
                   || File.Exists(Path.Combine(target.GameDir, a.Path));
             if (exists) continue;
             if (a.Create) made.Add(a.Path);
@@ -459,8 +460,14 @@ public sealed class OivHandler : FileModHandler
             {
                 if (made.Contains(arc.Path))
                 {
+                    var placed = arc.InArchive ? null : ModsLayout.ArchiveRel(target.GameDir, arc.Path);
+                    if (!arc.InArchive && placed is null)
+                    {
+                        plan.Warnings.Add(L.T($"The package creates {arc.Path} — Onigiri can't load a new archive there; skipped."));
+                        continue;
+                    }
                     plan.Add(new BuildArchiveOp(arc.Path, arc.InArchive, pkg.Steps.Where(s => Under(s.Path, arc.Path)).ToList(),
-                                                pkg.Root, id, target.Edition));
+                                                pkg.Root, id, target.Edition) { Placed = placed });
                     if (arc.InArchive) putPaths.Add(arc.Path);
                     files++;
                 }
@@ -479,7 +486,7 @@ public sealed class OivHandler : FileModHandler
 
     /// <summary>An archive inside another that only this mod put there (it goes when the mod does).</summary>
     private static bool MadeBy(ModsOverlay overlay, string id, string path) =>
-        overlay.State.Entries.TryGetValue(ModsOverlay.KeyOf(path), out var e) && e.Base == ModsOverlay.Absent &&
+        overlay.State.Entries.TryGetValue(overlay.KeyFor(path), out var e) && e.Base == ModsOverlay.Absent &&
         e.Layers.All(l => l.Mod == id);
 
     private static bool Under(string path, string archive) =>
@@ -545,18 +552,20 @@ public sealed class OivHandler : FileModHandler
 
     private static void AddLooseStep(InstallPlan plan, OivStep step, InstallTarget target)
     {
-        // archives the game reads go into mods (a whole dlc.rpf, a replaced .rpf); plugins, scripts and their files into the game folder
-        static string Place(string path) =>
+        // archives the game reads go into mods (a whole dlc.rpf, a replaced .rpf) — or onigiri; plugins, scripts and their
+        // files into the game folder
+        string? Place(string path) =>
             path.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase) && !path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase)
-                ? "mods/" + path : path;
+                ? ModsLayout.ArchiveRel(target.GameDir, path) : path;
         switch (step)
         {
             case OivAdd add:
-                plan.Add(new CopyFileOp(add.Source, Place(add.Path)));
+                if (Place(add.Path) is { } to) plan.Add(new CopyFileOp(add.Source, to));
+                else plan.Warnings.Add(L.T($"The package replaces the game's {add.Path} as a whole — Onigiri can't load that; skipped."));
                 break;
             case OivDelete del:
                 var at = Place(del.Path);
-                if (at != del.Path && !File.Exists(Path.Combine(target.GameDir, at)))
+                if (at is null || (at != del.Path && !File.Exists(Path.Combine(target.GameDir, at))))
                     plan.Warnings.Add(L.T($"The package deletes the game's {del.Path} — ModDrop V never deletes the game's own archives; skipped."));
                 else plan.Add(new DeleteFileOp(at));
                 break;
@@ -638,10 +647,12 @@ public sealed class BuildArchiveOp(string path, bool inArchive, IReadOnlyList<Oi
     /// <summary>The archive it creates (a game path when <see cref="InArchive"/>, else under mods).</summary>
     public string ArchivePath => path;
     public bool InArchive => inArchive;
+    /// <summary>A top-level archive's place, relative to the game (<c>mods/…</c>, <c>onigiri/…</c> — <see cref="ModsLayout.ArchiveRel"/>).</summary>
+    public string? Placed { get; init; }
 
     public override string Describe() =>
-        inArchive ? L.T($"Create {path} ({steps.Count(s => s is OivAdd)} file(s)) inside its archive (in a copy under mods)")
-                  : L.T($"Create mods/{path} ({steps.Count(s => s is OivAdd)} file(s))");
+        inArchive ? L.T($"Create {path} ({steps.Count(s => s is OivAdd)} file(s)) inside its archive (the game's own stays untouched)")
+                  : L.T($"Create {Placed ?? "mods/" + path} ({steps.Count(s => s is OivAdd)} file(s))");
 
     public override void Execute(InstallContext ctx)
     {
@@ -692,7 +703,8 @@ public sealed class BuildArchiveOp(string path, bool inArchive, IReadOnlyList<Oi
                 ctx.Overlay.Put(modId, path, File.ReadAllBytes(output));
                 ctx.Log(L.T($"    created {path}"));
             }
-            else new CopyFileOp(output, "mods/" + path).Execute(ctx);
+            else new CopyFileOp(output, Placed ?? ModsLayout.ArchiveRel(ctx.GameDir, path)
+                                        ?? throw new NotSupportedException(L.T($"The package creates {path} — Onigiri can't load a new archive there; skipped."))).Execute(ctx);
         }
         finally
         {

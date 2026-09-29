@@ -23,6 +23,7 @@ public static partial class ShopIds
     private static readonly string[] DlcpacksSubdirs =
     [
         Path.Combine("mods", "update", "x64", "dlcpacks"),
+        Path.Combine("onigiri", "dlcpacks"),
         Path.Combine("update", "x64", "dlcpacks"),
         Path.Combine("mods", "x64", "dlcpacks"),
         Path.Combine("x64", "dlcpacks"),

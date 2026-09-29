@@ -34,7 +34,7 @@ public sealed partial class MainViewModel
             var game = GameFolder.Trim();
             if (game.Length == 0 || !Directory.Exists(game)) return false;
             return GameEditions.Detect(game) is not null || GameEditions.IsAmbiguous(game)
-                   || Directory.Exists(Path.Combine(game, "mods"));
+                   || Directory.Exists(Path.Combine(game, ModsLayout.ModsRoot)) || Directory.Exists(Path.Combine(game, ModsLayout.OnigiriRoot));
         }
     }
 

@@ -1,0 +1,75 @@
+<!-- Modder's vehicle panel, form slot: how the vehicle shows in the game, and the game vehicle it's based on. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.VehicleFormView"
+             x:DataType="vm:VehicleBuildViewModel">
+  <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+    <!-- VEHICLE -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="03" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'VEHICLE'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'How it shows in the game'}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,*,200" ColumnSpacing="10">
+          <StackPanel ToolTip.Tip="{l:Tr 'The name shown when you get in, in trainers and menus'}">
+            <TextBlock Classes="label" Text="{l:Tr 'NAME'}" />
+            <TextBox Text="{Binding DisplayName}" PlaceholderText="{l:Tr 'the base vehicle’s'}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" ToolTip.Tip="{l:Tr 'The manufacturer shown with the name; empty — none'}">
+            <TextBlock Classes="label" Text="{l:Tr 'MAKE'}" />
+            <TextBox Text="{Binding Make}" PlaceholderText="{l:Tr 'none'}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2"
+                      ToolTip.Tip="{l:Tr 'The spawn name — the model and its files are renamed to it. It must not be one of the game’s vehicles.'}">
+            <TextBlock Classes="label" Text="{l:Tr 'MODEL NAME'}" />
+            <TextBox Classes="path" Text="{Binding ModelName}" PlaceholderText="{l:Tr 'e.g. mycar'}" />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- BASE -->
+    <Border Grid.Row="1" Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="04" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'BASE'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'The game’s vehicle its metas are written from'}" />
+        </Grid>
+        <StackPanel Spacing="5">
+          <TextBlock Classes="label" Text="{l:Tr 'BASE VEHICLE'}" />
+          <AutoCompleteBox ItemsSource="{Binding Bases}" SelectedItem="{Binding Base}" FilterMode="Contains"
+                           MinimumPrefixLength="1" MaxDropDownHeight="300"
+                           PlaceholderText="{l:Tr 'type a name or model — adder, sultan, bati…'}" />
+          <TextBlock Classes="desc" Text="{Binding BaseNote}" TextWrapping="Wrap" FontSize="11.5" />
+        </StackPanel>
+        <Grid ColumnDefinitions="200,*" ColumnSpacing="10">
+          <StackPanel ToolTip.Tip="{l:Tr 'Where it’s listed in trainers and which races it’s in'}">
+            <TextBlock Classes="label" Text="{l:Tr 'CLASS'}" />
+            <ComboBox ItemsSource="{Binding Classes}" SelectedItem="{Binding Class}" HorizontalAlignment="Stretch"
+                      MaxDropDownHeight="300" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" ToolTip.Tip="{l:Tr 'Another game vehicle whose engine sound it takes'}">
+            <TextBlock Classes="label" Text="{l:Tr 'ENGINE SOUND'}" />
+            <AutoCompleteBox ItemsSource="{Binding Bases}" SelectedItem="{Binding Sound}" FilterMode="Contains"
+                             MinimumPrefixLength="1" MaxDropDownHeight="300"
+                             PlaceholderText="{l:Tr 'the base vehicle’s'}" />
+          </StackPanel>
+        </Grid>
+        <CheckBox IsChecked="{Binding Modkit}" IsEnabled="{Binding KitEnabled}"
+                  ToolTip.Tip="{l:Tr 'A modkit of its own with a free id: engine, brakes, gearbox, armour and horn upgrades in the tuning shops'}">
+          <StackPanel Spacing="0">
+            <TextBlock Text="{l:Tr 'Modkit for the tuning shops'}" FontWeight="SemiBold" FontSize="12.5" />
+            <TextBlock Classes="desc" FontSize="11" Text="{l:Tr 'engine, brakes, gearbox, armour, horns — the base vehicle’s upgrades'}" />
+          </StackPanel>
+        </CheckBox>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

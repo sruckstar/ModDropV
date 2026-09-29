@@ -157,14 +157,15 @@ public sealed partial class ClothingViewModel : FileModViewModel
     }
 
     public string Note => InstallAsReplace
-        ? L.T("The files go into copies of the game's archives under mods, where the game loads them from — the game's own files stay " +
-          "untouched. New slots are added to a copy of the wearer's ymt; switch it off or remove it any time in the Library.")
+        ? L.T($"The files go into copies of the game's archives under {ModsLayout.RootRel(Shell.GameFolder.Trim())}, where the game loads " +
+          $"them from — the game's own files stay untouched. New slots are added to a copy of the wearer's ymt; switch it off or remove it " +
+          $"any time in the Library.")
         : HasSlots
-            ? L.T("The game can't take one more clothing collection — it crashes as the MP character loads. So the clothes go in as new " +
-                  "slots at the end of the game's last collection (in a copy of its archive under mods): pick them in a trainer's wardrobe " +
-                  "by those numbers. Switch it off or remove it any time in the Library.")
-            : L.T(@"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml; its clothes come after the game's own " +
-                  "in a trainer's wardrobe. Switch it off or remove it any time in the Library.");
+            ? L.T($"The game can't take one more clothing collection — it crashes as the MP character loads. So the clothes go in as new " +
+                  $"slots at the end of the game's last collection (in a copy of its archive under {ModsLayout.RootRel(Shell.GameFolder.Trim())}): " +
+                  $"pick them in a trainer's wardrobe by those numbers. Switch it off or remove it any time in the Library.")
+            : L.T($"It goes into {ModsLayout.DlcpacksShown(Shell.GameFolder.Trim())} as a pack of its own and into dlclist.xml; its clothes " +
+                  $"come after the game's own in a trainer's wardrobe. Switch it off or remove it any time in the Library.");
 
     private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
     {

@@ -78,15 +78,23 @@ public sealed partial class MainViewModel
         plan.Warnings.InsertRange(0, pkg.Warnings);
         // files for the game folder itself (plugins, scripts, settings) can only be taken back by removing the mod
         bool gameFolder = plan.Ops.Any(o => o is FileEditOp or DeleteFileOp or CopyFilesOp ||
-                                            o is CopyFileOp c && !c.GameRel.StartsWith("mods/", StringComparison.OrdinalIgnoreCase));
+                                            o is CopyFileOp c && !c.GameRel.StartsWith("mods/", StringComparison.OrdinalIgnoreCase)
+                                                              && !c.GameRel.StartsWith("onigiri/", StringComparison.OrdinalIgnoreCase));
+        bool onigiri = ModsLayout.UsesOnigiri(game);
         var note = pkg.Category == ModCategory.Script
             ? L.T("Scripts live in the game folder: files it replaces are kept and come back when the mod is removed. " +
               "Switch it off or remove it any time in the Library.")
             : gameFolder
-                ? L.T("The game's own archives stay untouched — changes to them go into copies under mods. Files for the " +
-                  "game folder are copied there; removing the mod in the Library takes them back.")
-                : L.T("The game's own files stay untouched — everything goes into the mods folder. " +
-                  "Switch it off or remove it any time in the Library.");
+                ? onigiri
+                    ? L.T("The game's own archives stay untouched — changes to them go into the onigiri folder. Files for the " +
+                      "game folder are copied there; removing the mod in the Library takes them back.")
+                    : L.T("The game's own archives stay untouched — changes to them go into copies under mods. Files for the " +
+                      "game folder are copied there; removing the mod in the Library takes them back.")
+                : onigiri
+                    ? L.T("The game's own files stay untouched — everything goes into the onigiri folder. " +
+                      "Switch it off or remove it any time in the Library.")
+                    : L.T("The game's own files stay untouched — everything goes into the mods folder. " +
+                      "Switch it off or remove it any time in the Library.");
         OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Install"), () => RunJobAsync(job), note);
     }
 
@@ -131,7 +139,7 @@ public sealed partial class MainViewModel
         if (f.InArchives > 0)
             parts.Add(L.T($"Changes {f.InArchives} file(s) inside {f.Archives.Count} game archive(s)"));
         if (f.NewCopies.Count > 0)
-            parts.Add((f.NewCopies.Count == 1 ? L.T($"copies {f.NewCopies[0]} into mods first (the game's own stay untouched)") : L.T($"copies {f.NewCopies.Count} archives into mods first (the game's own stay untouched)")));
+            parts.Add((f.NewCopies.Count == 1 ? L.T($"copies {f.NewCopies[0]} into {ModsLayout.RootRel(game)} first (the game's own stay untouched)") : L.T($"copies {f.NewCopies.Count} archives into {ModsLayout.RootRel(game)} first (the game's own stay untouched)")));
         PlanFootprint = parts.Count == 0 ? "" : string.Join("; ", parts) + ".";
         if (f.Bytes >= 64L << 20)
         {

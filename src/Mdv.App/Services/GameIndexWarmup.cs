@@ -75,7 +75,7 @@ public static class GameIndexWarmup
                 var dlcs = MountedDlcs.Of(index);
                 Dispatcher.UIThread.Post(() => _vm?.OnGameIndexReady(game, dlcs));
                 foreach (var s in ModsOverlay.Load(game).Status().Where(s => s.Stale is not null))
-                    AppLog.Info($"mods/{s.Archive} is stale: {s.Stale} ({s.Owned} changed file(s) to carry over)");
+                    AppLog.Info($"{s.Shown} is stale: {s.Stale} ({s.Owned} changed file(s) to carry over)");
             }
             catch (OperationCanceledException)
             {

@@ -59,6 +59,7 @@ public static class Diagnostics
                                     "data/plugins/dinput8.dll", "data/plugins/xinput1_4.dll",
                                     "data/plugins/limits-enhanced/HeapAdjuster.asi",
                                     "data/plugins/limits-enhanced/PackfileLimitAdjusterEnhanced.asi",
+                                    "data/plugins/limits-enhanced/WeaponLimitsAdjusterEnhanced.asi",
                                     "ShadersGen9Conversion.xml" })
         {
             var ok = File.Exists(Path.Combine(AppPaths.Root, rel));

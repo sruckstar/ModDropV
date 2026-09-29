@@ -47,6 +47,11 @@ public sealed class AddonPackage : ModPackage
     /// </summary>
     public ReplacementPackage? Slots { get; set; }
 
+    /// <summary>Handlings / layouts its vehicles name that neither the mod nor the game has (<see cref="VehicleGaps"/>).</summary>
+    public List<VehicleGap> Gaps { get; } = [];
+    /// <summary>The game vehicle (model) the <see cref="Gaps"/> are taken from; null: none picked.</summary>
+    public string? GapBase { get; set; }
+
     /// <summary>Renumber modkits another pack uses (on by default).</summary>
     public bool FixKits { get; set; } = true;
     /// <summary>The last checks against a game (null: not checked yet).</summary>
@@ -184,6 +189,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             Describe(pkg, spec.Resources.Count > 0
                 ? L.T($"FiveM resource(s) {string.Join(", ", spec.Resources)} — packed into a dlc.rpf")
                 : L.T("loose models and metas — packed into a dlc.rpf"));
+            FindGaps(pkg, spec);
             if (IsMapKind) AttachMapParts(pkg, source, report, env, null);
             return pkg;
         }
@@ -216,6 +222,28 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             ? L.T($"replaces the game's {(targets.Count > 1 ? NounPlural : Noun)} {string.Join(", ", targets)}")
             : L.T($"no vehicles.meta / peds.meta — its models replace the game's ones of the same name"));
         return rp;
+    }
+
+    /// <summary>
+    /// What its vehicles name that neither the mod nor the game has (taken from a game vehicle, one suggested), and the
+    /// files its fxmanifest names that aren't there: said only when something needed them.
+    /// </summary>
+    private static void FindGaps(AddonPackage pkg, ComposeSpec spec)
+    {
+        if (pkg.Kind == ModCategory.Vehicle)
+        {
+            var lib = VehicleTemplates.Load(pkg.DataDir);
+            pkg.Gaps.AddRange(VehicleGaps.Find(spec, lib));
+            if (pkg.Gaps.Count > 0) pkg.GapBase = VehicleGaps.Suggest(spec, lib, pkg.Gaps)?.Model;
+        }
+        foreach (var m in spec.MissingFiles)
+        {
+            var kind = m.Type == VehicleBuilder.HandlingType ? VehicleGapKind.Handling : VehicleGapKind.Layout;
+            if (pkg.Gaps.Any(g => g.Kind == kind))
+                pkg.Warnings.Add(L.T($"{m.Resource}: fxmanifest names {m.Pattern} ({m.Type}), but there is no such file — what the vehicles need " +
+                                     $"from it is taken from a game vehicle (pick which one)."));
+            else pkg.Parts.Add(L.T($"{m.Pattern} named by its fxmanifest isn't there — not needed, the game has what the vehicles use"));
+        }
     }
 
     /// <summary>The game's vehicles / peds a replacement's models are named after.</summary>
@@ -375,7 +403,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             plan.Warnings.Add(L.T($"«{again.Name}» is already installed — the installed version is replaced."));
 
         var plugins = target.PluginsDir ?? Path.Combine(AppContext.BaseDirectory, "data", "plugins");
-        plan.Add(new EnsureModsLoaderOp(plugins));
+        plan.Add(new EnsureModsLoaderOp(plugins, target.GameDir));
         if (reg.Find(id) is not null && !checks.Supersedes.Contains(id)) plan.Add(ForgetChanges(pack, reinstall: true));
         var fixes = pkg.FixKits ? checks.KitFixes : [];
         var convert = target.Edition == GameEdition.Enhanced && pkg.Content.ModelEditions.Contains(GameEdition.Legacy);
@@ -480,10 +508,15 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                 ? L.T($"Pack the FiveM resource(s) {string.Join(", ", spec.Resources)} into a dlc.rpf")
                 : L.T("Pack the models and metas into a dlc.rpf"));
         else parts.Add(L.T("Prepare a copy of the pack"));
+        if (pkg.Gaps.Count > 0 && GapBaseOf(pkg) is { } from)
+            parts.Add(L.T($"take {string.Join(", ", pkg.Gaps.Select(g => g.Text).Distinct())} (not in the mod or the game) from {from.Title}"));
         if (convert) parts.Add(L.T("convert its Legacy models to the GTA V Enhanced (gen9) format"));
         foreach (var f in fixes) parts.Add(L.T($"give modkit {f.Kit.Name} the free id {f.NewId}"));
         return string.Join(", ", parts);
     }
+
+    /// <summary>The game vehicle the add-on's gaps are taken from (null: none picked).</summary>
+    public static VehicleTemplate? GapBaseOf(AddonPackage pkg) => VehicleTemplates.Load(pkg.DataDir).Find(pkg.GapBase);
 
     /// <summary>Build the pack to install into a temporary folder: composed, converted, modkits renumbered.</summary>
     private static void Stage(InstallContext ctx, AddonPackage pkg, List<KitFix> fixes, bool convert)
@@ -496,7 +529,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             if (pkg.Compose is { } spec)
             {
                 var used = spec;
-                if (fixes.Count > 0) used = WithKitFixes(spec, fixes, tmp, ctx.Log);
+                if (pkg.Gaps.Count > 0 && GapBaseOf(pkg) is { } from) used = VehicleGaps.Fill(used, pkg.Gaps, from, tmp, ctx.Log);
+                if (fixes.Count > 0) used = WithKitFixes(used, fixes, tmp, ctx.Log);
                 rpf = DlcComposer.Compose(used, pkg.Device, Path.Combine(tmp, "pack"), edition, ctx.Log,
                                           pkg.Kind == ModCategory.Map ? GameTypes(ctx.Target) : null);
             }
@@ -599,7 +633,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         {
             Id = id, Category = Category, Name = pkg.Name, Edition = WeaponHandler.EditionKey(target.Edition),
             Installed = DateTime.UtcNow, Source = pkg.Source,
-            Owns = [$"mods/update/x64/dlcpacks/{pkg.PackName}/"],
+            Owns = [ModsLayout.PackOwns(target.GameDir, pkg.PackName)],
             Data = new()
             {
                 ["kind"] = "addon", ["pack"] = pkg.PackName, ["device"] = pkg.Device,

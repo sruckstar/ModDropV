@@ -39,6 +39,19 @@ public sealed record FileHit(
     public string GamePath => $"{Archive.RelPath}/{InnerPath}";
     public bool Active => Inactive is null;
     public bool InMods => Archive.RelPath.StartsWith(GameIndex.ModsPrefix, StringComparison.OrdinalIgnoreCase);
+    /// <summary>In the onigiri folder (a game that runs Onigiri — <see cref="ModsLayout"/>).</summary>
+    public bool InOnigiri => Archive.RelPath.StartsWith(GameIndex.OnigiriPrefix, StringComparison.OrdinalIgnoreCase);
+    /// <summary>In the folder mods are installed to (mods or onigiri): a mod's copy or an add-on, not the game's own file.</summary>
+    public bool Installed => InMods || InOnigiri;
+
+    /// <summary>
+    /// The path to change the file at: a copy in mods counts as the game's archive it replaces
+    /// (<c>mods/x64e.rpf/…</c> → <c>x64e.rpf/…</c>); a file in onigiri is its own place there.
+    /// </summary>
+    public string TargetPath => InMods ? GamePath[GameIndex.ModsPrefix.Length..] : GamePath;
+
+    /// <summary>The pack folder when the archive is a pack in mods or onigiri (an add-on, or a copy of a game pack).</summary>
+    public string? InstalledPack => ModsLayout.PackFolderOf(Archive.RelPath);
 }
 
 /// <summary>
@@ -59,6 +72,9 @@ public sealed record FileHit(
 public sealed class GameIndex
 {
     public const string ModsPrefix = "mods/";
+    public const string OnigiriPrefix = "onigiri/";
+    /// <summary>Onigiri's loose files, over update.rpf (and below update2.rpf, which loads over it).</summary>
+    private const int OnigiriRank = 150;
 
     /// <summary>Extensions the streaming system registers by name (when they sit in an image archive).</summary>
     public static readonly HashSet<string> StreamedExts = new(StringComparer.OrdinalIgnoreCase)
@@ -169,7 +185,16 @@ public sealed class GameIndex
         foreach (var i in todo.Where(i => result[i].Error is not null))
             log?.Invoke($"  {result[i].RelPath}: {result[i].Error}");
 
-        return new GameIndex(gameDir, exe, result)
+        // Onigiri's loose files: listed afresh every time (headers only), not cached
+        var all = result.ToList();
+        if (ModsLayout.UsesOnigiri(gameDir))
+            foreach (var root in new[] { ModsLayout.OnigiriCommon, ModsLayout.OnigiriPlatform })
+            {
+                var dir = Path.Combine(gameDir, root);
+                if (Directory.Exists(dir)) all.Add(IndexedArchive.ScanLoose(dir, root, ct));
+            }
+
+        return new GameIndex(gameDir, exe, all)
         {
             Scanned = todo.Count,
             Reused = files.Count - todo.Count,
@@ -179,15 +204,24 @@ public sealed class GameIndex
 
     /// <summary>
     /// The archives the game mounts — <c>*.rpf</c> in the game root, under <c>x64\</c> and
-    /// <c>update\</c> — plus every <c>*.rpf</c> in <c>mods\</c>. Paths relative to the game, '/'-separated.
+    /// <c>update\</c> — plus every <c>*.rpf</c> in <c>mods\</c>, and in <c>onigiri\</c> when the game runs Onigiri
+    /// (its mods folder then only counts with a mods-folder plugin beside it). Paths relative to the game, '/'-separated.
     /// </summary>
     public static List<(string Full, string Rel)> ArchiveFiles(string gameDir)
     {
         var list = new List<string>();
         list.AddRange(Directory.EnumerateFiles(gameDir, "*.rpf", SearchOption.TopDirectoryOnly));
-        foreach (var sub in new[] { "x64", "update", "mods" })
+        bool onigiri = ModsLayout.UsesOnigiri(gameDir);
+        var subs = new List<string> { "x64", "update" };
+        if (!onigiri || GameInstaller.ModFolderPlugins.Any(p => File.Exists(Path.Combine(gameDir, p)))) subs.Add("mods");
+        foreach (var sub in subs)
         {
             var d = Path.Combine(gameDir, sub);
+            if (Directory.Exists(d)) list.AddRange(Directory.EnumerateFiles(d, "*.rpf", SearchOption.AllDirectories));
+        }
+        foreach (var sub in onigiri ? new[] { "common", "platform", "dlcpacks" } : [])
+        {
+            var d = Path.Combine(gameDir, ModsLayout.OnigiriRoot, sub);
             if (Directory.Exists(d)) list.AddRange(Directory.EnumerateFiles(d, "*.rpf", SearchOption.AllDirectories));
         }
         return [.. list.Select(f => (f, Path.GetRelativePath(gameDir, f).Replace('\\', '/')))
@@ -238,7 +272,7 @@ public sealed class GameIndex
         for (int i = 0; i < archives.Count; i++)
         {
             var b = basic[i];
-            if (archives[i].DlcList is null || b.Shadowed || b.Role == ArchiveRole.Dlc) continue;
+            if (archives[i].DlcList is null || b.Shadowed is not null || b.Role == ArchiveRole.Dlc) continue;
             if (b.Rank > best)
             {
                 best = b.Rank;
@@ -251,7 +285,7 @@ public sealed class GameIndex
         var packs = new Dictionary<string, DlcSetup?>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < archives.Count; i++)
         {
-            if (basic[i].Dlc is not { } d || basic[i].Shadowed) continue;
+            if (basic[i].Dlc is not { } d || basic[i].Shadowed is not null) continue;
             if (!packs.TryGetValue(d, out var cur) || cur is null) packs[d] = archives[i].Setup;   // dlc.rpf has it, dlc1.rpf not
         }
         var listed = list is null
@@ -267,7 +301,7 @@ public sealed class GameIndex
         {
             var b = basic[i];
             int rank = b.Rank;
-            string? inactive = b.Shadowed ? L.T($"replaced by {ModsPrefix}{b.GameRel}") : null;
+            string? inactive = b.Shadowed is { } by ? L.T($"replaced by {by}") : null;
             if (b.Dlc is { } d)
             {
                 if (dlcRank.TryGetValue(d, out var r)) rank = r;
@@ -278,14 +312,19 @@ public sealed class GameIndex
         return (info, loaded, listSource);
     }
 
-    private sealed record Basic(ArchiveRole Role, string GameRel, bool InMods, bool Shadowed, string? Dlc, int Rank,
+    /// <param name="Shadowed">the copy in mods / onigiri that replaces the archive as a whole, or null</param>
+    private sealed record Basic(ArchiveRole Role, string GameRel, bool InMods, string? Shadowed, string? Dlc, int Rank,
                                 string Source, string LogicalRoot);
 
     private static Basic Classify(string rel, HashSet<string> allRels)
     {
+        if (rel.StartsWith(OnigiriPrefix, StringComparison.OrdinalIgnoreCase)) return ClassifyOnigiri(rel);
         bool inMods = rel.StartsWith(ModsPrefix, StringComparison.OrdinalIgnoreCase);
         var gameRel = inMods ? rel[ModsPrefix.Length..] : rel;
-        bool shadowed = !inMods && allRels.Contains(ModsPrefix + rel);
+        string? shadowed = inMods ? null
+            : allRels.Contains(ModsPrefix + rel) ? ModsPrefix + rel
+            : OnigiriPackCopy(rel) is { } o && allRels.Contains(o) ? o
+            : null;
         var lower = gameRel.ToLowerInvariant();
         var parts = lower.Split('/');
         string where = inMods ? " (mods)" : "";
@@ -302,6 +341,28 @@ public sealed class GameIndex
             ? (lower.StartsWith("x64", StringComparison.Ordinal) ? "x64/" : lower.StartsWith("common", StringComparison.Ordinal) ? "common/" : lower + "/")
             : lower + "/";
         return new Basic(ArchiveRole.Base, gameRel, inMods, shadowed, null, 0, L.T("base game") + where, root);
+    }
+
+    /// <summary><c>update/x64/dlcpacks/&lt;pack&gt;/dlc.rpf</c> → its place in onigiri (Onigiri's dlcpacks stand for the game's).</summary>
+    private static string? OnigiriPackCopy(string rel) =>
+        rel.StartsWith("update/x64/dlcpacks/", StringComparison.OrdinalIgnoreCase) ? $"{OnigiriPrefix}dlcpacks/{rel[20..]}" : null;
+
+    /// <summary>
+    /// An archive or loose root in onigiri: a pack in <c>onigiri/dlcpacks</c> is a DLC like one in the game's dlcpacks;
+    /// <c>onigiri/platform</c> and <c>onigiri/common</c> (and the archives under them) are seen by the game at <c>x64/…</c> /
+    /// <c>common/…</c>, over update.rpf.
+    /// </summary>
+    private static Basic ClassifyOnigiri(string rel)
+    {
+        var lower = rel.ToLowerInvariant();
+        var parts = lower.Split('/');
+        if (parts.Length == 4 && parts[1] == "dlcpacks" && Regex.IsMatch(parts[3], @"^dlc\d*\.rpf$"))
+            return new Basic(ArchiveRole.Dlc, $"update/x64/dlcpacks/{parts[2]}/{parts[3]}", true, null, parts[2], 1000,
+                             $"DLC {parts[2]} (onigiri)", $"dlcpacks/{parts[2]}/");
+        var root = parts.Length >= 2 && parts[1] == "platform" ? "x64" : "common";
+        var rest = string.Join('/', parts.Skip(2));
+        return new Basic(ArchiveRole.Update, rel, true, null, null, OnigiriRank, "onigiri",
+                         rest.Length == 0 ? root + "/" : $"{root}/{rest}/");
     }
 
     /// <summary>Logical path + rank of one file (a <c>dlc_patch</c> entry belongs to its pack, just above it).</summary>
@@ -325,6 +386,13 @@ public sealed class GameIndex
     /// A streamed resource is keyed by its name inside its image archive — the file name, or
     /// folder/name for ped components (<c>player_zero/uppr_000_u.ydd</c>); anything else by its logical path.
     /// </summary>
+    /// <summary>
+    /// The path the grouping looks for an image archive in: the path inside the archive — or, for onigiri, the logical one:
+    /// a copy there is the image itself (<c>onigiri/platform/levels/gta5/vehicles.rpf</c> holds <c>adder.ytd</c> at its root).
+    /// </summary>
+    private string KeyInner(int arc, string innerLower, string logical) =>
+        _info[arc].GameRel.StartsWith(OnigiriPrefix, StringComparison.OrdinalIgnoreCase) ? logical : innerLower;
+
     private static string GroupKey(string innerLower, string logical, string nameLower)
     {
         int image = innerLower.LastIndexOf(".rpf/", StringComparison.Ordinal);
@@ -431,7 +499,7 @@ public sealed class GameIndex
 
     /// <summary>Hits with the same key are copies of one file (the game loads one of them).</summary>
     public static string GroupKeyOf(FileHit h) =>
-        GroupKey(h.InnerPath.ToLowerInvariant(), h.LogicalPath, h.File.Name.ToLowerInvariant());
+        GroupKey(h.InOnigiri ? h.LogicalPath : h.InnerPath.ToLowerInvariant(), h.LogicalPath, h.File.Name.ToLowerInvariant());
 
     private FileHit MakeHit(int arc, int file, Dictionary<string, (int, int)?> winners)
     {
@@ -440,7 +508,7 @@ public sealed class GameIndex
         var inner = a.PathOf(f);
         var innerLower = inner.ToLowerInvariant();
         var (logical, rank, source, inactive) = Place(arc, innerLower);
-        var key = GroupKey(innerLower, logical, f.Name.ToLowerInvariant());
+        var key = GroupKey(KeyInner(arc, innerLower, logical), logical, f.Name.ToLowerInvariant());
         if (!winners.TryGetValue(key, out var win)) winners[key] = win = WinnerOf(key, f.Name);
         return new FileHit(a, f, inner, logical, _info[arc].Role, source, rank, inactive, win == (arc, file));
     }
@@ -454,7 +522,7 @@ public sealed class GameIndex
             var a = Archives[arc];
             var innerLower = a.PathOf(a.Files[file]).ToLowerInvariant();
             var (logical, rank, _, inactive) = Place(arc, innerLower);
-            if (inactive is not null || GroupKey(innerLower, logical, name.ToLowerInvariant()) != key) continue;
+            if (inactive is not null || GroupKey(KeyInner(arc, innerLower, logical), logical, name.ToLowerInvariant()) != key) continue;
             if (rank >= bestRank)                  // ties: the later archive (x64g over x64d), like a later mount
             {
                 bestRank = rank;

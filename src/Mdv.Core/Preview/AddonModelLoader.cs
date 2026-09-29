@@ -45,6 +45,15 @@ public static partial class AddonModelLoader
         return rp.Kind == ModCategory.Ped ? Ped(files, stems, ct) : Vehicle(files, stems, ct);
     }
 
+    /// <summary>A vehicle made of loose model files (a modder's folder); <paramref name="model"/> names its .yft.</summary>
+    public static WeaponModel? LoadVehicle(IEnumerable<string> paths, string model, CancellationToken ct = default)
+    {
+        var files = new Dictionary<string, Func<byte[]>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in paths)
+            if (ModelExt.Contains(PathUtil.SuffixLower(p))) files.TryAdd(Path.GetFileName(p), () => File.ReadAllBytes(p));
+        return Vehicle(files, [model], ct);
+    }
+
     /// <summary>
     /// A game vehicle / installed add-on wearing a livery: its model from the game, its dictionaries with the livery's
     /// pictures put in (see <see cref="LiveryResolution.Painted"/>). Null when the livery isn't looked up in a game yet.

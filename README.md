@@ -121,14 +121,14 @@ Legacy or Enhanced.
 | Add-On type | Status |
 |---|---|
 | Weapons — from replace files to a finished add-on (metas, components, shop entries, text labels) | ✅ ready |
-| Vehicles | coming soon |
+| Vehicles — from a car's models (replace files too) to a finished add-on: pick one of the game's 934 vehicles as the base and its handling, layout, cameras, class and sound are copied; `vehicles.meta`, `handling.meta`, `carvariations.meta`, a modkit with a free id and the in-game name and make are written; your own metas win | ✅ ready |
 | Peds | coming soon |
 | Props | coming soon |
 | MP clothing | coming soon |
 
 A command-line tool, `mdvctl.exe`, ships next to the app: `mdvctl install <game_dir> <mod>` installs any mod the way
 the app does, `mdvctl status <game_dir>` shows how the game stands for mods, `mdvctl online <game_dir> on|off` puts the mods away
-for GTA Online and back, `mdvctl build …` builds add-on weapons.
+for GTA Online and back, `mdvctl build …` builds add-on weapons, `mdvctl build-vehicle …` add-on vehicles.
 Run it without arguments for the full list.
 
 ---
@@ -148,6 +148,14 @@ The loader it sets up is [RageOpenV](https://www.gta5-mods.com/scripts/rageopenv
 asks not to redistribute it, so ModDrop V downloads the latest official release from GitHub on the first install that
 needs it. A `DSOUND.dll` mods loader is replaced — it fails on big archives (the game doesn't start with a 2 GB+
 `update.rpf`).
+
+**Onigiri (NaturalVision Enhanced).** When GTA V Enhanced runs Onigiri (`onigiri.asi` in the game folder), mods go
+where Onigiri reads them — the `onigiri` folder, as loose files — and no `mods` folder or loader is set up:
+`onigiri\common` = `update.rpf\common`, `onigiri\platform` = `update.rpf\x64` (it also stands over the base archives'
+files), `onigiri\dlcpacks` = `update\x64\dlcpacks`, and the pack list is the loose `onigiri\common\data\dlclist.xml`.
+A file inside an archive goes into a copy of just that archive (`vehicles.rpf`, not the whole `x64e.rpf`); files
+Onigiri's own package put there come back when the mod is removed. After a game update, the game status offers to add
+the game's new DLC packs to Onigiri's `dlclist.xml`.
 
 🌐 **13 languages** — English, Français, Deutsch, Italiano, Español (España / México), Português (Brasil), Polski,
 Русский, 한국어, 繁體中文, 日本語, 简体中文. ModDrop V starts in your Windows language; switch any time with the
@@ -203,6 +211,9 @@ dotnet run --project src/Mdv.App      # the app
 - The **ASI Loader** by Alexander Blade — loads RageOpenV and other .asi plugins.
 - **Heap Adjuster** (Cameron Berry) and **Packfile Limit Adjuster**, their GTA V Enhanced builds — ship with ModDrop V
   under their MIT licences and go into GTA V Enhanced together with the raised limits.
+- **Weapon Limits Adjuster Enhanced** — ModDrop V's port of [WeaponLimitsAdjuster](https://github.com/alexguirre/gtav-WeaponLimitsAdjuster)
+  by alexguirre (whose component-array fix comes from FiveM) to GTA V Enhanced, MIT, source in `plugins/`. It lifts the
+  game's limit of 470 weapon components (about 5 above its own) and goes in with the other two.
 - ScriptHookV, ScriptHookVDotNet and RAGE Plugin Hook are never bundled — ModDrop V links to their official pages.
 - Mods in the screenshots: **ABT Audi RS7-R HAMMER**, **Equalizer .410** by HeySlickThatsMe, **Menyoo PC** by MAFINS,
   **New Police HQ Mission Row** by X_Jen67.

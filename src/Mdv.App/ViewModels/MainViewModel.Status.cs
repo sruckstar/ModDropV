@@ -102,9 +102,10 @@ public sealed partial class MainViewModel
     private void UpdateCopies()
     {
         var game = GameFolder.Trim();
-        var plan = new InstallPlan { Title = L.T("Updating the copies in mods") }.Add(new RefreshCopiesOp(_staleCopies.ToList()));
+        var where = ModsLayout.RootRel(game);
+        var plan = new InstallPlan { Title = L.T($"Updating the copies in {where}") }.Add(new RefreshCopiesOp(_staleCopies.ToList()));
         OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Update copies"),
-                 () => RunPlanAsync(plan, L.T("Updating the copies in mods…"), L.T("Copies in mods updated")),
+                 () => RunPlanAsync(plan, L.T($"Updating the copies in {where}…"), L.T($"Copies in {where} updated")),
                  L.T("Each copy is taken fresh from the updated game; the files your mods changed in it are put back."));
     }
 }

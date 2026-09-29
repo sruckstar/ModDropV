@@ -342,6 +342,9 @@
                 <DataTemplate DataType="vm:WeaponViewModel">
                   <p:WeaponSourceView />
                 </DataTemplate>
+                <DataTemplate DataType="vm:VehicleBuildViewModel">
+                  <p:VehicleSourceView />
+                </DataTemplate>
                 <DataTemplate DataType="vm:ModPanelViewModel">
                   <Panel />
                 </DataTemplate>
@@ -408,6 +411,9 @@
               <DataTemplate DataType="vm:MapViewModel">
                 <p:MapFormView />
               </DataTemplate>
+              <DataTemplate DataType="vm:VehicleBuildViewModel">
+                <p:VehicleFormView />
+              </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
           <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
@@ -462,6 +468,9 @@
             </DataTemplate>
             <DataTemplate DataType="vm:MapViewModel">
               <p:MapSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:VehicleBuildViewModel">
+              <p:VehicleSideView />
             </DataTemplate>
             <DataTemplate DataType="vm:ModPanelViewModel">
               <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />

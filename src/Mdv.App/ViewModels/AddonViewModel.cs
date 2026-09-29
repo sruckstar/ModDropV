@@ -217,7 +217,7 @@ public sealed partial class AddonViewModel : FileModViewModel
     public partial bool HasReplace { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(InstallAsAddon), nameof(ShowPack), nameof(ShowChecks), nameof(Note), nameof(SideHeading))]
+    [NotifyPropertyChangedFor(nameof(InstallAsAddon), nameof(ShowPack), nameof(ShowChecks), nameof(Note), nameof(SideHeading), nameof(ShowGaps))]
     public partial bool InstallAsReplace { get; set; }
 
     public bool InstallAsAddon
@@ -252,6 +252,24 @@ public sealed partial class AddonViewModel : FileModViewModel
         ShowItems();
     }
 
+    /// <summary>Its vehicles name a handling / layout neither the mod nor the game has: taken from the game vehicle picked here.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowGaps))]
+    public partial bool HasGaps { get; set; }
+
+    public bool ShowGaps => HasGaps && !InstallAsReplace;
+    [ObservableProperty] public partial string GapText { get; set; } = "";
+    [ObservableProperty] public partial IReadOnlyList<VehicleTemplate> GapBases { get; set; } = [];
+    [ObservableProperty] public partial VehicleTemplate? GapBase { get; set; }
+
+    partial void OnGapBaseChanged(VehicleTemplate? value)
+    {
+        if (_loading || _pkg is null || _pkg.GapBase == value?.Model) return;
+        _pkg.GapBase = value?.Model;
+        _pkg.Checks = null;
+        _ = CheckAsync();
+    }
+
     [ObservableProperty] public partial bool FixKits { get; set; } = true;
     [ObservableProperty] public partial bool HasKitFixes { get; set; }
 
@@ -272,10 +290,10 @@ public sealed partial class AddonViewModel : FileModViewModel
 
     /// <summary>How it goes into the game, for the note under the checks.</summary>
     public string Note => InstallAsReplace
-        ? L.T("The Replace version's files go into copies of the game's archives under mods, where the game loads them from — " +
-          "the game's own files stay untouched. Switch it off or remove it any time in the Library.")
-        : L.T(@"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml — the game's files stay untouched. " +
-          "Switch it off or remove it any time in the Library.");
+        ? L.T($"The Replace version's files go into copies of the game's archives under {ModsLayout.RootRel(Shell.GameFolder.Trim())}, where the game " +
+          $"loads them from — the game's own files stay untouched. Switch it off or remove it any time in the Library.")
+        : L.T($"It goes into {ModsLayout.DlcpacksShown(Shell.GameFolder.Trim())} as a pack of its own and into dlclist.xml — the game's files " +
+          $"stay untouched. Switch it off or remove it any time in the Library.");
 
     partial void OnInstallAsReplaceChanged(bool value)
     {
@@ -355,6 +373,7 @@ public sealed partial class AddonViewModel : FileModViewModel
             HasReplace = false;
             HasKitFixes = false;
             HasNewPeds = false;
+            HasGaps = false;
             _ = Preview.LoadAsync(null);
             return Task.CompletedTask;
         }
@@ -379,6 +398,13 @@ public sealed partial class AddonViewModel : FileModViewModel
             : r.Replaces.Count > 0 ? L.T($"Replace — in place of the game's {string.Join(", ", r.Replaces)}; no new spawn name")
             : L.T($"Replace — in place of the game's own ({string.Join(", ", r.Files.Select(x => x.Name).Take(4))}{(r.Files.Count > 4 ? ", …" : "")})");
         FixKits = pkg.FixKits;
+        HasGaps = pkg.Gaps.Count > 0;
+        GapBases = HasGaps ? VehicleTemplates.Load(pkg.DataDir).All : [];
+        GapBase = AddonPackHandler.GapBaseOf(pkg);
+        GapText = HasGaps
+            ? L.T($"Its vehicles.meta names {string.Join(", ", pkg.Gaps.Select(g => g.Text).Distinct())}, which neither the mod nor the game has — " +
+                  $"without it the game crashes spawning the vehicle. It’s taken from this game vehicle — pick one close to it.")
+            : "";
         PackName = pkg.PackName;
         _loading = false;
         SetWarnings(pkg.Warnings);

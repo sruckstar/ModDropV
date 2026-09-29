@@ -44,7 +44,8 @@ public sealed partial class MainViewModel : ObservableObject
         Livery = new LiveryViewModel(this);
         Clothing = new ClothingViewModel(this);
         Map = new MapViewModel(this);
-        foreach (var preview in new[] { Addon.Preview, Livery.Preview })
+        VehicleBuild = new VehicleBuildViewModel(this);
+        foreach (var preview in new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview })
             preview.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(ModelPreview.IsOpen)) OnPropertyChanged(nameof(OpenModelPreview));
@@ -152,8 +153,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Player: maps and props (add-on packs, FiveM maps, loose placements) and Menyoo / Map Editor maps.</summary>
     public MapViewModel Map { get; }
 
-    /// <summary>The 3D preview opened large (an add-on's, a livery's), or null.</summary>
-    public ModelPreview? OpenModelPreview => Addon.Preview.IsOpen ? Addon.Preview : Livery.Preview.IsOpen ? Livery.Preview : null;
+    /// <summary>Modder: an add-on vehicle built from its models on the base of a game vehicle.</summary>
+    public VehicleBuildViewModel VehicleBuild { get; }
+
+    /// <summary>The 3D preview opened large (an add-on's, a livery's, the modder's vehicle), or null.</summary>
+    public ModelPreview? OpenModelPreview =>
+        Addon.Preview.IsOpen ? Addon.Preview : Livery.Preview.IsOpen ? Livery.Preview : VehicleBuild.Preview.IsOpen ? VehicleBuild.Preview : null;
 
     /// <summary>Player: the panel of the mod picked from the drop (null: nothing installable dropped yet).</summary>
     [ObservableProperty] public partial ModPanelViewModel? SelectedPanel { get; set; }
@@ -284,7 +289,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (game.Length == 0) return (null, L.T("No GTA V game folder selected."));
         if (!Directory.Exists(game)) return (null, L.T("The selected game folder doesn't exist."));
         bool isGame = GameEditions.Detect(game) is not null || GameEditions.IsAmbiguous(game);
-        if (!isGame && !Directory.Exists(Path.Combine(game, "mods")))
+        if (!isGame && !Directory.Exists(Path.Combine(game, ModsLayout.ModsRoot)) && !Directory.Exists(Path.Combine(game, ModsLayout.OnigiriRoot)))
             return (null, L.T($"The selected folder doesn't look like GTA V: no {GameEditions.LegacyExe} / " +
                           $"{GameEditions.EnhancedExe} and no «mods» directory."));
         Settings.LastGame = game;

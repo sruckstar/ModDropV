@@ -118,10 +118,10 @@ public sealed partial class MapViewModel : FileModViewModel
             : L.T(@"It goes into menyooStuff\Spooner — in the game open Menyoo (F8): Object Spooner → Manage Saved Files → the map → Load Placement. " +
               "Switching it off in the Library renames it to *.disabled.")
         : _pkg?.Kind == ModCategory.Prop
-            ? L.T(@"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml; its props load with the game — spawn them by name " +
-              "with Menyoo's Object Spooner or Map Editor. Switch it off or remove it any time in the Library.")
-            : L.T(@"It goes into mods\update\x64\dlcpacks as a pack of its own and into dlclist.xml — the map loads with the game in story mode, " +
-              "no trainer needed. Switch it off or remove it any time in the Library.");
+            ? L.T($"It goes into {ModsLayout.DlcpacksShown(Shell.GameFolder.Trim())} as a pack of its own and into dlclist.xml; its props load " +
+              $"with the game — spawn them by name with Menyoo's Object Spooner or Map Editor. Switch it off or remove it any time in the Library.")
+            : L.T($"It goes into {ModsLayout.DlcpacksShown(Shell.GameFolder.Trim())} as a pack of its own and into dlclist.xml — the map loads " +
+              $"with the game in story mode, no trainer needed. Switch it off or remove it any time in the Library.");
 
     partial void OnInstallAsPlacementChanged(bool value)
     {

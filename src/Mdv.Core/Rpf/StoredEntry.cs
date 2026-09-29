@@ -45,6 +45,34 @@ public sealed record StoredEntry(RpfEntryKind Kind, byte[] Data, uint TocSize, u
         return new StoredEntry(kind, arc.ReadAt(e.Offset, checked((int)len)), (uint)e.TocSize, e.X8, e.XC);
     }
 
+    /// <summary>
+    /// The entry as a loose file on disk, the way OpenIV exports it and a loose-file loader (Onigiri) reads it: a resource
+    /// is its RSC7 header + the still-compressed body, a binary is decompressed, a raw entry is as is.
+    /// </summary>
+    /// <exception cref="InvalidDataException">the game encrypted the entry (only its archive can hold it)</exception>
+    public byte[] ToLooseFile()
+    {
+        switch (Kind)
+        {
+            case RpfEntryKind.Resource:
+                // a header of its own stays; Rockstar's archives keep filler there (a big one, a scattered size): rebuilt
+                if (TocSize != Rpf7.BigSize && Data.Length >= 16 && BinaryPrimitives.ReadUInt32LittleEndian(Data) == Rpf7.Rsc7Magic)
+                    return Data;
+                var file = new byte[Math.Max(16, Data.Length)];
+                Rpf7.Rsc7Header(X8, XC).CopyTo(file, 0);
+                if (Data.Length > 16) Data.AsSpan(16).CopyTo(file.AsSpan(16));
+                return file;
+            case RpfEntryKind.Binary:
+                if (XC == 1) throw new InvalidDataException("the entry is encrypted by the game");
+                return TocSize == 0 ? Data : Rpf7.Inflate(Data, 0, Data.Length);
+            default:
+                return Data;
+        }
+    }
+
+    /// <summary>A loose file on disk as an entry, byte for byte (see <see cref="ToLooseFile"/>).</summary>
+    public static StoredEntry OfLooseFile(byte[] content) => new(RpfEntryKind.Raw, content, 0, (uint)content.Length, 0);
+
     public bool SameAs(StoredEntry? other) =>
         other is not null && Kind == other.Kind && TocSize == other.TocSize && X8 == other.X8 && XC == other.XC &&
         Data.AsSpan().SequenceEqual(other.Data);

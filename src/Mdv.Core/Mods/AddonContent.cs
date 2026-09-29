@@ -47,6 +47,10 @@ public sealed partial class AddonContent
     /// <summary>Text labels by hash (gxt2, AddTextEntry in a FiveM script).</summary>
     public Dictionary<uint, string> Labels { get; } = [];
     public HashSet<string> DataTypes { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Weapon components its weaponcomponents.meta defines.</summary>
+    public HashSet<string> ComponentsDefined { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Weapon components its weapons refer to (a variant's extra parts, attach points) — its own or another pack's.</summary>
+    public HashSet<string> ComponentsUsed { get; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Its content.xml mounts map data (<c>CONTENTS_DLC_MAP_DATA</c>) — a map pack even before its placements are read.</summary>
     public bool MapData { get; set; }
     /// <summary>What its placement files (.ymap) put into the world (read when the pack is looked at closely).</summary>
@@ -151,7 +155,28 @@ public sealed partial class AddonContent
             case "PED_METADATA_FILE": ReadPeds(text); break;
             case "CARCOLS_FILE": ReadKits(text, file); break;
             case "SHOP_PED_APPAREL_META_FILE": ReadShop(text); break;
+            case "WEAPONCOMPONENTSINFO_FILE" or "WEAPONINFO_FILE": ReadComponents(text); break;
         }
+    }
+
+    [GeneratedRegex(@"<ComponentName>\s*([^<\s]+)\s*</ComponentName>")] private static partial Regex ComponentNameRe();
+
+    /// <summary>A weaponcomponents.meta or weapons.meta: the components it defines and the ones it refers to.</summary>
+    private void ReadComponents(string text)
+    {
+        if (ParseXml(text)?.Root is not { } root)
+        {
+            foreach (Match m in ComponentNameRe().Matches(text)) ComponentsUsed.Add(m.Groups[1].Value);   // broken XML: the extra parts at least
+            return;
+        }
+        if (root.Element("Infos") is { } infos)
+            foreach (var item in infos.Elements("Item"))
+                if (Val(item, "Name") is { } name) ComponentsDefined.Add(name);
+        foreach (var extra in root.Descendants("ExtraComponents").SelectMany(e => e.Elements("Item")))
+            if (Val(extra, "ComponentName") is { } name) ComponentsUsed.Add(name);
+        foreach (var point in root.Descendants("AttachPoints").SelectMany(e => e.Elements("Item")))
+            foreach (var c in point.Element("Components")?.Elements("Item") ?? [])
+                if (Val(c, "Name") is { } name) ComponentsUsed.Add(name);
     }
 
     /// <summary>A shop meta: the collection it registers.</summary>
@@ -382,7 +407,8 @@ public sealed partial class AddonContent
         foreach (var f in pack.DataFiles)
         {
             pack.Content.DataTypes.Add(f.Type);
-            if (f.Type is not ("VEHICLE_METADATA_FILE" or "PED_METADATA_FILE" or "CARCOLS_FILE" or "SHOP_PED_APPAREL_META_FILE")) continue;
+            if (f.Type is not ("VEHICLE_METADATA_FILE" or "PED_METADATA_FILE" or "CARCOLS_FILE" or "SHOP_PED_APPAREL_META_FILE"
+                               or "WEAPONCOMPONENTSINFO_FILE" or "WEAPONINFO_FILE")) continue;
             if (Text(f.Path) is { } text) pack.Content.AddData(f.Type, text, f.Path);
             else pack.Warnings.Add(L.T($"content.xml lists {f.Path}, but the pack has no such file."));
         }

@@ -52,6 +52,8 @@ internal static class Program
                 "scan" => Scan(rest),
                 "plan" => Plan(rest),
                 "build" => Build(rest),
+                "build-vehicle" => BuildVehicle(rest),
+                "vehicle-bases" => VehicleBases(rest),
                 "verify" => Verify(rest),
                 "detect" => Detect(rest),
                 "installed" => Installed(rest),
@@ -110,6 +112,15 @@ internal static class Program
                   [--edition legacy|enhanced|auto]
                   full Replace -> Add-On build; --edition picks the game build the
                   models are packed for (auto: from the install folder's exe, else legacy)
+              build-vehicle <input_folder> <out_dir> --base MODEL [--model-name NAME] [--name TEXT]
+                  [--make TEXT] [--class VC_…] [--sound MODEL] [--no-kit] [--kit-id N] [--no-pack]
+                  [--edition legacy|enhanced|auto]
+                  a vehicle's models (.yft / .ytd, Replace files too) -> an add-on vehicle pack: vehicles.meta,
+                  handling, variations and a modkit from the game's vehicle --base (the folder's own
+                  metas win), the name and make in global.gxt2; --model-name renames the files (needed when
+                  they carry a game vehicle's name), --sound takes another game vehicle's engine sound
+              vehicle-bases [text]
+                  the game's vehicles an add-on can be based on (model, name, class)
               verify <archive.rpf>
                   self-check every resource of a built archive
               detect <path> [<path> ...]
@@ -152,7 +163,7 @@ internal static class Program
                   rewrite archive copies in mods without the holes edits leave behind
               install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery|clothing|map|prop]
                       [--edition legacy|enhanced|auto] [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME]
-                      [--replace] [--keep-kits] [--gender male|female] [--vehicle NAME] [--slot PICTURE=TEXTURE ...]
+                      [--replace] [--keep-kits] [--gender male|female] [--base MODEL] [--vehicle NAME] [--slot PICTURE=TEXTURE ...]
                       [--wearer WHO] [--new-slots] [--as addon|menyoo|mapeditor] [--no-parts] [--dry-run]
                   install a dropped mod the way the app does: analyse, print the plan, run it
                   (--kind picks one of the mods found; --target sends a replacement file elsewhere;
@@ -160,7 +171,8 @@ internal static class Program
                   what the mod needs from the game; add-on vehicles / peds print the checks against
                   the game — --pack names the dlcpacks folder, --replace installs the mod's Replace
                   version, --keep-kits leaves clashing modkit ids as they are, --gender picks the template
-                  of the peds.meta written for peds that come without one; liveries print the vehicle and
+                  of the peds.meta written for peds that come without one, --base the game vehicle a handling /
+                  layout its vehicles name but nobody has is taken from; liveries print the vehicle and
                   which texture each picture replaces — --vehicle picks the vehicle (a game one or an
                   installed add-on), --slot sends a picture to another texture of it; clothing prints whose clothes
                   they are and where each file goes (MP clothes as an add-on: new slots at the end of the game's
@@ -401,6 +413,70 @@ internal static class Program
         return 0;
     }
 
+    private static int BuildVehicle(string[] argv)
+    {
+        var a = Parse(argv, ["--base", "--model-name", "--name", "--make", "--class", "--sound", "--kit-id", "--edition"],
+                      ["--no-kit", "--no-pack"]);
+        NeedPositional(a, 2, 2, "input_folder, out_dir");
+        var lib = VehicleTemplates.Load(Path.Combine(Root, "data"));
+        var baseModel = a.Opt("--base") ?? throw new UsageException("--base: the game's vehicle it's based on (see vehicle-bases)");
+        if (lib.Find(baseModel) is null) throw new UsageException($"--base: the game has no vehicle '{baseModel}' (see vehicle-bases)");
+        if (a.Opt("--sound") is { } snd && lib.Find(snd) is null) throw new UsageException($"--sound: the game has no vehicle '{snd}'");
+        var cls = a.Opt("--class")?.ToUpperInvariant();
+        if (cls is not null && !cls.StartsWith("VC_", StringComparison.Ordinal)) cls = "VC_" + cls;
+        if (cls is not null && !VehicleClasses.All.Contains(cls)) throw new UsageException($"--class: one of {string.Join(", ", VehicleClasses.All)}");
+        GameEdition edition;
+        try
+        {
+            edition = GameEditions.Parse(a.Opt("--edition")) ?? GameEdition.Legacy;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        var o = new VehicleBuildOptions
+        {
+            InputFolder = a.Positional[0],
+            OutDir = a.Positional[1],
+            BaseModel = baseModel,
+            ModelName = a.Opt("--model-name"),
+            DisplayName = a.Opt("--name"),
+            Make = a.Opt("--make"),
+            VehicleClass = cls,
+            Sound = a.Opt("--sound"),
+            Modkit = !a.Flags.Contains("--no-kit"),
+            KitId = a.IntOrNull("--kit-id"),
+            Pack = !a.Flags.Contains("--no-pack"),
+            Edition = edition,
+            DataDir = Path.Combine(Root, "data"),
+        };
+        try
+        {
+            var r = VehicleBuilder.Build(o, Console.WriteLine);
+            Console.WriteLine(r.DlcRpf is not null
+                ? $"\nReady: {r.DlcRpf} — spawn name {r.Names.Model} (see manifest.json)."
+                : $"\nLoose folders in {r.Root} — pack the *.rpf folders with CodeWalker.");
+            return 0;
+        }
+        catch (Exception ex) when (ex is IntakeException or IOException or InvalidDataException)
+        {
+            Console.Error.WriteLine($"\n[!] Build failed: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int VehicleBases(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 0, 1, "text");
+        var q = a.Positional.Count > 0 ? a.Positional[0] : "";
+        var lib = VehicleTemplates.Load(Path.Combine(Root, "data"));
+        foreach (var t in lib.All.Where(t => q.Length == 0 || t.Model.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                                             t.Title.Contains(q, StringComparison.OrdinalIgnoreCase)))
+            Console.WriteLine($"{t.Model,-18} {t.Title,-32} {t.ClassName,-16} {t.Dlc}");
+        return 0;
+    }
+
     private static int Detect(string[] argv)
     {
         var a = Parse(argv, [], []);
@@ -527,6 +603,8 @@ internal static class Program
         Console.WriteLine($"  dlclist.xml: {index.DlcListSource ?? "(none)"} — {index.LoadedDlcs.Count} DLC pack(s) mounted");
         int mods = index.Archives.Count(x => x.RelPath.StartsWith(GameIndex.ModsPrefix, StringComparison.OrdinalIgnoreCase));
         if (mods > 0) Console.WriteLine($"  mods folder: {mods} archive(s)");
+        int onigiri = index.Archives.Count(x => x.RelPath.StartsWith(GameIndex.OnigiriPrefix, StringComparison.OrdinalIgnoreCase));
+        if (onigiri > 0) Console.WriteLine($"  onigiri folder (Onigiri): {onigiri} archive(s) and loose root(s)");
         var broken = index.Archives.Where(x => x.Error is not null).ToList();
         foreach (var b in broken) Console.WriteLine($"  [!] {b.RelPath}: {b.Error}");
         if (!a.Flags.Contains("--no-cache"))
@@ -664,9 +742,9 @@ internal static class Program
         foreach (var c in ModsOverlay.Load(game).Conflicts(modId, [gamePath]))
             plan.Warnings.Add($"{c.GamePath} is already changed by {string.Join(", ", c.Owners)} — this mod goes on top.");
         var existing = ModRegistry.Load(game).Find(modId);
-        var key = ModsOverlay.KeyOf(gamePath);
+        var key = ModsOverlay.Load(game).KeyFor(gamePath);
         plan.Add(op);
-        plan.Add(new ActionOp($"Record «{modId}» in mods\\ModDropV.json", ctx => ctx.Registered.Add(new RegisteredMod
+        plan.Add(new ActionOp($"Record «{modId}» in {Path.GetRelativePath(game, ModRegistry.PathFor(game))}", ctx => ctx.Registered.Add(new RegisteredMod
         {
             Id = modId, Category = ModCategory.Replacement, Name = existing?.Name ?? modId,
             Edition = WeaponHandler.EditionKey(ctx.Target.Edition), Installed = DateTime.UtcNow,
@@ -710,13 +788,13 @@ internal static class Program
         }
         var plan = new InstallPlan { Title = $"Remove {modId}" }
             .Add(new OverlayRemoveOp(modId, modId))
-            .Add(new ActionOp("Forget it in mods\\ModDropV.json", ctx => ctx.Unregistered.Add(modId)));
+            .Add(new ActionOp($"Forget it in {Path.GetRelativePath(game, ModRegistry.PathFor(game))}", ctx => ctx.Unregistered.Add(modId)));
         return RunPlan(plan, TargetFor(game, null));
     }
 
     private static int Install(string[] argv)
     {
-        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--vehicle", "--slot", "--wearer", "--as", "--cancel-after"],
+        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--base", "--vehicle", "--slot", "--wearer", "--as", "--cancel-after"],
                       ["--dry-run", "--replace", "--keep-kits", "--new-slots", "--no-parts"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
@@ -818,6 +896,15 @@ internal static class Program
             if (ap.Compose is not { NewPeds.Count: > 0 } made) throw new UsageException("--gender: the mod has its own peds.meta");
             foreach (var p in made.NewPeds) p.Gender = g;
         }
+        if (a.Opt("--base") is { } gapBase)
+        {
+            if (ap.Gaps.Count == 0) throw new UsageException("--base: its vehicles name nothing the mod and the game lack");
+            ap.GapBase = VehicleTemplates.Load(Path.Combine(AppContext.BaseDirectory, "data")).Find(gapBase)?.Model
+                         ?? throw new UsageException($"--base: the game has no vehicle '{gapBase}' (see vehicle-bases)");
+        }
+        if (ap.Gaps.Count > 0)
+            Console.WriteLine($"    missing: {string.Join(", ", ap.Gaps.Select(g => $"{g.Text} ({g.Model})"))} — taken from " +
+                              $"{AddonPackHandler.GapBaseOf(ap)?.ToString() ?? "(none)"} (--base to change)");
         if (a.Flags.Contains("--replace"))
         {
             if (ap.Replace is null) throw new UsageException("--replace: the mod has no Replace version");

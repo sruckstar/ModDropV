@@ -167,7 +167,7 @@ public static class InstalledMods
         {
             Id = WeaponIds.Pack(dlcName), Category = ModCategory.Weapon, Name = displayName,
             Edition = WeaponHandler.EditionKey(edition), Installed = DateTime.UtcNow,
-            Owns = [$"mods/update/x64/dlcpacks/{dlcName}/"],
+            Owns = [ModsLayout.PackOwns(gameDir, dlcName)],
             Data = new() { ["kind"] = "pack", ["pack"] = dlcName },
         });
         reg.Save(gameDir);
