@@ -54,6 +54,8 @@ internal static class Program
                 "build" => Build(rest),
                 "build-vehicle" => BuildVehicle(rest),
                 "vehicle-bases" => VehicleBases(rest),
+                "build-ped" => BuildPed(rest),
+                "ped-bases" => PedBases(rest),
                 "verify" => Verify(rest),
                 "detect" => Detect(rest),
                 "installed" => Installed(rest),
@@ -121,6 +123,15 @@ internal static class Program
                   they carry a game vehicle's name), --sound takes another game vehicle's engine sound
               vehicle-bases [text]
                   the game's vehicles an add-on can be based on (model, name, class)
+              build-ped <input_folder> <out_dir> [--base PED] [--model-name NAME] [--ymt] [--no-pack]
+                  [--edition legacy|enhanced|auto]
+                  a ped's models (name.yft + name.ydd / .ytd, or a folder of components; Replace files
+                  too) -> an add-on ped pack: peds.meta from the game's ped --base (default: an ambient
+                  male / female by the folder's name; the folder's own peds.meta wins), the .ymt written
+                  from the components when the folder has none (--ymt: even when it has one);
+                  --model-name renames the files (needed when they carry a game ped's name)
+              ped-bases [text | male | female | animal]
+                  the game's peds an add-on ped can be based on (name, kind, type, group)
               verify <archive.rpf>
                   self-check every resource of a built archive
               detect <path> [<path> ...]
@@ -474,6 +485,62 @@ internal static class Program
         foreach (var t in lib.All.Where(t => q.Length == 0 || t.Model.Contains(q, StringComparison.OrdinalIgnoreCase) ||
                                              t.Title.Contains(q, StringComparison.OrdinalIgnoreCase)))
             Console.WriteLine($"{t.Model,-18} {t.Title,-32} {t.ClassName,-16} {t.Dlc}");
+        return 0;
+    }
+
+    private static int BuildPed(string[] argv)
+    {
+        var a = Parse(argv, ["--base", "--model-name", "--edition"], ["--ymt", "--no-pack"]);
+        NeedPositional(a, 2, 2, "input_folder, out_dir");
+        var lib = PedTemplates.Load(Path.Combine(Root, "data"));
+        var basePed = a.Opt("--base");
+        if (basePed is not null && lib.Find(basePed) is null) throw new UsageException($"--base: the game has no ped '{basePed}' to base on (see ped-bases)");
+        if (basePed is null && !PedBuilder.Read(a.Positional[0]).OwnInit)
+            basePed = lib.Default(PedMeta.Guess(Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a.Positional[0])))) == PedGender.Female ? "female" : "male")?.Name;
+        GameEdition edition;
+        try
+        {
+            edition = GameEditions.Parse(a.Opt("--edition")) ?? GameEdition.Legacy;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        var o = new PedBuildOptions
+        {
+            InputFolder = a.Positional[0],
+            OutDir = a.Positional[1],
+            BasePed = basePed,
+            ModelName = a.Opt("--model-name"),
+            RegenerateYmt = a.Flags.Contains("--ymt"),
+            Pack = !a.Flags.Contains("--no-pack"),
+            Edition = edition,
+            DataDir = Path.Combine(Root, "data"),
+        };
+        try
+        {
+            var r = PedBuilder.Build(o, Console.WriteLine);
+            Console.WriteLine(r.DlcRpf is not null
+                ? $"\nReady: {r.DlcRpf} — spawn name {r.Names.Name} (see manifest.json)."
+                : $"\nLoose folders in {r.Root} — pack the *.rpf folders with CodeWalker.");
+            return 0;
+        }
+        catch (Exception ex) when (ex is IntakeException or IOException or InvalidDataException)
+        {
+            Console.Error.WriteLine($"\n[!] Build failed: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int PedBases(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 0, 1, "text");
+        var q = a.Positional.Count > 0 ? a.Positional[0] : "";
+        var lib = PedTemplates.Load(Path.Combine(Root, "data"));
+        foreach (var t in lib.All.Where(t => q.Length == 0 || t.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                                             t.Kind.Equals(q, StringComparison.OrdinalIgnoreCase)))
+            Console.WriteLine($"{t.Name,-26} {t.Kind,-7} {t.PedType,-14} {t.Group,-12} {t.Dlc}");
         return 0;
     }
 

@@ -72,6 +72,18 @@ public static class PedVariation
             new XElement("propInfo", Val("numAvailProps", "0"), Arr("aPropMetaData", "CPedPropMetaData"), Arr("aAnchors", "CAnchorProps")),
             new XElement("dlcName", dlcName)));
 
+    /// <summary>
+    /// A new, empty variations file of a ped of its own (<c>a_m_y_hipster_01.ymt</c>), headed as Rockstar's ambient
+    /// peds' are: no name, no DLC name, texture and drawable variations flagged.
+    /// </summary>
+    public static XDocument ForPed() => new(
+        new XElement("CPedVariationInfo",
+            Val("bHasTexVariations", "true"), Val("bHasDrawblVariations", "true"), Val("bHasLowLODs", "false"), Val("bIsSuperLOD", "false"),
+            new XElement("availComp", string.Join(' ', Enumerable.Repeat("255", 12))),
+            Arr("aComponentData3", "CPVComponentData"), Arr("aSelectionSets", "CPedSelectionSet"), Arr("compInfos", "CComponentInfo"),
+            new XElement("propInfo", Val("numAvailProps", "0"), Arr("aPropMetaData", "CPedPropMetaData"), Arr("aAnchors", "CAnchorProps")),
+            new XElement("dlcName")));
+
     /// <summary>Drawables per component slot (0–11) and per prop anchor (0–10).</summary>
     public static (int[] Components, int[] Props) Counts(XDocument doc)
     {

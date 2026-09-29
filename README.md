@@ -122,13 +122,13 @@ Legacy or Enhanced.
 |---|---|
 | Weapons — from replace files to a finished add-on (metas, components, shop entries, text labels) | ✅ ready |
 | Vehicles — from a car's models (replace files too) to a finished add-on: pick one of the game's 934 vehicles as the base and its handling, layout, cameras, class and sound are copied; `vehicles.meta`, `handling.meta`, `carvariations.meta`, a modkit with a free id and the in-game name and make are written; your own metas win | ✅ ready |
-| Peds | coming soon |
+| Peds — from a ped's models (a component dictionary or a streamed folder of components, replace files too) to a finished add-on: pick one of the game's 1,100 peds as the base (animals too) and its movement, gestures, voice, personality and behaviour go into `peds.meta`; with no `.ymt` one is written from the components and their textures; your own `peds.meta` wins | ✅ ready |
 | Props | coming soon |
 | MP clothing | coming soon |
 
 A command-line tool, `mdvctl.exe`, ships next to the app: `mdvctl install <game_dir> <mod>` installs any mod the way
 the app does, `mdvctl status <game_dir>` shows how the game stands for mods, `mdvctl online <game_dir> on|off` puts the mods away
-for GTA Online and back, `mdvctl build …` builds add-on weapons, `mdvctl build-vehicle …` add-on vehicles.
+for GTA Online and back, `mdvctl build …` builds add-on weapons, `mdvctl build-vehicle …` add-on vehicles, `mdvctl build-ped …` add-on peds.
 Run it without arguments for the full list.
 
 ---

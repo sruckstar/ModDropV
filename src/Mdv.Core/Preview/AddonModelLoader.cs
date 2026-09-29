@@ -55,6 +55,18 @@ public static partial class AddonModelLoader
     }
 
     /// <summary>
+    /// A ped made of loose model files (a modder's folder): each file by where it goes in the image archive
+    /// (<c>name.ydd</c>, <c>name/head_000_r.ydd</c>); <paramref name="name"/> names the ped.
+    /// </summary>
+    public static WeaponModel? LoadPed(IEnumerable<(string Path, string Image)> paths, string name, CancellationToken ct = default)
+    {
+        var files = new Dictionary<string, Func<byte[]>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (p, image) in paths)
+            if (ModelExt.Contains(PathUtil.SuffixLower(p))) files.TryAdd(image, () => File.ReadAllBytes(p));
+        return Ped(files, [name], ct);
+    }
+
+    /// <summary>
     /// A game vehicle / installed add-on wearing a livery: its model from the game, its dictionaries with the livery's
     /// pictures put in (see <see cref="LiveryResolution.Painted"/>). Null when the livery isn't looked up in a game yet.
     /// </summary>

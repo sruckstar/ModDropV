@@ -76,7 +76,7 @@ public static class VehicleClasses
 /// <summary>The game's vehicles as add-on bases (<see cref="VehicleTemplate"/>), loaded once per data folder.</summary>
 public sealed class VehicleTemplates
 {
-    public const string FileName = "vehicle_templates.json.gz";
+    public static readonly string FileName = "vehicle_templates.json.gz";
 
     [JsonPropertyName("vehicles")] public List<VehicleTemplate> All { get; set; } = [];
 

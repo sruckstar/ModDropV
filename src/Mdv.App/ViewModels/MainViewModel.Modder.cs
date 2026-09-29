@@ -28,7 +28,7 @@ public sealed record SupportedKind(string Title, string Detail, bool Ready)
     public bool Soon => !Ready;
 }
 
-/// <summary>Modder flow: which kind of add-on is being built. Weapons and vehicles are ready; the rest say what they'll do.</summary>
+/// <summary>Modder flow: which kind of add-on is being built. Weapons, vehicles and peds are ready; the rest say what they'll do.</summary>
 public sealed partial class MainViewModel
 {
     private readonly Dictionary<ModCategory, ModPanelViewModel> _modderPanels = [];
@@ -53,7 +53,7 @@ public sealed partial class MainViewModel
     [
         new(L.T("Weapon"), L.T("Replace files → a complete add-on weapon DLC"), true),
         new(L.T("Vehicle"), L.T("Models → an add-on vehicle DLC, on the base of a game vehicle"), true),
-        new(L.T("Ped"), L.T("peds.meta from a template, .ymt generated"), false),
+        new(L.T("Ped"), L.T("Models → an add-on ped DLC, on the base of a game ped; .ymt written when missing"), true),
         new(L.T("Prop"), L.T(".ytyp with bounds from the model"), false),
         new(L.T("MP clothing"), L.T(".ymt and shop meta, slots sorted"), false),
     ];
@@ -76,7 +76,7 @@ public sealed partial class MainViewModel
     private void InitModderTypes()
     {
         foreach (var t in AddonTypes)
-            ModderTypes.Add(new AddonTypeViewModel(t.Category, t.Label, t.Category is ModCategory.Weapon or ModCategory.Vehicle, OnAddonTypePicked));
+            ModderTypes.Add(new AddonTypeViewModel(t.Category, t.Label, t.Category is ModCategory.Weapon or ModCategory.Vehicle or ModCategory.Ped, OnAddonTypePicked));
         var stored = Enum.TryParse<ModCategory>(Settings.AddonType, ignoreCase: true, out var c) ? c : ModCategory.Weapon;
         (ModderTypes.FirstOrDefault(t => t.Category == stored) ?? ModderTypes[0]).IsSelected = true;
     }
@@ -105,6 +105,7 @@ public sealed partial class MainViewModel
     {
         if (category == ModCategory.Weapon) return Weapon;
         if (category == ModCategory.Vehicle) return VehicleBuild;
+        if (category == ModCategory.Ped) return PedBuild;
         if (!_modderPanels.TryGetValue(category, out var panel))
         {
             var t = AddonTypes.First(a => a.Category == category);

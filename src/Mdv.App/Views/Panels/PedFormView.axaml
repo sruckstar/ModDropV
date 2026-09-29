@@ -1,0 +1,57 @@
+<!-- Modder's ped panel, form slot: the ped's name, the game ped it's based on and its variations file. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.PedFormView"
+             x:DataType="vm:PedBuildViewModel">
+  <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+    <!-- PED -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="03" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'PED'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'Its name in the game and what its variations are'}" />
+        </Grid>
+        <StackPanel ToolTip.Tip="{l:Tr 'The spawn name — the model and its files are renamed to it. It must not be one of the game’s peds.'}">
+          <TextBlock Classes="label" Text="{l:Tr 'MODEL NAME'}" />
+          <TextBox Classes="path" Text="{Binding ModelName}" PlaceholderText="{l:Tr 'e.g. myped'}" />
+        </StackPanel>
+        <CheckBox IsChecked="{Binding RegenerateYmt}" IsVisible="{Binding YmtChoice}"
+                  ToolTip.Tip="{l:Tr 'The folder’s own .ymt is left out: every component and prop found gets a place in a new one'}">
+          <StackPanel Spacing="0">
+            <TextBlock Text="{l:Tr 'Write a new .ymt from the components'}" FontWeight="SemiBold" FontSize="12.5" />
+            <TextBlock Classes="desc" FontSize="11" Text="{l:Tr 'instead of the folder’s own — when it doesn’t list every component'}" />
+          </StackPanel>
+        </CheckBox>
+      </StackPanel>
+    </Border>
+
+    <!-- BASE -->
+    <Border Grid.Row="1" Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="04" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'BASE'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'The game’s ped its peds.meta entry is written from'}" />
+        </Grid>
+        <Grid ColumnDefinitions="150,*" ColumnSpacing="10" IsEnabled="{Binding BaseEnabled}">
+          <StackPanel ToolTip.Tip="{l:Tr 'Show the game’s peds of one kind only'}">
+            <TextBlock Classes="label" Text="{l:Tr 'KIND'}" />
+            <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Grid.Column="1">
+            <TextBlock Classes="label" Text="{l:Tr 'BASE PED'}" />
+            <AutoCompleteBox ItemsSource="{Binding Bases}" SelectedItem="{Binding Base}" FilterMode="Contains"
+                             MinimumPrefixLength="1" MaxDropDownHeight="300"
+                             PlaceholderText="{l:Tr 'type a name — hipster, cop, husky…'}" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Classes="desc" Text="{Binding BaseNote}" TextWrapping="Wrap" FontSize="11.5" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

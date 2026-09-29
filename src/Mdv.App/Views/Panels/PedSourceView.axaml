@@ -1,0 +1,28 @@
+<!-- Modder's ped panel, source slot: the folder with the ped's models. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.PedSourceView"
+             x:DataType="vm:PedBuildViewModel">
+  <Border Classes="card">
+    <StackPanel Spacing="10">
+      <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+        <TextBlock Classes="idx" Text="01" />
+        <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'SOURCE'}" />
+        <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                   TextTrimming="CharacterEllipsis"
+                   Text="{l:Tr 'The ped’s models (.yft / .ydd / .ytd, a folder of components, Replace files too), its .ymt and peds.meta, if any'}" />
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox Classes="path" Text="{Binding InputFolder}" PlaceholderText="{l:Tr 'No folder selected'}" />
+        <Button Grid.Column="1" Classes="ghost" Command="{Binding BrowseInputCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <PathIcon Data="{StaticResource IconFolder}" Width="14" Height="14" />
+            <TextBlock Text="{l:Tr 'Browse…'}" />
+          </StackPanel>
+        </Button>
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>
