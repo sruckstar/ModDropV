@@ -102,6 +102,10 @@ public sealed class GameCrypto
     public byte[] DecryptArchiveBlock(byte[] data, uint encryption, string archiveName, uint archiveSize) =>
         encryption == EncAes ? GTACrypto.DecryptAES(data) : GTACrypto.DecryptNG(data, archiveName, archiveSize);
 
+    /// <summary>NG-encrypt a TOC / names block the way the game reads it (key from the archive's file name and size).</summary>
+    public byte[] EncryptNgBlock(byte[] data, string archiveName, uint archiveSize) =>
+        NgEncryptor.Instance.Encrypt(data, GTACrypto.GetNGKey(archiveName, archiveSize));
+
     /// <summary>Decrypt an encrypted file entry (CodeWalker: AES archives use AES, everything else NG).</summary>
     public byte[] DecryptEntry(byte[] data, uint archiveEncryption, string entryName, uint uncompressedSize) =>
         archiveEncryption == EncAes ? GTACrypto.DecryptAES(data) : GTACrypto.DecryptNG(data, entryName, uncompressedSize);

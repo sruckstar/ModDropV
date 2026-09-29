@@ -14,7 +14,7 @@ namespace Mdv.Core.Index;
 public static class GameIndexCache
 {
     private const uint Magic = 0x5844564D;   // "MVDX"
-    private const int Format = 1;
+    private const int Format = 2;                // 2: dlclist <item> read regardless of case
 
     /// <summary>%LOCALAPPDATA%\ModDropV\index.</summary>
     public static string DefaultRoot

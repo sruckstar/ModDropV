@@ -313,7 +313,7 @@ public static partial class GameInstaller
         var entryPath = $"dlcpacks:/{dlcName}/";
         var entryLine = $"<Item>{entryPath}</Item>";
 
-        if (Regex.IsMatch(text, @"<Item>\s*" + Regex.Escape(entryPath) + @"\s*</Item>"))
+        if (Regex.IsMatch(text, @"<Item>\s*" + Regex.Escape(entryPath) + @"\s*</Item>", RegexOptions.IgnoreCase))
         {
             log(L.T($"    dlclist.xml: '{entryPath}' already present — skipping."));
             return null;

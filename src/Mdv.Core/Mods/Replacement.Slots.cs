@@ -20,19 +20,91 @@ public sealed partial class ReplacementHandler
     /// <summary>Props of one anchor a ped can have in all (an 8-bit index in single player).</summary>
     public const int MaxPropsPerAnchor = 255;
 
-    /// <summary>The game's own collections of <paramref name="ped"/> (not add-on packs in mods), in the order the game loads them.</summary>
+    /// <summary>
+    /// The game's own collections of <paramref name="ped"/> (not add-on packs in mods), in the order the game loads them —
+    /// the order trainers number the clothes in. A collection is the game's once a shop meta names it (its
+    /// <c>dlcName</c>); a ymt no shop meta names isn't loaded (patchday5ng's copy of the heist clothes as
+    /// <c>mp_m_heist_01</c>). The order is that of the packs carrying the shop metas: dlclist sorted by setup2
+    /// <c>&lt;order&gt;</c> — the base packs in x64w.rpf too (beach 0, christmas 1, valentines 2, business 3…) — then
+    /// the pack's content.xml. Checked against the game (Enhanced 1158): the texture counts of all 639 MP male tops.
+    /// </summary>
     public static List<GameCollection> GameCollections(GameIndex index, string ped)
     {
-        var list = new List<GameCollection>();
+        var registered = RegisteredCollections(index, ped);
+        var list = new List<(GameCollection Coll, (int, int, int) Key)>();
         foreach (var g in index.Find($"{ped}_*.ymt", 5000).GroupBy(h => h.File.Name, StringComparer.OrdinalIgnoreCase))
         {
-            if (ClothingNames.WearerOfYmt(g.Key) is not { Collection: not null } w || !w.Ped.Equals(ped, StringComparison.OrdinalIgnoreCase)) continue;
-            var own = g.Where(h => h.Active && !(h.Installed && h.Role == ArchiveRole.Dlc && !GamePack(h, index.GameDir))).ToList();
-            if (own.Count == 0 || g.FirstOrDefault(h => h.Winner) is not { } winner) continue;
-            list.Add(new GameCollection(w, Norm(winner), own.Min(h => h.Rank)));
+            if (ClothingNames.WearerOfYmt(g.Key) is not { Collection: { } coll } w || !w.Ped.Equals(ped, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!g.Any(h => h.Active && Own(h, index.GameDir)) || g.FirstOrDefault(h => h.Winner) is not { } winner) continue;
+            if (!registered.TryGetValue(coll, out var key)) continue;
+            list.Add((new GameCollection(w, Norm(winner), 0), key));
         }
-        return [.. list.OrderBy(c => c.Order).ThenBy(c => c.Wearer.Folder, StringComparer.OrdinalIgnoreCase)];
+        return [.. list.OrderBy(c => c.Key).ThenBy(c => c.Coll.Wearer.Folder, StringComparer.OrdinalIgnoreCase)
+                       .Select((c, i) => c.Coll with { Order = i })];
     }
+
+    /// <summary>Not a file of an add-on pack in mods (onigiri) — a copy of a game pack is the game's.</summary>
+    private static bool Own(FileHit h, string gameDir) => !(h.Installed && h.Role == ArchiveRole.Dlc && !GamePack(h, gameDir));
+
+    /// <summary>
+    /// Collections of <paramref name="ped"/> the game's shop metas register (<c>&lt;pedName&gt;</c> + <c>&lt;dlcName&gt;</c>),
+    /// each with where it is registered first: (rank of the pack, setup2 order, place in the pack's content.xml).
+    /// </summary>
+    private static Dictionary<string, (int, int, int)> RegisteredCollections(GameIndex index, string ped)
+    {
+        var overlay = ModsOverlay.Load(index.GameDir);
+        var packs = new Dictionary<string, (int Order, string Content)>(StringComparer.OrdinalIgnoreCase);
+        (int Order, string Content) PackOf(string root)
+        {
+            if (packs.TryGetValue(root, out var known)) return known;
+            string Text(string file)
+            {
+                try
+                {
+                    return overlay.Read($"{root}/{file}") is { } b ? System.Text.Encoding.UTF8.GetString(b) : "";
+                }
+                catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException
+                                                 or NotSupportedException or Rpf.RpfFormatException)
+                {
+                    return "";
+                }
+            }
+            var order = SetupOrderRe().Match(Text("setup2.xml")) is { Success: true } m ? int.Parse(m.Groups[1].Value) : 0;
+            return packs[root] = (order, Text("content.xml"));
+        }
+
+        var result = new Dictionary<string, (int, int, int)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var h in index.Find($"{ped}_*.meta", 5000).Where(h => h.Active && Own(h, index.GameDir)))
+        {
+            string text;
+            try
+            {
+                text = overlay.Read(Norm(h)) is { } b ? System.Text.Encoding.UTF8.GetString(b) : "";
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException
+                                             or NotSupportedException or Rpf.RpfFormatException)
+            {
+                continue;
+            }
+            if (!PedNameRe().Match(text).Groups[1].Value.Equals(ped, StringComparison.OrdinalIgnoreCase) ||
+                DlcNameRe().Match(text) is not { Success: true } dlc) continue;
+            var path = Norm(h);
+            int at = path.IndexOf("/common/data/", StringComparison.OrdinalIgnoreCase);
+            var (order, content) = at < 0 ? (0, "") : PackOf(path[..at]);
+            int inContent = content.IndexOf(h.File.Name, StringComparison.OrdinalIgnoreCase);
+            var key = (h.Rank, order, inContent < 0 ? int.MaxValue : inContent);
+            var name = dlc.Groups[1].Value;
+            if (!result.TryGetValue(name, out var cur) || key.CompareTo(cur) < 0) result[name] = key;
+        }
+        return result;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"<order\s+value=""(\d+)""")]
+    private static partial System.Text.RegularExpressions.Regex SetupOrderRe();
+    [System.Text.RegularExpressions.GeneratedRegex(@"<pedName>\s*([^<]*?)\s*</pedName>")]
+    private static partial System.Text.RegularExpressions.Regex PedNameRe();
+    [System.Text.RegularExpressions.GeneratedRegex(@"<dlcName>\s*([^<]*?)\s*</dlcName>")]
+    private static partial System.Text.RegularExpressions.Regex DlcNameRe();
 
     /// <summary>A pack in mods (onigiri) that is a copy of one the game has (not an add-on).</summary>
     private static bool GamePack(FileHit h, string gameDir) =>

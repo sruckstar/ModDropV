@@ -230,12 +230,15 @@ public sealed class IndexedArchive
                             IntAttr(root, "subPackCount"));
     }
 
-    /// <summary><c>&lt;Paths&gt;&lt;Item&gt;dlcpacks:/mpBattle/&lt;/Item&gt;</c> → "mpbattle".</summary>
+    /// <summary>
+    /// <c>&lt;Paths&gt;&lt;Item&gt;dlcpacks:/mpBattle/&lt;/Item&gt;</c> → "mpbattle". The game doesn't mind the case of the
+    /// element: Rockstar's own list has <c>&lt;item&gt;dlcpacks:/mpxmas_604490/&lt;/item&gt;</c>.
+    /// </summary>
     internal static string[]? ParseDlcList(XElement root)
     {
         var paths = root.Element("Paths");
         if (paths is null) return null;
-        return [.. paths.Elements("Item")
+        return [.. paths.Elements().Where(e => e.Name.LocalName.Equals("Item", StringComparison.OrdinalIgnoreCase))
             .Select(i => DlcNameOf(i.Value))
             .Where(n => n.Length > 0)];
     }

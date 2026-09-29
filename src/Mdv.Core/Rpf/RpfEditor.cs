@@ -15,8 +15,10 @@ namespace Mdv.Core.Rpf;
 /// archive as it was (the file is cut back to its old length).
 /// </para>
 /// <para>
-/// Every archive whose table is rewritten becomes OPEN (unencrypted table), as OpenIV and
-/// CodeWalker do in the mods folder; entries the game encrypted one by one are kept as they
+/// An archive whose table is rewritten becomes OPEN (unencrypted table), as OpenIV and
+/// CodeWalker do in the mods folder — except an NG-encrypted one opened with the game's keys:
+/// its table is encrypted again for its new size (Enhanced under Onigiri crashes at start on an
+/// OPEN copy of Rockstar's own dlc.rpf). Entries the game encrypted one by one are kept as they
 /// are. Space freed by a replaced or deleted entry is reused by the next editor; when too much
 /// of the file is holes, <see cref="Compact"/> writes a tight copy.
 /// </para>
@@ -587,10 +589,18 @@ public sealed class RpfEditor : IDisposable
             throw new InvalidOperationException($"{arc.Name}: header space was not reserved");   // EnsureHeaderSpace ran first
         var header = new byte[arc.HeaderBlocks * Sector];
         Rpf7.Header(order.Count, names.Length).CopyTo(header, 0);
+        if (arc.Encryption == GameCrypto.EncNg && _crypto is not null)
+        {
+            // the key depends on the size the game sees: the file's length, or the nested archive's entry size
+            var length = arc.Parent is null ? Math.Max(_fs.Length, arc.Blocks * Sector) : arc.Slot!.X8;
+            toc = _crypto.EncryptNgBlock(toc, arc.Name, checked((uint)length));
+            names = _crypto.EncryptNgBlock(names, arc.Name, checked((uint)length));
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(12), GameCrypto.EncNg);
+        }
+        else arc.Encryption = Rpf7.EncOpen;
         toc.CopyTo(header, 16);
         names.CopyTo(header, 16 + toc.Length);
         Write(arc.Start, header);
-        arc.Encryption = Rpf7.EncOpen;
     }
 
     private static byte[] FileRecord(int nameOffset, FNode f, Arc arc)
