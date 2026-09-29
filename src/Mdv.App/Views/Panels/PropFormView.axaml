@@ -1,0 +1,57 @@
+<!-- Modder's props panel, form slot: the pack's name, the prefix for the files' names, physics and draw distance. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.PropFormView"
+             x:DataType="vm:PropBuildViewModel">
+  <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+    <!-- PACK -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="03" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'PACK'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'Its name in the game and the props’ names'}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+          <StackPanel ToolTip.Tip="{l:Tr 'The dlcpacks folder and the .ytyp are named after it'}">
+            <TextBlock Classes="label" Text="{l:Tr 'PACK NAME'}" />
+            <TextBox Classes="path" Text="{Binding PackName}" PlaceholderText="{l:Tr 'e.g. myprops'}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1"
+                      ToolTip.Tip="{l:Tr 'Put in front of every file’s name — and so of every prop’s spawn name. Needed when the files carry the game’s names.'}">
+            <TextBlock Classes="label" Text="{l:Tr 'NAME PREFIX'}" />
+            <TextBox Classes="path" Text="{Binding Prefix}" PlaceholderText="{l:Tr 'none — e.g. my_'}" />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- IN THE GAME -->
+    <Border Grid.Row="1" Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="04" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'IN THE GAME'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'How the props behave and how far they’re seen'}" />
+        </Grid>
+        <CheckBox IsChecked="{Binding Dynamic}"
+                  ToolTip.Tip="{l:Tr 'Off: they stay where they’re put, as walls and big furniture do'}">
+          <StackPanel Spacing="0">
+            <TextBlock Text="{l:Tr 'They move when hit'}" FontWeight="SemiBold" FontSize="12.5" />
+            <TextBlock Classes="desc" FontSize="11" Text="{l:Tr 'pushed, knocked over, falling — as the game’s chairs and cones'}" />
+          </StackPanel>
+        </CheckBox>
+        <StackPanel ToolTip.Tip="{l:Tr 'How far away the props are drawn, in metres'}">
+          <TextBlock Classes="label" Text="{l:Tr 'DRAW DISTANCE'}" />
+          <TextBox Classes="path" Text="{Binding LodDistance}" PlaceholderText="{l:Tr 'by each prop’s size'}" Width="260"
+                   HorizontalAlignment="Left" />
+        </StackPanel>
+        <TextBlock Classes="desc" Text="{Binding LodNote}" TextWrapping="Wrap" FontSize="11.5" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

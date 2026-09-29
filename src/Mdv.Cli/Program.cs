@@ -56,6 +56,7 @@ internal static class Program
                 "vehicle-bases" => VehicleBases(rest),
                 "build-ped" => BuildPed(rest),
                 "ped-bases" => PedBases(rest),
+                "build-prop" => BuildProp(rest),
                 "verify" => Verify(rest),
                 "detect" => Detect(rest),
                 "installed" => Installed(rest),
@@ -132,6 +133,13 @@ internal static class Program
                   --model-name renames the files (needed when they carry a game ped's name)
               ped-bases [text | male | female | animal]
                   the game's peds an add-on ped can be based on (name, kind, type, group)
+              build-prop <input_folder> <out_dir> [--name PACK] [--prefix P] [--static] [--lod M]
+                  [--no-pack] [--edition legacy|enhanced|auto]
+                  prop models (.ydr / .yft with .ytd / .ybn / .ycd) -> a spawnable add-on props pack: a .ytyp
+                  with every model's bounds, texture dictionary and collision (the folder's own .ytyp wins
+                  for what it defines), loaded for good; --prefix goes before every file's name (needed when
+                  they carry the game's names), --static fixes the props in place, --lod sets the draw
+                  distance in metres (default: by each prop's size)
               verify <archive.rpf>
                   self-check every resource of a built archive
               detect <path> [<path> ...]
@@ -542,6 +550,49 @@ internal static class Program
                                              t.Kind.Equals(q, StringComparison.OrdinalIgnoreCase)))
             Console.WriteLine($"{t.Name,-26} {t.Kind,-7} {t.PedType,-14} {t.Group,-12} {t.Dlc}");
         return 0;
+    }
+
+    private static int BuildProp(string[] argv)
+    {
+        var a = Parse(argv, ["--name", "--prefix", "--lod", "--edition"], ["--static", "--no-pack"]);
+        NeedPositional(a, 2, 2, "input_folder, out_dir");
+        GameEdition edition;
+        try
+        {
+            edition = GameEditions.Parse(a.Opt("--edition")) ?? GameEdition.Legacy;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        float? lod = null;
+        if (a.Opt("--lod") is { } l)
+            lod = float.TryParse(l, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && v > 0 ? v : throw new UsageException("--lod: a distance in metres");
+        var o = new PropBuildOptions
+        {
+            InputFolder = a.Positional[0],
+            OutDir = a.Positional[1],
+            PackName = a.Opt("--name"),
+            Prefix = a.Opt("--prefix"),
+            Dynamic = !a.Flags.Contains("--static"),
+            LodDist = lod,
+            Pack = !a.Flags.Contains("--no-pack"),
+            Edition = edition,
+            DataDir = Path.Combine(Root, "data"),
+        };
+        try
+        {
+            var r = PropBuilder.Build(o, Console.WriteLine);
+            Console.WriteLine(r.DlcRpf is not null
+                ? $"\nReady: {r.DlcRpf} — {r.Names.Props.Count + r.Names.Own.Count} prop(s) (see manifest.json)."
+                : $"\nLoose folders in {r.Root} — pack the *.rpf folders with CodeWalker.");
+            return 0;
+        }
+        catch (Exception ex) when (ex is IntakeException or IOException or InvalidDataException)
+        {
+            Console.Error.WriteLine($"\n[!] Build failed: {ex.Message}");
+            return 1;
+        }
     }
 
     private static int Detect(string[] argv)

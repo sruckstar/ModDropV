@@ -9,14 +9,15 @@ using CodeWalker.GameFiles;
 namespace Mdv.Core.Preview;
 
 /// <summary>
-/// The 3D preview of an add-on vehicle or ped (or a vehicle / ped replacement), in the same form as a
+/// The 3D preview of an add-on vehicle, ped or props (or a vehicle / ped replacement), in the same form as a
 /// weapon's (<see cref="WeaponModel"/>, drawn by the same view):
 /// <list type="bullet">
 /// <item>vehicle: the fragment's body (its hi-lod when there is one) with every part on its bone, plus the
 /// wheels — the game keeps one front and one rear wheel and copies them onto every wheel bone, turning the
 /// right-hand ones round (as CodeWalker does);</item>
 /// <item>ped: the drawables of its .ydd (one per component slot, the first variation shown; others can be
-/// picked — one per slot, as in the game), skinned in their bind pose.</item>
+/// picked — one per slot, as in the game), skinned in their bind pose;</item>
+/// <item>props: each model a piece, one shown at a time.</item>
 /// </list>
 /// Textures come from the mod's .ytd files and the drawables' own; shared game textures (vehshare) are
 /// not there, those surfaces are drawn plain.
@@ -64,6 +65,46 @@ public static partial class AddonModelLoader
         foreach (var (p, image) in paths)
             if (ModelExt.Contains(PathUtil.SuffixLower(p))) files.TryAdd(image, () => File.ReadAllBytes(p));
         return Ped(files, [name], ct);
+    }
+
+    /// <summary>
+    /// Props made of loose model files (a modder's folder): each of <paramref name="names"/> (its <c>.ydr</c> or
+    /// <c>.yft</c>) a piece of its own, one shown at a time; textures from every .ytd among <paramref name="paths"/>.
+    /// </summary>
+    public static WeaponModel? LoadProps(IEnumerable<string> paths, IReadOnlyList<string> names, CancellationToken ct = default)
+    {
+        var files = new Dictionary<string, Func<byte[]>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in paths)
+            if (ModelExt.Contains(PathUtil.SuffixLower(p))) files.TryAdd(Path.GetFileName(p).Split('^')[^1], () => File.ReadAllBytes(p));
+        if (names.Count == 0) return null;
+        var model = new WeaponModel { Name = names[0] };
+        var textures = new WeaponModelLoader.TextureLibrary(files);
+        foreach (var name in names)
+        {
+            ct.ThrowIfCancellationRequested();
+            DrawableBase? d = null;
+            if (files.ContainsKey(name + ".ydr"))
+                d = Read(files, name + ".ydr", (data, entry) =>
+                {
+                    var f = new YdrFile();
+                    f.Load(data, entry);
+                    return f;
+                }, model)?.Drawable;
+            else if (new[] { name + "_hi.yft", name + ".yft" }.FirstOrDefault(files.ContainsKey) is { } yft)
+                d = Read(files, yft, (data, entry) =>
+                {
+                    var f = new YftFile();
+                    f.Load(data, entry);
+                    return f;
+                }, model)?.Fragment?.Drawable;
+            if (d is null) continue;
+            var piece = WeaponModelLoader.MakePiece(d, name, name, "prop", "prop", true, model.Pieces.Count == 0, Matrix4x4.Identity, textures);
+            piece.Note = L.T($"{piece.Triangles:#,0} triangles");
+            model.Pieces.Add(piece);
+        }
+        if (model.Pieces.Count == 0) return model.Warnings.Count > 0 ? model : null;
+        Finish(model, textures);
+        return model;
     }
 
     /// <summary>

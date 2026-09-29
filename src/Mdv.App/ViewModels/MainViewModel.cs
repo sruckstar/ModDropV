@@ -46,7 +46,8 @@ public sealed partial class MainViewModel : ObservableObject
         Map = new MapViewModel(this);
         VehicleBuild = new VehicleBuildViewModel(this);
         PedBuild = new PedBuildViewModel(this);
-        foreach (var preview in new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview })
+        PropBuild = new PropBuildViewModel(this);
+        foreach (var preview in new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview, PropBuild.Preview })
             preview.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(ModelPreview.IsOpen)) OnPropertyChanged(nameof(OpenModelPreview));
@@ -160,9 +161,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Modder: an add-on ped built from its models on the base of a game ped.</summary>
     public PedBuildViewModel PedBuild { get; }
 
-    /// <summary>The 3D preview opened large (an add-on's, a livery's, the modder's vehicle or ped), or null.</summary>
+    /// <summary>Modder: add-on props built from their models, their .ytyp written.</summary>
+    public PropBuildViewModel PropBuild { get; }
+
+    /// <summary>The 3D preview opened large (an add-on's, a livery's, the modder's vehicle, ped or props), or null.</summary>
     public ModelPreview? OpenModelPreview =>
-        new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview }.FirstOrDefault(p => p.IsOpen);
+        new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview, PropBuild.Preview }.FirstOrDefault(p => p.IsOpen);
 
     /// <summary>Player: the panel of the mod picked from the drop (null: nothing installable dropped yet).</summary>
     [ObservableProperty] public partial ModPanelViewModel? SelectedPanel { get; set; }

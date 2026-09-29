@@ -348,6 +348,9 @@
                 <DataTemplate DataType="vm:PedBuildViewModel">
                   <p:PedSourceView />
                 </DataTemplate>
+                <DataTemplate DataType="vm:PropBuildViewModel">
+                  <p:PropSourceView />
+                </DataTemplate>
                 <DataTemplate DataType="vm:ModPanelViewModel">
                   <Panel />
                 </DataTemplate>
@@ -420,6 +423,9 @@
               <DataTemplate DataType="vm:PedBuildViewModel">
                 <p:PedFormView />
               </DataTemplate>
+              <DataTemplate DataType="vm:PropBuildViewModel">
+                <p:PropFormView />
+              </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
           <Border Classes="card" IsVisible="{Binding ShowSupportedCard}">
@@ -480,6 +486,9 @@
             </DataTemplate>
             <DataTemplate DataType="vm:PedBuildViewModel">
               <p:PedSideView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:PropBuildViewModel">
+              <p:PropSideView />
             </DataTemplate>
             <DataTemplate DataType="vm:ModPanelViewModel">
               <p:SupportedView DataContext="{Binding Shell}" VerticalAlignment="Top" />
@@ -1047,7 +1056,7 @@
       </Border>
     </Border>
 
-    <!-- ================= 3D PREVIEW (the add-on vehicle / ped panel's, the livery panel's) ================= -->
+    <!-- ================= 3D PREVIEW (the add-on vehicle / ped / props panel's, the livery panel's) ================= -->
     <Border Background="{DynamicResource ScrimBrush}" IsVisible="{Binding OpenModelPreview, Converter={x:Static ObjectConverters.IsNotNull}}">
       <Border Classes="card dialog" Padding="0" Margin="40,30" MaxWidth="1280" DataContext="{Binding OpenModelPreview}"
               x:DataType="vm:ModelPreview">
