@@ -3,9 +3,10 @@ using System.IO.Compression;
 namespace Mdv.Core.Mods;
 
 /// <summary>
-/// The names of the game's own streamed assets — models (.ydr / .yft), texture dictionaries (.ytd) and archetype
-/// files (.ytyp), base game and DLCs — as the hashes the game looks them up by (data/game_models.bin). An add-on
-/// prop, its textures or its .ytyp named like one of them would take the game's place.
+/// The names of the game's own streamed assets — models (.ydr / .yft), texture dictionaries (.ytd), archetype
+/// files (.ytyp) and ped variations (.ymt, MP clothing collections among them), base game and DLCs — as the hashes
+/// the game looks them up by (data/game_models.bin). An add-on prop, its textures, its .ytyp or a clothing collection
+/// named like one of them would take the game's place.
 /// </summary>
 public sealed class GameModels
 {

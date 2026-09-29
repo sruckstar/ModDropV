@@ -108,6 +108,47 @@ public static partial class AddonModelLoader
     }
 
     /// <summary>
+    /// Clothing models of a modder's folder: each a piece of its own (its <c>.ydd</c>'s first drawable), one shown at a
+    /// time, textured from its own <c>.ytd</c> files only — the same texture names recur across items.
+    /// </summary>
+    public static WeaponModel? LoadClothing(IEnumerable<(string Ydd, IReadOnlyList<string> Ytds, string Label, string Note)> items, CancellationToken ct = default)
+    {
+        var list = items.ToList();
+        if (list.Count == 0) return null;
+        var model = new WeaponModel { Name = list[0].Label };
+        var missing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int decoded = 0;
+        foreach (var (ydd, ytds, label, note) in list)
+        {
+            ct.ThrowIfCancellationRequested();
+            var files = new Dictionary<string, Func<byte[]>>(StringComparer.OrdinalIgnoreCase)
+            {
+                [Path.GetFileName(ydd)] = () => File.ReadAllBytes(ydd),
+            };
+            foreach (var t in ytds) files.TryAdd(Path.GetFileName(t), () => File.ReadAllBytes(t));
+            var dict = Read(files, Path.GetFileName(ydd), (data, entry) =>
+            {
+                var f = new YddFile();
+                f.Load(data, entry);
+                return f;
+            }, model)?.DrawableDict;
+            if (dict?.Drawables?.data_items?.FirstOrDefault(d => d is not null) is not { } d) continue;
+            var textures = new WeaponModelLoader.TextureLibrary(files);
+            var piece = WeaponModelLoader.MakePiece(d, label, label, "clothing", "clothing", true, model.Pieces.Count == 0, Matrix4x4.Identity, textures);
+            piece.Note = L.T($"{note} · {piece.Triangles:#,0} triangles");
+            model.Pieces.Add(piece);
+            decoded += textures.Decoded;
+            missing.UnionWith(textures.Missing);
+        }
+        if (model.Pieces.Count == 0) return model.Warnings.Count > 0 ? model : null;
+        model.TextureCount = decoded;
+        if (missing.Count > 0)
+            model.Warnings.Add(L.T($"{missing.Count} texture(s) not in the folder, shown plain: " +
+                                   $"{string.Join(", ", missing.Order(StringComparer.OrdinalIgnoreCase).Take(5))}{(missing.Count > 5 ? "…" : "")}"));
+        return model;
+    }
+
+    /// <summary>
     /// A game vehicle / installed add-on wearing a livery: its model from the game, its dictionaries with the livery's
     /// pictures put in (see <see cref="LiveryResolution.Painted"/>). Null when the livery isn't looked up in a game yet.
     /// </summary>

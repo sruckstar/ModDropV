@@ -57,6 +57,7 @@ internal static class Program
                 "build-ped" => BuildPed(rest),
                 "ped-bases" => PedBases(rest),
                 "build-prop" => BuildProp(rest),
+                "build-clothing" => BuildClothing(rest),
                 "verify" => Verify(rest),
                 "detect" => Detect(rest),
                 "installed" => Installed(rest),
@@ -140,6 +141,13 @@ internal static class Program
                   for what it defines), loaded for good; --prefix goes before every file's name (needed when
                   they carry the game's names), --static fixes the props in place, --lod sets the draw
                   distance in metres (default: by each prop's size)
+              build-clothing <input_folder> <out_dir> [--name NAME] [--female] [--slot FILE=[m:|f:]SLOT ...]
+                  [--no-pack] [--edition legacy|enhanced|auto]
+                  MP clothing models (.ydd with .ytd / .yld; game names like jbib_000_u.ydd, FiveM's
+                  mp_m_freemode_01_x^… or any name) -> an add-on collection per MP ped (mp_m_NAME / mp_f_NAME),
+                  numbered from 0 per slot, its ymt and shop meta written; --female: the ped of models no folder
+                  names; --slot puts a model (its path in the folder, or file name) into a slot: jbib, lowr, feet,
+                  p_head, p_eyes… (m: / f: picks the ped)
               verify <archive.rpf>
                   self-check every resource of a built archive
               detect <path> [<path> ...]
@@ -585,6 +593,61 @@ internal static class Program
             var r = PropBuilder.Build(o, Console.WriteLine);
             Console.WriteLine(r.DlcRpf is not null
                 ? $"\nReady: {r.DlcRpf} — {r.Names.Props.Count + r.Names.Own.Count} prop(s) (see manifest.json)."
+                : $"\nLoose folders in {r.Root} — pack the *.rpf folders with CodeWalker.");
+            return 0;
+        }
+        catch (Exception ex) when (ex is IntakeException or IOException or InvalidDataException)
+        {
+            Console.Error.WriteLine($"\n[!] Build failed: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int BuildClothing(string[] argv)
+    {
+        var a = Parse(argv, ["--name", "--slot", "--edition"], ["--female", "--no-pack"]);
+        NeedPositional(a, 2, 2, "input_folder, out_dir");
+        GameEdition edition;
+        try
+        {
+            edition = GameEditions.Parse(a.Opt("--edition")) ?? GameEdition.Legacy;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        bool female = a.Flags.Contains("--female");
+        var input = a.Positional[0];
+        var src = ClothingBuilder.Read(input);
+        var assign = new Dictionary<string, ClothingSlot>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in a.All("--slot"))
+        {
+            int eq = s.LastIndexOf('=');
+            if (eq <= 0) throw new UsageException($"--slot: FILE=SLOT, e.g. hoodie.ydd=jbib (got '{s}')");
+            var (file, id) = (s[..eq].Replace('\\', '/'), s[(eq + 1)..]);
+            bool? f = id.StartsWith("f:", StringComparison.OrdinalIgnoreCase) ? true : id.StartsWith("m:", StringComparison.OrdinalIgnoreCase) ? false : null;
+            if (f is not null) id = id[2..];
+            var slot = ClothingBuilder.SlotById(id) ?? throw new UsageException($"--slot: '{id}' is not a slot (jbib, lowr, feet, p_head…)");
+            var items = src.Items.Where(i => i.Key.Equals(file, StringComparison.OrdinalIgnoreCase) || i.Name.Equals(file, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (items.Count != 1) throw new UsageException($"--slot: {(items.Count == 0 ? "no model" : "more than one model")} '{file}' in the folder");
+            assign[items[0].Key] = new ClothingSlot(f ?? items[0].Female ?? female, slot.Prop, slot.Slot);
+        }
+        var o = new ClothingBuildOptions
+        {
+            InputFolder = input,
+            OutDir = a.Positional[1],
+            Name = a.Opt("--name"),
+            DefaultFemale = female,
+            Assign = assign,
+            Pack = !a.Flags.Contains("--no-pack"),
+            Edition = edition,
+            DataDir = Path.Combine(Root, "data"),
+        };
+        try
+        {
+            var r = ClothingBuilder.Build(o, Console.WriteLine);
+            Console.WriteLine(r.DlcRpf is not null
+                ? $"\nReady: {r.DlcRpf} — {r.Plan.Entries.Count} model(s) (see manifest.json)."
                 : $"\nLoose folders in {r.Root} — pack the *.rpf folders with CodeWalker.");
             return 0;
         }

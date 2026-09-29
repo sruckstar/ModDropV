@@ -44,7 +44,7 @@ public sealed class PropSource
     public List<string> Warnings { get; } = [];
 
     /// <summary>One of its own archetypes files defines the prop.</summary>
-    public bool Defined(string name) => OwnTypes.Any(t => t.Archetypes.Contains(name, StringComparer.OrdinalIgnoreCase));
+    public bool Defined(string name) => OwnTypes.Any(t => t.Archetypes.Any(a => MapMeta.Hash(a) == MapMeta.Hash(name)));
 
     /// <summary>The models whose archetype is written (the ones no .ytyp of its own defines).</summary>
     public IEnumerable<PropModel> NewModels => Models.Where(m => !Defined(m.Name));
@@ -112,7 +112,9 @@ public static class PropBuilder
         var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var files = Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
                              .Select(f => (Full: f, Rel: Path.GetRelativePath(folder, f).Replace('\\', '/')))
-                             .OrderBy(f => f.Rel.Count(c => c == '/')).ThenBy(f => f.Rel, PathUtil.PathOrder).ToList();
+                             .OrderBy(f => InStream(f.Rel) ? 0 : 1)             // FiveM streams stream/ only: its copy wins
+                             .ThenBy(f => f.Rel.Count(c => c == '/')).ThenBy(f => f.Rel, PathUtil.PathOrder).ToList();
+        var types = new List<(string Full, string Rel, string Name)>();
         foreach (var (full, rel) in files)
         {
             var name = Path.GetFileName(full).Split('^')[^1].ToLowerInvariant();
@@ -135,7 +137,7 @@ public static class PropBuilder
             }
             if (mapName.EndsWith(".ytyp", StringComparison.Ordinal))
             {
-                ReadTypes(src, full, rel, mapName);
+                types.Add((full, rel, mapName));
                 continue;
             }
             if (!PropExts.Contains(ext)) continue;
@@ -148,6 +150,10 @@ public static class PropBuilder
             src.Files[name] = full;
             if (ResourceEditions.EditionOf(ext, DlcComposer.ResourceVersion(full)) is { } ed) src.Editions.Add(ed);
         }
+
+        // a .ytyp names its archetypes by hash: the folder's file names make them read as names the models match
+        MapMeta.Know(src.Files.Keys.Select(n => n[..n.IndexOf('.')]).Concat(types.Select(t => Path.GetFileNameWithoutExtension(t.Name))));
+        foreach (var (full, rel, name) in types) ReadTypes(src, full, rel, name);
 
         foreach (var (name, full) in src.Files.OrderBy(f => f.Key, StringComparer.Ordinal))
         {
@@ -181,6 +187,8 @@ public static class PropBuilder
             src.Warnings.Add(L.T("The models are a mix of Legacy and Enhanced files — each is converted for the edition the add-on is built for."));
         return src;
     }
+
+    private static bool InStream(string rel) => rel.Split('/').SkipLast(1).Any(s => s.Equals("stream", StringComparison.OrdinalIgnoreCase));
 
     private static void ReadTypes(PropSource src, string full, string rel, string name)
     {

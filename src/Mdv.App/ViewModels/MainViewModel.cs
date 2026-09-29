@@ -47,7 +47,8 @@ public sealed partial class MainViewModel : ObservableObject
         VehicleBuild = new VehicleBuildViewModel(this);
         PedBuild = new PedBuildViewModel(this);
         PropBuild = new PropBuildViewModel(this);
-        foreach (var preview in new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview, PropBuild.Preview })
+        ClothingBuild = new ClothingBuildViewModel(this);
+        foreach (var preview in new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview, PropBuild.Preview, ClothingBuild.Preview })
             preview.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(ModelPreview.IsOpen)) OnPropertyChanged(nameof(OpenModelPreview));
@@ -164,9 +165,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Modder: add-on props built from their models, their .ytyp written.</summary>
     public PropBuildViewModel PropBuild { get; }
 
-    /// <summary>The 3D preview opened large (an add-on's, a livery's, the modder's vehicle, ped or props), or null.</summary>
+    /// <summary>Modder: MP clothes built from their models into an add-on collection of each MP ped.</summary>
+    public ClothingBuildViewModel ClothingBuild { get; }
+
+    /// <summary>The 3D preview opened large (an add-on's, a livery's, the modder's vehicle, ped, props or clothes), or null.</summary>
     public ModelPreview? OpenModelPreview =>
-        new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview, PropBuild.Preview }.FirstOrDefault(p => p.IsOpen);
+        new[] { Addon.Preview, Livery.Preview, VehicleBuild.Preview, PedBuild.Preview, PropBuild.Preview, ClothingBuild.Preview }.FirstOrDefault(p => p.IsOpen);
 
     /// <summary>Player: the panel of the mod picked from the drop (null: nothing installable dropped yet).</summary>
     [ObservableProperty] public partial ModPanelViewModel? SelectedPanel { get; set; }

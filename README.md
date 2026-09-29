@@ -124,12 +124,12 @@ Legacy or Enhanced.
 | Vehicles — from a car's models (replace files too) to a finished add-on: pick one of the game's 934 vehicles as the base and its handling, layout, cameras, class and sound are copied; `vehicles.meta`, `handling.meta`, `carvariations.meta`, a modkit with a free id and the in-game name and make are written; your own metas win | ✅ ready |
 | Peds — from a ped's models (a component dictionary or a streamed folder of components, replace files too) to a finished add-on: pick one of the game's 1,100 peds as the base (animals too) and its movement, gestures, voice, personality and behaviour go into `peds.meta`; with no `.ymt` one is written from the components and their textures; your own `peds.meta` wins | ✅ ready |
 | Props — from prop models (`.ydr`, fragments `.yft`, with their `.ytd`, collisions and animations) to a spawnable add-on pack: the `.ytyp` is written with each prop's bounds read from its model, its texture dictionary, collision and a draw distance by its size, and loaded for good so trainers spawn the props by name (the build lists the names for Menyoo); files named like the game's get a prefix; your own `.ytyp` wins | ✅ ready |
-| MP clothing | coming soon |
+| MP clothing — from clothing models (`.ydd` with their `.ytd` and cloth `.yld`; named as the game's, FiveM's stream folders, or any name — the slot is picked in a list) to an add-on collection of each MP ped, numbered from 0 per slot; the `.ymt` and shop meta are written, the collection name is checked against the game's; a 3D preview of every model | ✅ ready |
 
 A command-line tool, `mdvctl.exe`, ships next to the app: `mdvctl install <game_dir> <mod>` installs any mod the way
 the app does, `mdvctl status <game_dir>` shows how the game stands for mods, `mdvctl online <game_dir> on|off` puts the mods away
 for GTA Online and back, `mdvctl build …` builds add-on weapons, `mdvctl build-vehicle …` add-on vehicles, `mdvctl build-ped …` add-on peds,
-`mdvctl build-prop …` add-on props.
+`mdvctl build-prop …` add-on props, `mdvctl build-clothing …` MP clothes.
 Run it without arguments for the full list.
 
 ---

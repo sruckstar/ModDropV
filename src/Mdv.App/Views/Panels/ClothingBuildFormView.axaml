@@ -1,0 +1,70 @@
+<!-- Modder's MP clothing panel, form slot: the collections' name, the default ped and every model's ped and slot. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:l="using:Mdv.App.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mdv.App.ViewModels"
+             x:Class="Mdv.App.Views.Panels.ClothingBuildFormView"
+             x:DataType="vm:ClothingBuildViewModel">
+  <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+    <!-- COLLECTION -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="03" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'COLLECTION'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'Its name in the game and whose clothes they are'}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+          <StackPanel ToolTip.Tip="{l:Tr 'The pack and its collections are named after it: mp_m_… and mp_f_…. It must not be one of the game’s.'}">
+            <TextBlock Classes="label" Text="{l:Tr 'NAME'}" />
+            <TextBox Classes="path" Text="{Binding CollectionName}" PlaceholderText="{l:Tr 'e.g. myclothes'}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" ToolTip.Tip="{l:Tr 'For models whose folder names no ped (a male / female folder, FiveM’s mp_f_freemode_01 prefix)'}">
+            <TextBlock Classes="label" Text="{l:Tr 'PED BY DEFAULT'}" />
+            <ComboBox ItemsSource="{Binding Peds}" SelectedIndex="{Binding DefaultPedIndex}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- MODELS -->
+    <Border Grid.Row="1" Classes="card">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+          <TextBlock Classes="idx" Text="04" />
+          <TextBlock Grid.Column="1" Classes="h" Text="{l:Tr 'MODELS'}" />
+          <TextBlock Grid.Column="2" Classes="desc" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis" Text="{l:Tr 'The ped and slot of each — from its name and folder, or picked here'}" />
+        </Grid>
+        <TextBlock Classes="desc" IsVisible="{Binding !HasItems}" FontSize="11.5"
+                   Text="{l:Tr 'Pick a folder — its clothing models show here.'}" />
+        <ItemsControl ItemsSource="{Binding Items}" IsVisible="{Binding HasItems}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="8" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ClothingItemRow">
+              <Grid ColumnDefinitions="*,120,190" ColumnSpacing="8">
+                <StackPanel Spacing="1" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="desc" Text="{Binding Detail}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="desc" Text="{Binding Result}" FontSize="11" TextTrimming="CharacterEllipsis"
+                             Foreground="{DynamicResource AccentBrush}" />
+                </StackPanel>
+                <ComboBox Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                          ItemsSource="{Binding $parent[ItemsControl].((vm:ClothingBuildViewModel)DataContext).Peds}"
+                          SelectedIndex="{Binding PedIndex}" />
+                <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxDropDownHeight="360"
+                          ItemsSource="{Binding $parent[ItemsControl].((vm:ClothingBuildViewModel)DataContext).SlotOptions}"
+                          SelectedItem="{Binding Slot}" PlaceholderText="{l:Tr 'pick a slot'}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>
