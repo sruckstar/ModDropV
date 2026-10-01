@@ -34,6 +34,8 @@ public sealed class ComposeSpec
     /// told by <see cref="VehicleGaps"/>.
     /// </summary>
     public List<MissingFile> MissingFiles { get; } = [];
+    /// <summary>Alternatives of a ped's components the mod ships (<see cref="PedVariants"/>): all kept in the pack, the ones on put in place.</summary>
+    public List<PedVariant> Variants { get; } = [];
 
     /// <summary>The same add-on with other files and content.xml entries.</summary>
     public ComposeSpec With(List<ComposeFile> files, List<ComposeData> data)
@@ -46,6 +48,7 @@ public sealed class ComposeSpec
         c.NewPeds.AddRange(NewPeds);
         c.NewCollections.AddRange(NewCollections);
         c.MissingFiles.AddRange(MissingFiles);
+        c.Variants.AddRange(Variants);
         foreach (var (h, s) in Content.Labels) c.Content.Labels[h] = s;
         c.Content.DataTypes.UnionWith(Content.DataTypes);
         c.Content.Vehicles.AddRange(Content.Vehicles);
@@ -396,6 +399,7 @@ public static partial class DlcComposer
         var spec = new ComposeSpec();
         var streamed = new Dictionary<string, DroppedFile>(StringComparer.OrdinalIgnoreCase);
         var used = new HashSet<DroppedFile>();
+        var partsOf = new Dictionary<string, List<DroppedFile>>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in names)
         {
             // its own files (name.yft, name.ymt, name.ydd, name_p.ydd…), then a streamed ped's components:
@@ -408,6 +412,7 @@ public static partial class DlcComposer
                                           DirOf(f.Origin).Split('/')[^1].Equals(name, StringComparison.OrdinalIgnoreCase)))
                              .ToList();
             bool isStreamed = parts.Count > 0 && !own.Any(f => f.Name.Equals(name + ".ydd", StringComparison.OrdinalIgnoreCase));
+            if (parts.Count > 0) partsOf[name] = parts;
             foreach (var f in own) Add(f, f.Name);
             foreach (var f in parts)
                 Add(f, f.Name.Contains('^') ? f.Name : $"{name}^{f.Name}");        // AddStreamed turns ^ into a folder
@@ -421,12 +426,21 @@ public static partial class DlcComposer
             spec.NewPeds.Add(ped);
             spec.Content.Peds.Add(new AddonPed(name, null));
         }
-        foreach (var f in files.Where(f => !used.Contains(f) && PathUtil.SuffixLower(f.Name) is ".yft" or ".ydd"))
+        // alternatives of a ped's components in folders of their own (Extras/Glasses Type 02/berd_001_u.ydd): variants to pick
+        var left = files.Where(f => !used.Contains(f)).ToList();
+        spec.Variants.AddRange(PedVariants.Find(left, partsOf));
+        foreach (var f in left.Where(f => PathUtil.SuffixLower(f.Name) is ".yft" or ".ydd"))
             spec.Warnings.Add(L.T($"{f.Origin} belongs to none of its peds — left out."));
 
         spec.Data.Add(new ComposeData("common/data/peds.meta", "PED_METADATA_FILE"));
         spec.Content.DataTypes.Add("PED_METADATA_FILE");
         AddImages(spec);
+        foreach (var v in spec.Variants)
+        {
+            var tail = $"/{v.Ped}/{v.Files[0].Name}";
+            var own = spec.Files.First(f => f.PackPath.EndsWith(tail, StringComparison.OrdinalIgnoreCase));
+            v.Folder = own.PackPath[..^(v.Files[0].Name.Length + 1)];
+        }
         return spec;
 
         void Add(DroppedFile f, string nameInImage)
@@ -726,6 +740,7 @@ public static partial class DlcComposer
                 }
                 else PathUtil.Copy2(f.Source, dst);
             }
+            PedVariants.Lay(spec.Variants, tree, log);
             if (spec.NewPeds.Count > 0)
             {
                 Directory.CreateDirectory(Path.Combine(tree, "common", "data"));

@@ -152,6 +152,7 @@ public sealed partial class MainViewModel
         AppLog.Info($"player source: {string.Join(" | ", paths)}");
 
         var edition = Edition;
+        var gameFolder = GameFolder;
         DroppedSource? dropped = null;
         DropAnalysis? analysis = null;
         string? error = null;
@@ -160,12 +161,13 @@ public sealed partial class MainViewModel
             (dropped, analysis) = await Task.Run(() =>
             {
                 // only one drop is kept: clear earlier workspaces before this one is created
-                SourceIntake.CleanWorkRoot(AppPaths.SourcesDir);
+                CleanWorkspaces();
                 void Progress(string msg) => Dispatcher.UIThread.Post(() =>
                 {
                     if (gen == _prepGeneration) PrepareStatus = msg;
                 });
-                var d = SourceIntake.Gather(paths, AppPaths.SourcesDir, Progress, cts.Token);
+                var d = SourceIntake.Gather(paths, AppPaths.SourcesDir, Progress, cts.Token,
+                                            AppPaths.SpareSourceRoots(gameFolder, paths));
                 Progress(L.T("Looking at what's inside…"));
                 return (d, ModLibrary.Analyze(d, new HandlerEnv(AppPaths.Data) { Edition = edition }));
             });
@@ -218,6 +220,16 @@ public sealed partial class MainViewModel
         PathUtil.TryDeleteDir(dropped.WorkDir);
     }
 
+    /// <summary>
+    /// Delete the unpacked drops — the usual place and the spare ones on other drives (a big mod unpacked there takes
+    /// gigabytes). Called before a new drop and when the app closes.
+    /// </summary>
+    public static void CleanWorkspaces()
+    {
+        SourceIntake.CleanWorkRoot(AppPaths.SourcesDir);
+        foreach (var spare in AppPaths.ExistingSpareSourceRoots()) SourceIntake.CleanWorkRoot(spare);
+    }
+
     /// <summary>"12 files · 1 archive unpacked".</summary>
     private static string Summarize(DroppedSource d)
     {
@@ -246,6 +258,8 @@ public sealed partial class MainViewModel
             if (d.Category is ModCategory.Prop or ModCategory.Map &&
                 a.Packages.OfType<AddonPackage>().Any(p => p.Kind is ModCategory.Map or ModCategory.Prop)) continue;
             if (a.Packages.Any(p => p.Category == ModCategory.Package)) continue;          // it is all the OIV's content
+            // a ped's alternative components (Extras/…/berd_001_u.ydd) look like clothes: they are its variants
+            if (d.Category == ModCategory.Clothing && a.Packages.OfType<AddonPackage>().Any(p => p.Compose is { Variants.Count: > 0 })) continue;
             bool main = d == a.Report.Primary;
             if (a.Problems.TryGetValue(d.Category, out var why))
                 items.Add(new DetectedModViewModel(d.Category, d.Category.DisplayName(), why, null, "can't install"));

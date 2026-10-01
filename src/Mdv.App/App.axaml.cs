@@ -22,6 +22,7 @@ public partial class App : Application
             L.Folder = Path.Combine(AppPaths.Data, "lang");
             L.Use(settings.Language.Length > 0 ? settings.Language : L.SystemLanguage());
             desktop.MainWindow = CreateWindow(desktop, settings, null);
+            desktop.Exit += (_, _) => MainViewModel.CleanWorkspaces();     // an unpacked drop can be gigabytes
         }
         base.OnFrameworkInitializationCompleted();
     }

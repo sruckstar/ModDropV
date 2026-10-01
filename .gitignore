@@ -31,6 +31,7 @@ TestResults/
 # --- local-only texts: the 5Mods page, the YouTube video, the Russian developer notes and the plan ---
 5mods-description.txt
 youtube-description.txt
+youtube-teaser-description.txt
 docs/DEVELOPMENT.md
 docs/ROADMAP.md
 CLAUDE.md

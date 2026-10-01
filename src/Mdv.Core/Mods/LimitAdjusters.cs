@@ -6,7 +6,8 @@ namespace Mdv.Core.Mods;
 /// The plugins GTA V Enhanced needs next to the raised gameconfig.xml limits: without Heap Adjuster and Packfile Limit
 /// Adjuster (their Enhanced builds, MIT, shipped in data/plugins/limits-enhanced) the game crashes with them. Weapon Limits
 /// Adjuster (ModDrop V's own port, plugins/WeaponLimitsAdjusterEnhanced) makes room for weapon components past the game's
-/// 470. They go in with the limits and stay when the last mod is removed — without mods they change nothing that matters.
+/// 470; Pool Heap Adjuster (own, plugins/PoolHeapAdjusterEnhanced) raises the 136 MB budget Enhanced keeps for its pools
+/// apart from the game heap, so raised gameconfig.xml pool sizes fit (and the radio station limit, 96 → 255). They go in with the limits and stay when the last mod is removed — without mods they change nothing that matters.
 /// A plugin the game has is kept, unless it is a build for Legacy (Heap Adjuster has the same file name in both); any
 /// Enhanced WeaponLimitsAdjuster*.asi counts as the weapon one — two of them would patch the same code.
 /// </summary>
@@ -22,6 +23,7 @@ public static class LimitAdjusters
         ("Heap Adjuster", "HeapAdjuster.asi", "HeapAdjuster.ini", "HeapAdjuster.asi"),
         ("Packfile Limit Adjuster", "PackfileLimitAdjusterEnhanced.asi", "PackfileLimitAdjusterEnhanced.ini", "PackfileLimitAdjusterEnhanced.asi"),
         ("Weapon Limits Adjuster", WeaponAsi, "WeaponLimitsAdjusterEnhanced.ini", "WeaponLimitsAdjuster*.asi"),
+        ("Pool Heap Adjuster", "PoolHeapAdjusterEnhanced.asi", "PoolHeapAdjusterEnhanced.ini", "PoolHeapAdjuster*.asi"),
     ];
 
     private static readonly byte[] EnhancedMark = Encoding.ASCII.GetBytes(GameEditions.EnhancedExe);

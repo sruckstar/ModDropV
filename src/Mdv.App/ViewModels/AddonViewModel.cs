@@ -232,6 +232,10 @@ public sealed partial class AddonViewModel : FileModViewModel
 
     [ObservableProperty] public partial string ReplaceText { get; set; } = "";
 
+    /// <summary>Alternatives of the ped's components the mod ships: the ones ticked go in place of its own.</summary>
+    public ObservableCollection<PedVariantRow> Variants { get; } = [];
+    [ObservableProperty] public partial bool HasVariants { get; set; }
+
     /// <summary>The mod has peds without a peds.meta: one is written, from the template chosen here.</summary>
     [ObservableProperty] public partial bool HasNewPeds { get; set; }
 
@@ -367,6 +371,14 @@ public sealed partial class AddonViewModel : FileModViewModel
         ++_generation;
         Items.Clear();
         Checks.Clear();
+        Variants.Clear();
+        if (pkg?.Compose is { Variants.Count: > 0 } withVariants)
+        {
+            var rows = new List<PedVariantRow>();
+            foreach (var v in withVariants.Variants) rows.Add(new PedVariantRow(v, rows));
+            foreach (var row in rows) Variants.Add(row);
+        }
+        HasVariants = Variants.Count > 0;
         if (pkg is null)
         {
             SetWarnings([]);

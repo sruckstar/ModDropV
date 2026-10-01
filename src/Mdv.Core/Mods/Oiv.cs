@@ -1,9 +1,12 @@
 using Mdv.Core;
+using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using Mdv.Core.Index;
 using Mdv.Core.Rpf;
 using Mdv.Core.Util;
 
@@ -35,6 +38,13 @@ public sealed record OivXmlEdit(XmlPatchMode Mode, string XPath, IReadOnlyList<s
 /// <summary><c>&lt;text path="…" createIfNotExist="…"&gt;</c> with its line edits.</summary>
 public sealed record OivText(string Path, bool InArchive, bool Create, IReadOnlyList<OivTextEdit> Edits) : OivStep(Path, InArchive);
 
+/// <summary>
+/// Put a file of the mod (<see cref="Source"/>) over the game's file of that name, wherever it is — <see cref="OivStep.Path"/>
+/// is what to look it up by (<c>x.meta</c>, <c>common/data/x.meta</c>); only in packages read from a game-folder layout
+/// (<see cref="DlcPackSet"/>), found when installing.
+/// </summary>
+public sealed record OivLocate(string Path, bool InArchive, string Source) : OivStep(Path, InArchive);
+
 public enum OivTextMode { Add, InsertBefore, InsertAfter, Replace, Delete }
 
 /// <param name="Line">the line an insert / replace / delete looks for (whitespace around it and case don't matter)</param>
@@ -55,6 +65,113 @@ public sealed class OivPackage : ModPackage
     public string? HeaderColor { get; init; }
     public bool BlackText { get; init; }
     public List<OivStep> Steps { get; } = [];
+    /// <summary>A mod shipped as several packages ("Part ONE" … "Part FIVE"): their names, in install order.</summary>
+    public List<string> PartNames { get; } = [];
+    /// <summary>The map World Travel (Liberty City Preservation Project) runs with, when the package has it (<see cref="WorldTravel"/>).</summary>
+    public WorldTravelMap WorldTravelMap { get; set; } = WorldTravelMap.StoryMode;
+    /// <summary>No assembly.xml: read from finished packs laid out like the game folder (<see cref="DlcPackSet"/>).</summary>
+    public bool FromLayout { get; init; }
+}
+
+/// <summary>
+/// Big mods come as several OIV packages meant to go in one after another ("X - Part ONE.oiv" … "X - Part FIVE.oiv",
+/// "1. X.oiv", "X part 2.oiv"): they are told apart from unrelated packages (a Legacy and an Enhanced build) by one
+/// base name and a distinct part number each, and installed as one mod.
+/// </summary>
+public static partial class OivParts
+{
+    private static readonly string[] Words =
+        ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+
+    [GeneratedRegex(@"(?<![\p{L}\d])(?:part|pt|teil|parte|partie|часть|ч)\.?\s*[-_#№.]?\s*(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)(?![\p{L}\d])",
+                    RegexOptions.IgnoreCase)]
+    private static partial Regex PartRe();
+
+    /// <summary>"1. X", "01 - X", "2) X".</summary>
+    [GeneratedRegex(@"^\s*(\d{1,2})\s*[.)\-_]?\s+(?=\S)")] private static partial Regex LeadingNumberRe();
+
+    /// <summary>"Liberty City Installer - Part ONE" → (1, "Liberty City Installer"); no number → null.</summary>
+    public static (int Part, string Base)? Parse(string name)
+    {
+        int? part = null;
+        var rest = name;
+        if (PartRe().Match(rest) is { Success: true } m)
+        {
+            var n = m.Groups[1].Value;
+            part = int.TryParse(n, out var d) ? d : Array.IndexOf(Words, n.ToLowerInvariant()) + 1;
+            rest = rest.Remove(m.Index, m.Length);
+        }
+        if (LeadingNumberRe().Match(rest) is { Success: true } lead)
+        {
+            part ??= int.Parse(lead.Groups[1].Value);
+            rest = rest[lead.Length..];
+        }
+        if (part is null or < 1) return null;
+        var clean = Regex.Replace(rest, @"[\s_]+", " ").Trim(' ', '-', '–', '—', ':', '.', ',', '(', ')', '[', ']');
+        return clean.Length == 0 ? null : (part.Value, clean);
+    }
+
+    /// <summary>
+    /// The packages in part order when they are parts of one mod — by their own names, else by their file / folder
+    /// names — with their part numbers and the mod's name; null when they are not.
+    /// </summary>
+    public static (List<int> Order, List<int> Numbers, string Name)? Find(IReadOnlyList<string> names, IReadOnlyList<string> fileNames)
+    {
+        if (names.Count < 2) return null;
+        foreach (var labels in new[] { names, fileNames })
+        {
+            var parsed = labels.Select(Parse).ToList();
+            if (parsed.Any(p => p is null)) continue;
+            var bases = parsed.Select(p => Key(p!.Value.Base)).Distinct().Count();
+            var parts = parsed.Select(p => p!.Value.Part).ToList();
+            if (bases != 1 || parts.Distinct().Count() != parts.Count) continue;
+            var order = Enumerable.Range(0, labels.Count).OrderBy(i => parts[i]).ToList();
+            return (order, [.. order.Select(i => parts[i])], parsed[order[0]]!.Value.Base);
+        }
+        return null;
+    }
+
+    private static string Key(string s) => Regex.Replace(s.ToLowerInvariant(), @"[\s_\-–—.]+", " ").Trim();
+
+    /// <summary>The parts as one package: the first one's looks, every part's steps in order.</summary>
+    public static OivPackage Merge(IReadOnlyList<OivPackage> parts, string name, IReadOnlyList<int> numbers)
+    {
+        var first = parts[0];
+        var pkg = new OivPackage
+        {
+            Name = name,
+            Author = first.Author,
+            Version = first.Version,
+            Description = first.Description,
+            Link = first.Link,
+            Root = first.Root,
+            FormatVersion = first.FormatVersion,
+            IconPath = first.IconPath,
+            HeaderColor = first.HeaderColor,
+            BlackText = first.BlackText,
+        };
+        foreach (var p in parts)
+        {
+            pkg.PartNames.Add(p.Name);
+            pkg.Steps.AddRange(p.Steps);
+            pkg.Warnings.AddRange(p.Warnings.Select(w => $"{p.Name}: {w}"));
+        }
+        var gaps = Enumerable.Range(1, numbers.Max()).Except(numbers).ToList();
+        if (gaps.Count > 0)
+            pkg.Warnings.Insert(0, L.T($"Part(s) {string.Join(", ", gaps)} of «{name}» are not in the drop — the mod may need them. " +
+                                       $"Drop all its parts together."));
+
+        int adds = pkg.Steps.Count(s => s is OivAdd), edits = pkg.Steps.Count(s => s is OivXml or OivText);
+        int deletes = pkg.Steps.Count(s => s is OivDelete);
+        var what = new List<string>();
+        if (adds > 0) what.Add(L.T($"{adds} file(s) to put in"));
+        if (edits > 0) what.Add(L.T($"{edits} file(s) to edit"));
+        if (deletes > 0) what.Add(L.T($"{deletes} to delete"));
+        pkg.Parts.Add(pkg.Author is { } a ? L.T($"{parts.Count} OIV packages installed as one, by {a}")
+                                          : L.T($"{parts.Count} OIV packages installed as one"));
+        pkg.Parts.Add(string.Join(", ", what));
+        return pkg;
+    }
 }
 
 /// <summary>Reads an OIV package's <c>assembly.xml</c> (format 2.x) into an <see cref="OivPackage"/>.</summary>
@@ -402,24 +519,105 @@ public sealed class OivHandler : FileModHandler
     public override ModCategory Category => ModCategory.Package;
     protected override string IdPrefix => Prefix;
 
-    private const string DlclistPath = "update/update.rpf/" + GameInstaller.DlclistInner;
+    public const string DlclistPath = "update/update.rpf/" + GameInstaller.DlclistInner;
 
-    /// <summary>The first OIV package of the drop (its assembly.xml), or null.</summary>
+    /// <summary>
+    /// The OIV package of the drop (its assembly.xml), or null. Several packages that are parts of one mod
+    /// (<see cref="OivParts"/>) make one package; otherwise the first is installed.
+    /// </summary>
     public override ModPackage? Analyze(DroppedSource source, DetectionReport report, HandlerEnv env)
     {
-        if (!report.Has(ModCategory.Package)) return null;
-        var assemblies = source.Files
+        List<DroppedFile> assemblies = !report.Has(ModCategory.Package) ? [] : source.Files
             .Where(f => f.Name.Equals(OivReader.AssemblyFile, StringComparison.OrdinalIgnoreCase) &&
                         new FileInfo(f.FullPath).Length < 16 << 20 &&
                         OivReader.IsAssembly(TextIo.DecodeUtf8Sig(File.ReadAllBytes(f.FullPath), strict: false)))
-            .OrderBy(f => f.Depth).ToList();
-        if (assemblies.Count == 0) return null;
-        var pkg = OivReader.Read(assemblies[0].FullPath);
+            .OrderBy(f => f.Depth).ThenBy(f => f.Origin, PathUtil.PathOrder).ToList();
+        if (assemblies.Count == 0) return PackSet(source, env);
+        var pkg = assemblies.Count > 1 ? ReadParts(assemblies) : null;
+        if (pkg is null)
+        {
+            pkg = OivReader.Read(assemblies[0].FullPath);
+            if (assemblies.Count > 1)
+                pkg.Warnings.Add(L.T($"The drop holds {assemblies.Count} OIV packages — «{pkg.Name}» ({assemblies[0].Origin}) is the one installed; " +
+                                 $"drop the others one at a time."));
+        }
+        AddBesides(source, assemblies.Select(a => Path.GetDirectoryName(a.FullPath)!), pkg, env);
         pkg.Source = source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null;
-        if (assemblies.Count > 1)
-            pkg.Warnings.Add(L.T($"The drop holds {assemblies.Count} OIV packages — «{pkg.Name}» ({assemblies[0].Origin}) is the one installed; " +
-                             $"drop the others one at a time."));
         return pkg;
+    }
+
+    /// <summary>Finished packs laid out like the game folder, with no assembly.xml (<see cref="DlcPackSet"/>), or null.</summary>
+    private static OivPackage? PackSet(DroppedSource source, HandlerEnv env)
+    {
+        if (DlcPackSet.Read(source) is not { } pkg) return null;
+        var packDirs = pkg.Steps.OfType<OivAdd>().Where(a => !a.InArchive).Select(a => Path.GetDirectoryName(a.Source)!);
+        AddBesides(source, packDirs, pkg, env);
+        pkg.Source = source.Sources.Count == 1 ? ModSource.Of(source.Sources[0]) : null;
+        return pkg;
+    }
+
+    /// <summary>
+    /// Plugins and scripts the drop holds next to the package, which it doesn't install itself ("then put
+    /// SourceMotionCore.asi into the game folder"): they join the package's steps, so they go in and out with it.
+    /// Copies of the package's files laid out by archive ("Manual Install/common.rpf/…") stay out.
+    /// </summary>
+    private static void AddBesides(DroppedSource source, IEnumerable<string> packageDirs, OivPackage pkg, HandlerEnv env)
+    {
+        var roots = packageDirs.Select(d => d + Path.DirectorySeparatorChar).ToList();
+        var rest = new DroppedSource { WorkDir = source.WorkDir };
+        rest.Sources.AddRange(source.Sources);
+        rest.Files.AddRange(source.Files.Where(f =>
+            !roots.Any(r => f.FullPath.StartsWith(r, StringComparison.OrdinalIgnoreCase)) &&
+            !f.Origin.Split('/').SkipLast(1).Any(d => d.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase))));
+        var report = ModDetector.Detect(rest);
+        if (!report.Has(ModCategory.Script)) return;
+        ScriptPackage? scripts;
+        try
+        {
+            scripts = new ScriptHandler().Analyze(rest, report, env) as ScriptPackage;
+        }
+        catch (IntakeException)
+        {
+            return;                                                               // nothing of use there (a 32-bit plugin…)
+        }
+        if (scripts is null) return;
+        var own = pkg.Steps.OfType<OivAdd>().Where(a => !a.InArchive).Select(a => a.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var added = new List<string>();
+        foreach (var f in scripts.Files.Where(f => !f.Shared && own.Add(f.Dest)))
+        {
+            pkg.Steps.Add(new OivAdd(f.Dest, false, f.Source));
+            added.Add(f.Dest);
+        }
+        pkg.Warnings.AddRange(scripts.Warnings);
+        if (added.Count > 0)
+            pkg.Parts.Add(L.T($"Next to the package: {string.Join(", ", added.Take(4))}{(added.Count > 4 ? ", …" : "")} — installed with it"));
+    }
+
+    /// <summary>The drop's packages as one, when they are parts of one mod; else null.</summary>
+    private static OivPackage? ReadParts(List<DroppedFile> assemblies)
+    {
+        var read = new List<(OivPackage Pkg, DroppedFile File)>();
+        foreach (var a in assemblies)
+        {
+            try
+            {
+                read.Add((OivReader.Read(a.FullPath), a));
+            }
+            catch (IntakeException)
+            {
+                return null;                                   // an unreadable one: not a set to install as a whole
+            }
+        }
+        // the package's own file / folder: ".../X - Part ONE.oiv/assembly.xml" → "X - Part ONE"
+        static string FileName(DroppedFile f)
+        {
+            var segs = f.Origin.Split('/');
+            var own = segs.Length >= 2 ? segs[^2] : segs[0];
+            return Regex.Replace(own, @"\.(oiv|zip|rar|7z)$", "", RegexOptions.IgnoreCase);
+        }
+        if (OivParts.Find(read.Select(r => r.Pkg.Name).ToList(), read.Select(r => FileName(r.File)).ToList()) is not { } set) return null;
+        var ordered = set.Order.Select(i => read[i].Pkg).ToList();
+        return OivParts.Merge(ordered, set.Name, set.Numbers);
     }
 
     public override InstallPlan PlanInstall(ModPackage package, InstallTarget target)
@@ -451,9 +649,28 @@ public sealed class OivHandler : FileModHandler
         }
 
         var putPaths = new List<string>();
+        var adjusters = new List<string>();
+        var swapped = new List<string>();
         int files = 0;
+        var ownPacks = pkg.Steps.OfType<OivAdd>().Where(a => !a.InArchive && a.Path.EndsWith("/dlc.rpf", StringComparison.OrdinalIgnoreCase))
+                                .Select(a => a.Path[..^"/dlc.rpf".Length]).ToList();
+        GameIndex? index = null;
         foreach (var step in pkg.Steps)
         {
+            if (step is OivLocate locate)
+            {
+                index ??= GameIndex.Open(target.GameDir, target.IndexCacheRoot);
+                var (at, why) = DlcPackSet.Locate(index, locate, ownPacks);
+                if (at is null)
+                {
+                    plan.Warnings.Add(why!);
+                    continue;
+                }
+                plan.Add(new RpfPutOp(at, locate.Source, id));
+                putPaths.Add(at);
+                files++;
+                continue;
+            }
             if (missing.Any(m => Under(step.Path, m) || step.Path.Equals(m, StringComparison.OrdinalIgnoreCase))) continue;
             if (made.FirstOrDefault(m => Under(step.Path, m)) is not null) continue;        // built with its archive
             if (step is OivArchive arc)
@@ -475,11 +692,21 @@ public sealed class OivHandler : FileModHandler
             }
             files++;
             if (step.InArchive) AddArchiveStep(plan, step, id, overlay, putPaths);
-            else AddLooseStep(plan, step, target);
+            else AddLooseStep(plan, step, target, adjusters, swapped);
         }
 
+        if (adjusters.Count > 0)
+            plan.Warnings.Add(L.T($"{string.Join(", ", adjusters)}: limit adjusters for GTA V Legacy — ModDrop V puts its own GTA V Enhanced ones instead."));
+        if (swapped.Count > 0)
+            plan.Warnings.Add(L.T($"The package’s World Travel plugins are made for GTA V Legacy — ModDrop V puts its GTA V Enhanced builds instead ({string.Join(", ", swapped)})."));
+        if (target.Edition == GameEdition.Enhanced && LegacyDataReplaced(pkg, overlay, adjusters.Count > 0) is { Count: > 0 } data)
+            plan.Warnings.Add(L.T($"This package looks made for GTA V Legacy and replaces {data.Count} of the game’s own data files as a whole ({string.Join(", ", data.Take(5))}{(data.Count > 5 ? ", …" : "")}). GTA V Enhanced has its own versions of such files — with Legacy’s it may not start. If it doesn’t, remove the package."));
+        if (pkg.FromLayout && ownPacks.Where(p => File.Exists(Path.Combine(target.GameDir, p, "dlc.rpf"))).ToList() is { Count: > 0 } theirs)
+            plan.Warnings.Add(L.T($"The game has {theirs.Count} of these packs itself ({string.Join(", ", theirs.Take(4).Select(Path.GetFileName))}{(theirs.Count > 4 ? ", …" : "")}) — the mod’s copies take their place while it is installed."));
+        WorldTravel.AddSteps(plan, pkg, target);
         plan.Warnings.AddRange(ConflictWarnings(id, target, putPaths));
-        plan.Add(Register(id, ModCategory.Package, pkg, target, L.T($"OIV · {files} change(s)"),
+        plan.Add(Register(id, ModCategory.Package, pkg, target,
+                          pkg.FromLayout ? L.T($"DLC packs · {files} change(s)") : L.T($"OIV · {files} change(s)"),
                           pkg.Link is { } link ? new() { ["link"] = link } : null));
         return plan;
     }
@@ -550,18 +777,35 @@ public sealed class OivHandler : FileModHandler
         }
     }
 
-    private static void AddLooseStep(InstallPlan plan, OivStep step, InstallTarget target)
+    /// <param name="adjusters">Legacy limit adjusters left out (one warning names them all)</param>
+    /// <param name="swapped">plugins put in as ModDrop V's own GTA V Enhanced builds</param>
+    private static void AddLooseStep(InstallPlan plan, OivStep step, InstallTarget target, List<string> adjusters, List<string> swapped)
     {
         // archives the game reads go into mods (a whole dlc.rpf, a replaced .rpf) — or onigiri; plugins, scripts and their
         // files into the game folder
         string? Place(string path) =>
             path.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase) && !path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase)
                 ? ModsLayout.ArchiveRel(target.GameDir, path) : path;
+        bool enhanced = target.Edition == GameEdition.Enhanced;
         switch (step)
         {
+            case OivAdd add when enhanced && LegacyLimitAdjuster(add):
+                adjusters.Add(add.Path);
+                break;
+            case OivAdd add when enhanced && EnhancedBuild(add, target) is { } ours:
+                plan.Add(new CopyFileOp(ours.Source, ours.Name));
+                swapped.Add(ours.Name);
+                break;
             case OivAdd add:
-                if (Place(add.Path) is { } to) plan.Add(new CopyFileOp(add.Source, to));
-                else plan.Warnings.Add(L.T($"The package replaces the game's {add.Path} as a whole — Onigiri can't load that; skipped."));
+                if (Place(add.Path) is not { } to)
+                    plan.Warnings.Add(L.T($"The package replaces the game's {add.Path} as a whole — Onigiri can't load that; skipped."));
+                else if (enhanced && to.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase)) plan.Add(new ConvertArchiveOp(add.Source, to));
+                else
+                {
+                    if (enhanced && IsLegacyPatcher(add))
+                        plan.Warnings.Add(L.T($"{add.Path} patches the memory of GTA V Legacy and may not work in GTA V Enhanced — if the game misbehaves, remove it first."));
+                    plan.Add(new CopyFileOp(add.Source, to));
+                }
                 break;
             case OivDelete del:
                 var at = Place(del.Path);
@@ -595,6 +839,103 @@ public sealed class OivHandler : FileModHandler
     }
 
     
+
+    // data files the two editions each have their own version of (Liberty City Preservation Project put Legacy's
+    // content.xml, dlc_patch/mpheist4/content.xml — without Enhanced's 76 *_bvh.rpf entries —, sounds.dat54.rel… into
+    // Enhanced, and it crashed while loading); models and textures are converted, so they don't count
+    private static readonly HashSet<string> DataExts = new(StringComparer.OrdinalIgnoreCase)
+        { ".xml", ".meta", ".dat", ".rel", ".ymt", ".ipl", ".nametable", ".gfx" };
+
+    /// <summary>
+    /// The game's own data files a package made for Legacy replaces as a whole (their file names); empty when it doesn't
+    /// look made for Legacy — no Legacy limit adjuster (<paramref name="legacyAdjusters"/>), memory patcher or model.
+    /// </summary>
+    private static List<string> LegacyDataReplaced(OivPackage pkg, ModsOverlay overlay, bool legacyAdjusters)
+    {
+        var adds = pkg.Steps.OfType<OivAdd>().ToList();
+        bool legacy = legacyAdjusters || adds.Any(a => !a.InArchive && IsLegacyPatcher(a)) || adds.Any(a => a.InArchive && IsLegacyModel(a.Source));
+        if (!legacy) return [];
+        var names = new List<string>();
+        foreach (var a in adds.Where(a => a.InArchive && DataExts.Contains(Path.GetExtension(a.Path)) && !IsDlclist(a.Path)))
+        {
+            bool gameHasIt;
+            try
+            {
+                gameHasIt = overlay.ReadOriginal(a.Path) is not null;
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or RpfFormatException or RpfEncryptedException or ArgumentException)
+            {
+                gameHasIt = false;
+            }
+            if (gameHasIt) names.Add(Path.GetFileName(a.Path));
+        }
+        return names;
+    }
+
+    private static bool IsLegacyModel(string source)
+    {
+        try
+        {
+            using var fs = File.OpenRead(source);
+            Span<byte> head = stackalloc byte[8];
+            return fs.Read(head) == 8 && BinaryPrimitives.ReadUInt32LittleEndian(head) == Rpf7.Rsc7Magic
+                   && ResourceEditions.EditionOf(Path.GetExtension(source), ResourceEditions.Version(head)) == GameEdition.Legacy;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
+    // World Travel (Liberty City Preservation Project's level switcher, GPL-3, github.com/Splatcrafter/worldTravelASI):
+    // the package's WorldTravel.asi hooks Legacy code by signature and crashes Enhanced at start, WorldTravelPatches.asi
+    // writes Legacy addresses into Enhanced's memory. ModDrop V ships builds for Enhanced (data/plugins/worldtravel-enhanced):
+    // the fork's WorldTravel.asi (skips the hooks there, calms Liberty City's ocean) and its own port of the patches.
+    private static readonly (string Theirs, string Ours)[] EnhancedBuilds =
+    [
+        ("WorldTravel.asi", "WorldTravel.asi"),
+        ("WorldTravelPatches.asi", "WorldTravelPatchesEnhanced.asi"),
+        ("WorldTravelPatches.ini", "WorldTravelPatchesEnhanced.ini"),
+    ];
+
+    /// <summary>ModDrop V's GTA V Enhanced build of a plugin the package puts into the game folder, or null.</summary>
+    private static (string Source, string Name)? EnhancedBuild(OivAdd add, InstallTarget target)
+    {
+        if (add.Path.Contains('/')) return null;
+        foreach (var (theirs, ours) in EnhancedBuilds)
+        {
+            if (!add.Path.Equals(theirs, StringComparison.OrdinalIgnoreCase)) continue;
+            var src = Path.Combine(GamePools.PluginsDir(target), "worldtravel-enhanced", ours);
+            return File.Exists(src) ? (src, ours) : null;
+        }
+        return null;
+    }
+
+    // limit adjusters packages bring for Legacy (Liberty City Preservation Project: HeapAdjuster, PackfileLimitAdjuster,
+    // WeaponLimitsAdjuster); in Enhanced ModDrop V's own ones (LimitAdjusters) do their job
+    private static readonly string[] LimitAdjusterStems = ["HeapAdjuster", "PackfileLimitAdjuster", "WeaponLimitsAdjuster"];
+
+    /// <summary>A Legacy limit adjuster in the game folder, or its .ini (the .asi decides: one made for Enhanced stays).</summary>
+    private static bool LegacyLimitAdjuster(OivAdd add)
+    {
+        if (add.Path.Contains('/')) return false;
+        var stem = Path.GetFileNameWithoutExtension(add.Path);
+        if (!LimitAdjusterStems.Any(s => stem.StartsWith(s, StringComparison.OrdinalIgnoreCase))) return false;
+        var asi = Path.ChangeExtension(add.Source, ".asi");
+        return Path.GetExtension(add.Path).ToLowerInvariant() is ".asi" or ".ini"
+               && !(File.Exists(asi) && LimitAdjusters.ForEnhanced(asi));
+    }
+
+    /// <summary>
+    /// An .asi in the game folder that patches the game's memory itself — no ScriptHookV, no word of the Enhanced
+    /// executable (WorldTravelPatches.asi); a ScriptHookV script (WorldTravel.asi) works in either edition.
+    /// </summary>
+    private static bool IsLegacyPatcher(OivAdd add)
+    {
+        if (add.Path.Contains('/') || !add.Path.EndsWith(".asi", StringComparison.OrdinalIgnoreCase) || !File.Exists(add.Source)) return false;
+        if (LimitAdjusters.ForEnhanced(add.Source)) return false;
+        return File.ReadAllBytes(add.Source).AsSpan().IndexOf("ScriptHookV"u8) < 0;
+    }
 
     private static HashSet<string> CurrentPacks(ModsOverlay overlay)
     {
@@ -710,5 +1051,77 @@ public sealed class BuildArchiveOp(string path, bool inArchive, IReadOnlyList<Oi
         {
             PathUtil.TryDeleteDir(work);
         }
+    }
+}
+
+/// <summary>
+/// A whole archive an OIV package puts into GTA V Enhanced (a dlcpack's dlc.rpf): its Legacy models converted to the
+/// gen9 format on the way (the game can't load them otherwise), everything else byte for byte; one with none is copied.
+/// </summary>
+public sealed class ConvertArchiveOp(string source, string gameRel) : CopyFileOp(source, gameRel)
+{
+    public override string Describe() =>
+        L.T($"Copy {Path.GetFileName(Source)} to <game>/{GameRel}, its Legacy models converted to the GTA V Enhanced (gen9) format");
+
+    public override void Execute(InstallContext ctx)
+    {
+        var n = RpfRetarget.Mismatched(Source, GameEdition.Enhanced).Count;
+        if (n == 0)
+        {
+            base.Execute(ctx);
+            return;
+        }
+        var dst = ctx.Abs(GameRel);
+        var dir = Path.GetDirectoryName(dst)!;
+        EnsureDir(ctx, dir);
+        // built next to its place: the nested archives of a map pack are gigabytes, more than the temp drive may hold
+        var tmp = dst + ".mdvconv";
+        var name = Path.GetFileName(Source);
+        ctx.Log(L.T($"    Converting {n} Legacy model(s) in {name} to the GTA V Enhanced (gen9) format…"));
+        var clock = Stopwatch.StartNew();
+        long shownAt = -1000;
+        int logged = 0;
+        var gate = new object();
+        void Converted(int done)
+        {
+            lock (gate)
+            {
+                if (clock.ElapsedMilliseconds - shownAt < 500 && done < n) return;
+                shownAt = clock.ElapsedMilliseconds;
+                var left = Left(clock.Elapsed, done, n);
+                ctx.StepProgress((double)done / n, left is null ? L.T($"{name}: {done} of {n} models converted")
+                                                                : L.T($"{name}: {done} of {n} models converted · {left}"));
+                // the log (and the command line) hears of it every tenth
+                if (done * 10 / n > logged)
+                {
+                    logged = done * 10 / n;
+                    ctx.Log(L.T($"    {done} of {n} models converted ({logged * 10}%)"));
+                }
+            }
+        }
+        try
+        {
+            // repairGen9: gen9 models the package already has, made with CodeWalker, get the same fixes as converted ones
+            RpfRetarget.Convert(Source, tmp, GameEdition.Enhanced, dir, repairGen9: true, Converted, ctx.Token);
+        }
+        catch
+        {
+            try { File.Delete(tmp); } catch (IOException) { }
+            throw;
+        }
+        if (File.Exists(dst)) ctx.Journal.MoveAside(dst, keep: !Shared);
+        else ctx.Journal.FileCreated(dst);
+        File.Move(tmp, dst);
+        ctx.Log($"    {name} -> {dst}");
+    }
+
+    /// <summary>"about 12 min left" from the pace so far; null while there is too little to judge by.</summary>
+    internal static string? Left(TimeSpan spent, int done, int total)
+    {
+        if (done <= 0 || done >= total || spent.TotalSeconds < 5) return null;
+        var left = TimeSpan.FromSeconds(spent.TotalSeconds / done * (total - done));
+        return left.TotalMinutes < 1 ? L.T("less than a minute left")
+             : left.TotalMinutes < 90 ? L.T($"about {(int)Math.Ceiling(left.TotalMinutes)} min left")
+             : L.T($"about {left.TotalHours:0.#} h left");
     }
 }

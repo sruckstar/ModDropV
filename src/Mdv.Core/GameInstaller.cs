@@ -375,6 +375,20 @@ public static partial class GameInstaller
         var updated = edit(TextIo.DecodeUtf8Sig(raw));
         if (updated is null) return;
 
+        // a fresh copy the game encrypted (NG) stays so, as the mods layer keeps its copies (Onigiri refuses an OPEN copy
+        // of a Rockstar pack); the archive reads with fallback keys, so crypto can still be null here
+        bool ng;
+        using (var probe = RpfArchive.Open(updateRpf)) ng = probe.Encryption == GameCrypto.EncNg;
+        if (ng)
+        {
+            var bytes = Encoding.UTF8.GetBytes(updated);
+            using var ed = RpfEditor.Open(updateRpf, crypto ?? GameCrypto.ForGame(gameDir, log));
+            ed.Put(DlclistInner, StoredEntry.FromFile("dlclist.xml", bytes, GameEditions.Detect(gameDir) ?? GameEdition.Legacy));
+            ed.Commit();
+            log(L.T($"    dlclist.xml rewritten in update.rpf ({bytes.Length} bytes; the archive keeps the game's encryption)."));
+            return;
+        }
+
         var info = RpfTools.PatchInnerFile(updateRpf, DlclistInner, Encoding.UTF8.GetBytes(updated), crypto);
         if (info.Opened)
             log(L.T("    update.rpf switched from the game's encryption to OPEN (as OpenIV does on the first edit)."));

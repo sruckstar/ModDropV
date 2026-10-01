@@ -77,8 +77,11 @@ public static partial class SourceIntake
     private const int MaxNesting = 3;
     private const long MaxTextBytes = 16L << 20;
     private const long MaxImageBytes = 96L << 20;
-    private const long MaxUnpackedBytes = 8L << 30;
     private const int MaxFiles = 20000;
+    /// <summary>Room left on the workspace's drive after an archive is unpacked.</summary>
+    private const long SpaceMargin = 512L << 20;
+    /// <summary>Folder made at the root of another drive when the usual workspace's drive has no room for a big drop.</summary>
+    public const string SpareFolder = "ModDropV.tmp";
 
     /// <summary>Folder names whose content is a backup of the stock game, not the mod.</summary>
     [GeneratedRegex(@"^(orig(inal)?|vanilla|stock|backup|back[\s_-]?up|bak|old|default|uninstall(er)?|remove|restore)(\b|[\s_-])",
@@ -124,11 +127,14 @@ public static partial class SourceIntake
     /// <paramref name="workRoot"/>, for any mod type: archives (nested ones too) are opened
     /// and every file that can matter is listed.
     /// </summary>
+    /// <param name="spareRoots">where the workspace may go instead when <paramref name="workRoot"/>'s drive has no room
+    /// for what the archives unpack to (see <see cref="SpareRoot"/>)</param>
     public static DroppedSource Gather(IReadOnlyList<string> paths, string workRoot,
-                                       Action<string>? progress = null, CancellationToken ct = default)
+                                       Action<string>? progress = null, CancellationToken ct = default,
+                                       IReadOnlyList<string>? spareRoots = null)
     {
         var sources = paths.Select(p => p.Trim()).Where(p => p.Length > 0).Select(Path.GetFullPath)
-                           .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                           .Select(FirstVolume).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (sources.Count == 0) throw new IntakeException(L.T("Nothing was dropped."));
         foreach (var s in sources)
         {
@@ -140,7 +146,8 @@ public static partial class SourceIntake
                                           "(the game folder is set under Installation)."));
         }
 
-        var work = Path.Combine(workRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
+        var root = PickWorkRoot(sources, workRoot, spareRoots ?? []);
+        var work = Path.Combine(root, DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(work);
         try
         {
@@ -173,6 +180,152 @@ public static partial class SourceIntake
         foreach (var d in Directory.EnumerateDirectories(workRoot))
             if (keep is null || !string.Equals(Path.GetFullPath(d), Path.GetFullPath(keep), StringComparison.OrdinalIgnoreCase))
                 PathUtil.TryDeleteDir(d);
+        // a spare workspace folder at a drive's root goes when it is empty
+        if (Path.GetFileName(Path.TrimEndingDirectorySeparator(workRoot)).Equals(SpareFolder, StringComparison.OrdinalIgnoreCase)
+            && !Directory.EnumerateFileSystemEntries(workRoot).Any())
+            PathUtil.TryDeleteDir(workRoot);
+    }
+
+    /// <summary>Delete a drop's workspace (and the spare folder it was made in, when that is left empty).</summary>
+    public static void Discard(DroppedSource dropped)
+    {
+        PathUtil.TryDeleteDir(dropped.WorkDir);
+        var root = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(dropped.WorkDir));
+        if (root is not null && Path.GetFileName(root).Equals(SpareFolder, StringComparison.OrdinalIgnoreCase) && Directory.Exists(root)
+            && !Directory.EnumerateFileSystemEntries(root).Any())
+            PathUtil.TryDeleteDir(root);
+    }
+
+    /// <summary>The spare workspace root on the drive of <paramref name="anyPath"/> (<c>D:\ModDropV.tmp</c>), or null.</summary>
+    public static string? SpareRoot(string? anyPath)
+    {
+        if (string.IsNullOrWhiteSpace(anyPath)) return null;
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(anyPath));
+            return string.IsNullOrEmpty(root) ? null : Path.Combine(root, SpareFolder);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Free space on the drive holding <paramref name="path"/> (null: unknown).</summary>
+    internal static long? FreeSpace(string path)
+    {
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(path));
+            return string.IsNullOrEmpty(root) ? null : new DriveInfo(root).AvailableFreeSpace;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static string DriveName(string path) => (Path.GetPathRoot(Path.GetFullPath(path)) ?? path).TrimEnd('\\', '/');
+
+    /// <summary>"15.2 GB", "168 MB" (as the install plan shows sizes).</summary>
+    private static string Size(long n) => string.Format(System.Globalization.CultureInfo.InvariantCulture,
+        n >= 1L << 30 ? "{0:0.0} GB" : "{1:0} MB", n / 1073741824.0, n / 1048576.0);
+
+    /// <summary>
+    /// The workspace root for a drop: <paramref name="workRoot"/> when its drive has room for what the dropped archives
+    /// may unpack to (a big mod in archives inside an archive needs about 1.3× the archives' size at the peak — each
+    /// inner archive goes as soon as it is unpacked), else the first spare root that has it, else the roomiest one that
+    /// holds at least the archives' size.
+    /// </summary>
+    internal static string PickWorkRoot(IReadOnlyList<string> sources, string workRoot, IReadOnlyList<string> spareRoots)
+    {
+        long archives = sources.Sum(ArchiveBytes);
+        if (archives == 0) return workRoot;
+        long need = archives + archives * 3 / 10 + SpaceMargin;
+        var roots = new List<string> { workRoot };
+        foreach (var r in spareRoots)
+            if (!roots.Any(x => DriveName(x).Equals(DriveName(r), StringComparison.OrdinalIgnoreCase))) roots.Add(r);
+        var free = roots.Select(r => (Root: r, Free: FreeSpace(r))).ToList();
+        if (free.FirstOrDefault(f => f.Free is null || f.Free >= need) is { Root: not null } fit) return fit.Root;
+        var best = free.MaxBy(f => f.Free ?? 0);
+        if (best.Free >= archives + SpaceMargin) return best.Root;
+        var drives = string.Join(", ", free.Select(f => $"{DriveName(f.Root)} {Size(f.Free ?? 0)}"));
+        throw new IntakeException(L.T($"Not enough disk space to unpack what was dropped: it needs about {Size(need)}, free: {drives}. " +
+                                      $"Free some space, or move the archives to a drive with room and drop them from there."));
+    }
+
+    /// <summary>Bytes of the archives in a dropped file (all its volumes) or folder.</summary>
+    private static long ArchiveBytes(string source)
+    {
+        static bool IsArchive(string name) => ArchiveExt.Contains(PathUtil.SuffixLower(name)) || Regex.IsMatch(name, @"\.(7z|zip|rar)\.0*1$", RegexOptions.IgnoreCase);
+        try
+        {
+            if (File.Exists(source))
+                return IsArchive(source) ? SafeFileParts(source).Sum(p => new FileInfo(p).Length) : 0;
+            return Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories).Take(MaxFiles)
+                            .Where(f => IsArchive(f) || LaterVolumeRe().IsMatch(f)).Sum(f => new FileInfo(f).Length);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>A later volume of a split archive (x.z03, x.part2.rar, x.7z.002) → its first one when it is next to it.</summary>
+    internal static string FirstVolume(string path)
+    {
+        var name = Path.GetFileName(path);
+        if (!File.Exists(path) || !LaterVolumeRe().IsMatch(name)) return path;
+        var dir = Path.GetDirectoryName(path)!;
+        string? first = null;
+        if (Regex.Match(name, @"^(.*)\.z\d\d$", RegexOptions.IgnoreCase) is { Success: true } z) first = z.Groups[1].Value + ".zip";
+        else if (Regex.Match(name, @"^(.*)\.r\d\d$", RegexOptions.IgnoreCase) is { Success: true } r) first = r.Groups[1].Value + ".rar";
+        else if (Regex.Match(name, @"^(.*)\.part(\d+)\.rar$", RegexOptions.IgnoreCase) is { Success: true } p)
+            first = $"{p.Groups[1].Value}.part{1.ToString().PadLeft(p.Groups[2].Length, '0')}.rar";
+        else if (Regex.Match(name, @"^(.*\.(?:7z|zip|rar))\.(\d+)$", RegexOptions.IgnoreCase) is { Success: true } n)
+            first = $"{n.Groups[1].Value}.{1.ToString().PadLeft(n.Groups[2].Length, '0')}";
+        if (first is null) return path;
+        var full = Path.Combine(dir, first);
+        if (File.Exists(full)) return full;
+        throw new IntakeException(L.T($"«{name}» is one part of a split archive — its first part «{first}» isn't next to it. " +
+                                      $"Put all the parts in one folder and drop the first one (or all of them)."));
+    }
+
+    /// <summary>
+    /// A split zip (x.zip + x.z01, x.z02…) names in its end record how many parts it has: every one must be there.
+    /// Throws <see cref="IntakeException"/> naming the missing ones.
+    /// </summary>
+    internal static void CheckZipVolumes(string zip, string origin)
+    {
+        if (!zip.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) return;
+        int disks;
+        try
+        {
+            using var fs = File.OpenRead(zip);
+            int len = (int)Math.Min(fs.Length, 22 + 0xFFFF + 20);
+            var tail = new byte[len];
+            fs.Seek(-len, SeekOrigin.End);
+            fs.ReadExactly(tail);
+            int at = -1;
+            for (int i = len - 22; i >= 0 && at < 0; i--)
+                if (tail[i] == 0x50 && tail[i + 1] == 0x4B && tail[i + 2] == 5 && tail[i + 3] == 6) at = i;
+            if (at < 0) return;
+            int disk = BitConverter.ToUInt16(tail, at + 4);
+            if (disk == 0xFFFF && at >= 20 && BitConverter.ToUInt32(tail, at - 20) == 0x07064B50)
+                disks = (int)BitConverter.ToUInt32(tail, at - 20 + 16);               // zip64 locator: total disks
+            else disks = disk + 1;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return;
+        }
+        if (disks <= 1 || disks > 999) return;
+        var stem = Path.ChangeExtension(zip, null);
+        var missing = Enumerable.Range(1, disks - 1).Select(i => $"{Path.GetFileName(stem)}.z{i:D2}")
+                                .Where(n => !File.Exists(Path.Combine(Path.GetDirectoryName(zip)!, n))).ToList();
+        if (missing.Count > 0)
+            throw new IntakeException(L.T($"«{origin}» is split into {disks} parts, and not all of them are next to it — missing: " +
+                                          $"{string.Join(", ", missing)}. Download every part into one folder and drop the .zip."));
     }
 
     // ------------------------------------------------------------------ gathering
@@ -182,7 +335,7 @@ public static partial class SourceIntake
         public List<DroppedFile> Files { get; } = [];
         public List<string> Archives { get; } = [];
         public List<string> Warnings { get; } = [];
-        public long Unpacked;
+        public Action<string> Progress => progress;
         private int _archiveNo;
 
         public void AddFolder(string folder, string originPrefix, bool inBackup, int nesting)
@@ -244,20 +397,64 @@ public static partial class SourceIntake
             Directory.CreateDirectory(dest);
             progress(L.T($"Unpacking {Path.GetFileName(archive)}…"));
             Archives.Add(origin);
-            ExtractArchive(archive, origin, dest, this, ct);
+            var parts = ExtractArchive(archive, origin, dest, this, ct);
+            // an archive unpacked from another is not needed once it is open: a big mod in archives inside an archive
+            // would otherwise take twice its size
+            if (Path.GetFullPath(archive).StartsWith(Path.GetFullPath(unpackRoot) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                foreach (var p in parts)
+                    try
+                    {
+                        File.Delete(p);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                    }
             AddFolder(dest, origin, inBackup, nesting);
         }
     }
 
     private static string Join(string a, string b) => a.Length == 0 ? b : a + "/" + b;
 
-    /// <summary>Extract the entries that can matter (models, rpf, text, nested archives, what the detector reads).</summary>
-    private static void ExtractArchive(string archive, string origin, string dest, Gatherer g, CancellationToken ct)
+    /// <summary>A file being unpacked: tells how much was written (for the progress of a big archive) and stops on cancel.</summary>
+    private sealed class CountingStream(Stream inner, Action<long> written, CancellationToken ct) : Stream
     {
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => inner.Length;
+        public override long Position { get => inner.Position; set => throw new NotSupportedException(); }
+        public override void Flush() => inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            ct.ThrowIfCancellationRequested();
+            inner.Write(buffer);
+            written(buffer.Length);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>
+    /// Extract the entries that can matter (models, rpf, text, nested archives, what the detector reads). Returns the
+    /// archive's files (all its volumes).
+    /// </summary>
+    private static List<string> ExtractArchive(string archive, string origin, string dest, Gatherer g, CancellationToken ct)
+    {
+        CheckZipVolumes(archive, origin);
         IArchive arc;
+        var parts = SafeFileParts(archive);
         try
         {
-            var parts = SafeFileParts(archive);
             arc = parts.Count > 1
                 ? ArchiveFactory.OpenArchive(parts.Select(p => new FileInfo(p)).ToList(), new ReaderOptions())
                 : ArchiveFactory.OpenArchive(archive, new ReaderOptions());
@@ -279,6 +476,23 @@ public static partial class SourceIntake
                               arc.Entries.Any(e => !e.IsDirectory && e.Key is { } k &&
                                                    (k.Replace('\\', '/').TrimStart('/').Equals("assembly.xml", StringComparison.OrdinalIgnoreCase)
                                                     || PathUtil.SuffixLower(k) is ".asi" or ".dll" or ".cs" or ".vb"));
+            // what it unpacks to has to fit on the workspace's drive
+            long total = arc.Entries.Where(e => Wanted(e, everything)).Sum(e => Math.Max(e.Size, 0));
+            if (FreeSpace(dest) is { } free && free < total + SpaceMargin)
+                throw new IntakeException(L.T($"Not enough disk space to unpack «{origin}»: it needs {Size(total)}, " +
+                                              $"{DriveName(dest)} has {Size(free)} free."));
+            var name = Path.GetFileName(archive);
+            long done = 0;
+            int shown = -1;
+            void Written(long n)
+            {
+                done += n;
+                if (total < (256L << 20)) return;                        // small archives unpack in a blink
+                int pct = (int)Math.Min(100, done * 100 / total);
+                if (pct == shown) return;
+                shown = pct;
+                g.Progress(L.T($"Unpacking {name}… {pct} %"));
+            }
             try
             {
                 if (arc.IsSolid || arc.Type == ArchiveType.SevenZip)
@@ -288,9 +502,9 @@ public static partial class SourceIntake
                     while (reader.MoveToNextEntry())
                     {
                         ct.ThrowIfCancellationRequested();
-                        var target = TargetFor(reader.Entry, origin, dest, g, everything);
+                        var target = TargetFor(reader.Entry, origin, dest, everything);
                         if (target is null) continue;
-                        using var fs = File.Create(target);
+                        using var fs = new CountingStream(File.Create(target), Written, ct);
                         reader.WriteEntryTo(fs);
                     }
                 }
@@ -299,11 +513,11 @@ public static partial class SourceIntake
                     foreach (var entry in arc.Entries)
                     {
                         ct.ThrowIfCancellationRequested();
-                        var target = TargetFor(entry, origin, dest, g, everything);
+                        var target = TargetFor(entry, origin, dest, everything);
                         if (target is null) continue;
                         using var es = entry.OpenEntryStream();
-                        using var fs = File.Create(target);
-                        es.CopyTo(fs);
+                        using var fs = new CountingStream(File.Create(target), Written, ct);
+                        es.CopyTo(fs, 1 << 20);
                     }
                 }
             }
@@ -313,9 +527,29 @@ public static partial class SourceIntake
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not IntakeException)
             {
-                throw new IntakeException(L.T($"«{origin}» could not be unpacked — it may be damaged or incomplete ({ex.Message})."), ex);
+                throw new IntakeException(parts.Count > 1 || IsFirstVolumeName(archive)
+                    ? L.T($"«{origin}» could not be unpacked — it is split into parts, and one of them may be damaged or missing ({ex.Message}).")
+                    : L.T($"«{origin}» could not be unpacked — it may be damaged or incomplete ({ex.Message})."), ex);
             }
         }
+        return parts;
+    }
+
+    private static bool IsFirstVolumeName(string path) =>
+        Regex.IsMatch(Path.GetFileName(path), @"(\.part0*1\.rar|\.(7z|zip|rar)\.0*1)$", RegexOptions.IgnoreCase);
+
+    /// <summary>Is the entry worth extracting (see <see cref="TargetFor"/>)?</summary>
+    private static bool Wanted(IEntry entry, bool everything)
+    {
+        if (entry.IsDirectory || !string.IsNullOrEmpty(entry.LinkTarget) || string.IsNullOrEmpty(entry.Key)) return false;
+        var name = entry.Key.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        if (name is null) return false;
+        var ext = PathUtil.SuffixLower(name);
+        return InputScanner.ResourceExt.Contains(ext) || ext == ".rpf" || ArchiveExt.Contains(ext)
+               || Mods.ModDetector.SniffedExt.Contains(ext)
+               || ((TextExt.Contains(ext) || StoreInfoReader.TextTableExt.Contains(ext)) && entry.Size <= MaxTextBytes)
+               || Mods.ReplacementHandler.ReplaceableExt.Contains(ext) || everything
+               || (Textures.TextureImages.IsTexture(name) && entry.Size <= MaxImageBytes);   // a livery's pictures
     }
 
     private static List<string> SafeFileParts(string archive)
@@ -343,25 +577,14 @@ public static partial class SourceIntake
 
     /// <summary>Safe local path for an entry worth extracting; null = skip it.</summary>
     /// <param name="everything">extract every file, not just the ones that can matter to a mod type</param>
-    private static string? TargetFor(IEntry entry, string origin, string dest, Gatherer g, bool everything)
+    private static string? TargetFor(IEntry entry, string origin, string dest, bool everything)
     {
-        if (entry.IsDirectory || !string.IsNullOrEmpty(entry.LinkTarget) || string.IsNullOrEmpty(entry.Key)) return null;
-        var parts = entry.Key.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries)
+        if (!Wanted(entry, everything)) return null;
+        var parts = entry.Key!.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries)
                          .Where(p => p is not "." and not "..").Select(SafeName).ToList();
         if (parts.Count == 0) return null;
-        var name = parts[^1];
-        var ext = PathUtil.SuffixLower(name);
-        bool wanted = InputScanner.ResourceExt.Contains(ext) || ext == ".rpf" || ArchiveExt.Contains(ext)
-                      || Mods.ModDetector.SniffedExt.Contains(ext)
-                      || ((TextExt.Contains(ext) || StoreInfoReader.TextTableExt.Contains(ext)) && entry.Size <= MaxTextBytes)
-                      || Mods.ReplacementHandler.ReplaceableExt.Contains(ext) || everything
-                      || (Textures.TextureImages.IsTexture(name) && entry.Size <= MaxImageBytes);   // a livery's pictures
-        if (!wanted) return null;
         if (entry.IsEncrypted)
             throw new IntakeException(L.T($"«{origin}» is password-protected — unpack it yourself and drop the folder."));
-        g.Unpacked += Math.Max(entry.Size, 0);
-        if (g.Unpacked > MaxUnpackedBytes)
-            throw new IntakeException(L.T($"«{origin}» unpacks to more than {MergedPack.FmtSize(MaxUnpackedBytes)} — too much for one mod."));
 
         var target = Path.GetFullPath(Path.Combine([dest, .. parts]));
         var root = Path.GetFullPath(dest) + Path.DirectorySeparatorChar;

@@ -97,7 +97,7 @@ public sealed partial class MainViewModel
         foreach (var m in mods)
         {
             var c = conflicts.GetValueOrDefault(m.Id);
-            var row = new InstalledModViewModel(m, c.Others, c.Others is null || c.OnTop, RaiseInstalled);
+            var row = new InstalledModViewModel(m, c.Others, c.Others is null || c.OnTop, RaiseInstalled, OpenVariants);
             row.PropertyChanged += OnInstalledRowChanged;
             Installed.Add(row);
         }
@@ -148,6 +148,82 @@ public sealed partial class MainViewModel
         OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Put on top"),
                  () => RunPlanAsync(plan, L.T("Reordering mods…"), L.T($"«{row.Name}» is on top")),
                  L.T("Only the order changes — every mod keeps its files, and removing one brings the next one's back."));
+    }
+
+    // ---------------------------------------------------------------- variants of a ped's components
+
+    private InstalledModViewModel? _variantsOf;
+    private bool[] _variantsWere = [];
+
+    /// <summary>The variants of the ped whose dialog is open.</summary>
+    public ObservableCollection<PedVariantRow> VariantRows { get; } = [];
+
+    [ObservableProperty] public partial bool IsVariantsOpen { get; set; }
+    [ObservableProperty] public partial string VariantsTitle { get; set; } = "";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyVariantsCommand))]
+    public partial bool VariantsChanged { get; set; }
+
+    /// <summary>Read the variants the installed pack keeps and show them to pick.</summary>
+    private async void OpenVariants(InstalledModViewModel row)
+    {
+        var game = InstalledGameDir();
+        if (game is null || IsBuilding) return;
+        List<PedVariant> list;
+        try
+        {
+            list = await Task.Run(() => AddonPackHandler.InstalledVariants(TargetFor(game, Edition), row.Mod.Id));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("reading the variants failed", ex);
+            ShowResult(false, L.T("Couldn't read the variants"), ex.Message, null);
+            return;
+        }
+        _variantsOf = row;
+        _variantsWere = [.. list.Select(v => v.On)];
+        VariantRows.Clear();
+        var rows = new List<PedVariantRow>();
+        foreach (var v in list) rows.Add(new PedVariantRow(v, rows, () => VariantsChanged = !rows.Select(r => r.IsOn).SequenceEqual(_variantsWere)));
+        foreach (var r in rows) VariantRows.Add(r);
+        VariantsTitle = row.Name;
+        VariantsChanged = false;
+        IsVariantsOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseVariants()
+    {
+        IsVariantsOpen = false;
+        VariantRows.Clear();
+        _variantsOf = null;
+    }
+
+    private bool CanApplyVariants() => VariantsChanged && !IsBuilding;
+
+    /// <summary>Switch the installed pack to the variants picked — through the plan.</summary>
+    [RelayCommand(CanExecute = nameof(CanApplyVariants))]
+    private void ApplyVariants()
+    {
+        var game = InstalledGameDir();
+        if (game is null || _variantsOf is not { } row) return;
+        var wanted = VariantRows.Select(r => r.Variant).ToList();
+        CloseVariants();
+        InstallPlan plan;
+        try
+        {
+            plan = AddonPackHandler.PlanVariants(TargetFor(game, Edition), row.Mod.Id, wanted);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("planning the variants failed", ex);
+            ShowResult(false, L.T("Couldn't plan the changes"), ex.Message, null);
+            return;
+        }
+        OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Switch variants"),
+                 () => RunPlanAsync(plan, L.T("Switching variants…"), L.T($"«{row.Name}»: variants switched")),
+                 L.T("Only the files the variants replace change inside its dlc.rpf — every variant stays in the pack to switch again."));
     }
 
     /// <summary>"All" plus a chip per category present; the one picked stays picked if it's still there.</summary>

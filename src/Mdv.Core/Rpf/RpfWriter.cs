@@ -3,7 +3,11 @@ using Mdv.Core.Util;
 
 namespace Mdv.Core.Rpf;
 
-public sealed record RpfBuildInfo(string Path, int Entries, long Size, int Dirs = 1, int Files = 0);
+public sealed record RpfBuildInfo(string Path, int Entries, long Size, int Dirs = 1, int Files = 0)
+{
+    /// <summary>gen9 models repaired by <see cref="RpfRetarget.Convert"/> with repairGen9.</summary>
+    public int Gen9Repaired { get; init; }
+}
 
 /// <summary>
 /// Streams an RPF7-OPEN archive to disk (the container is the same for GTA V Legacy
@@ -300,39 +304,75 @@ public static class RpfRetarget
     }
 
     /// <summary>Rewrite <paramref name="srcRpf"/> for <paramref name="target"/> into <paramref name="outRpf"/>.</summary>
-    public static RpfBuildInfo Convert(string srcRpf, string outRpf, GameEdition target)
+    /// <param name="tempDir">where nested archives are rebuilt (default: the temp folder) — a big pack's are gigabytes</param>
+    /// <param name="repairGen9">also repair the gen9 models already in it that CodeWalker wrote
+    /// (<see cref="ResourceEditions.FixGen9Resource"/>) — for packs converted before that fix</param>
+    /// <param name="converted">called (from worker threads) with the number of models converted so far</param>
+    /// <param name="cancel">stops the rewrite between models</param>
+    public static RpfBuildInfo Convert(string srcRpf, string outRpf, GameEdition target, string? tempDir = null, bool repairGen9 = false,
+                                       Action<int>? converted = null, CancellationToken cancel = default)
     {
         using var arc = RpfArchive.Open(srcRpf);
-        var temps = new List<string>();
+        var job = new Job(target, tempDir ?? Path.GetTempPath(), repairGen9 && target == GameEdition.Enhanced)
+        {
+            Converted = converted, Cancel = cancel,
+        };
         try
         {
-            long size = Rebuild(arc, outRpf, target, temps);
+            long size = Rebuild(arc, outRpf, job);
             int dirs = arc.Entries.Count(e => e.IsDir);
-            return new RpfBuildInfo(outRpf, arc.Entries.Count - dirs, size, dirs, arc.Entries.Count - dirs);
+            return new RpfBuildInfo(outRpf, arc.Entries.Count - dirs, size, dirs, arc.Entries.Count - dirs) { Gen9Repaired = job.Fixed };
         }
         finally
         {
-            foreach (var t in temps)
+            foreach (var t in job.Temps)
                 try { File.Delete(t); } catch { /* best effort */ }
         }
     }
 
-    private static long Rebuild(RpfArchive arc, string outPath, GameEdition target, List<string> temps)
+    private sealed class Job(GameEdition target, string tempDir, bool repairGen9)
+    {
+        public GameEdition Target { get; } = target;
+        public string TempDir { get; } = tempDir;
+        public bool RepairGen9 { get; } = repairGen9;
+        public List<string> Temps { get; } = [];
+        public int Fixed;
+        public int Done;
+        public Action<int>? Converted { get; init; }
+        public CancellationToken Cancel { get; init; }
+    }
+
+    private static long Rebuild(RpfArchive arc, string outPath, Job job)
     {
         var nodes = arc.Entries.Select(e => new RpfStreamBuilder.Node
         {
             Name = e.Name, IsDir = e.IsDir, First = e.FirstChild, Count = e.ChildCount,
-            Produce = e.IsDir ? null : () => Produce(arc, e, target, temps),
+            Produce = e.IsDir ? null : () => Produce(arc, e, job),
         }).ToList();
         return RpfStreamBuilder.Write(outPath, nodes);
     }
 
-    private static RpfStreamBuilder.Payload Produce(RpfArchive arc, RpfEntry e, GameEdition target, List<string> temps)
+    private static RpfStreamBuilder.Payload Produce(RpfArchive arc, RpfEntry e, Job job)
     {
         if (e.IsResource)
         {
-            if (Mismatch(e, target))
-                return RpfStreamBuilder.Resource(arc.ReadContent(e), e.Name, target);
+            if (Mismatch(e, job.Target))
+            {
+                job.Cancel.ThrowIfCancellationRequested();
+                var payload = RpfStreamBuilder.Resource(arc.ReadContent(e), e.Name, job.Target);
+                job.Converted?.Invoke(Interlocked.Increment(ref job.Done));
+                return payload;
+            }
+            if (job.RepairGen9 && ResourceEditions.EditionOf(Path.GetExtension(e.Name), FlagsVersion(e)) == GameEdition.Enhanced)
+            {
+                var content = arc.ReadContent(e);
+                var fixedRes = ResourceEditions.FixGen9Resource(content, e.Name);
+                if (!ReferenceEquals(fixedRes, content))
+                {
+                    Interlocked.Increment(ref job.Fixed);
+                    return RpfStreamBuilder.Resource(fixedRes, e.Name, job.Target);
+                }
+            }
             return new RpfStreamBuilder.Payload
             {
                 Kind = RpfEntryKind.Resource, Blob = arc.ReadAt(e.Offset, (int)e.Size), A = e.X8, B = e.XC,
@@ -340,10 +380,10 @@ public static class RpfRetarget
         }
         if (IsNestedArchive(e))
         {
-            var tmp = Path.Combine(Path.GetTempPath(), $"mdv_{Guid.NewGuid():N}.rpf");
-            temps.Add(tmp);
+            var tmp = Path.Combine(job.TempDir, $"mdv_{Guid.NewGuid():N}.rpf");
+            job.Temps.Add(tmp);
             using (var nested = arc.OpenNested(e))
-                Rebuild(nested, tmp, target, temps);
+                Rebuild(nested, tmp, job);
             return RpfStreamBuilder.RawFileStream(tmp);
         }
         var stored = arc.ReadAt(e.Offset, (int)(e.StoredRaw ? e.X8 : e.Size));   // verbatim, flags kept

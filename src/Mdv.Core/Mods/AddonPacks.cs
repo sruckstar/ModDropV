@@ -92,6 +92,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     public const string MapPrefix = "map:";
     public const string PropPrefix = "prop:";
     private const string StagedKey = "addon.staged";
+    /// <summary>Registry key: how many variants of a ped's components the installed pack keeps (<see cref="PedVariants"/>).</summary>
+    public const string VariantsKey = "variants";
 
     public ModCategory Category { get; } = kind;
     private string Prefix => Category switch
@@ -210,6 +212,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             };
             pkg.Warnings.AddRange(peds.Warnings);
             Describe(pkg, L.T("models only, no peds.meta — one is written for it, all packed into a dlc.rpf"));
+            if (peds.Variants.Count > 0) pkg.Parts.Add(L.T($"{peds.Variants.Count} variant(s) of its components (pick them in the panel, switch later in the Library)"));
             return pkg;
         }
 
@@ -571,6 +574,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         copy.Data.AddRange(spec.Data);
         copy.Resources.AddRange(spec.Resources);
         copy.NewPeds.AddRange(spec.NewPeds);
+        copy.Variants.AddRange(spec.Variants);
         foreach (var (h, s) in spec.Content.Labels) copy.Content.Labels[h] = s;
         foreach (var f in spec.Files)
         {
@@ -650,6 +654,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
         };
         if (pkg.Version is { Length: > 0 } v) record.Data["version"] = v;
         if (overlay) record.Data["overlay"] = "1";
+        if (pkg.Compose is { Variants.Count: > 0 } withVariants) record.Data[VariantsKey] = withVariants.Variants.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return record;
     }
 
@@ -667,8 +672,42 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             {
                 Category = Category, Installed = m.Installed, Source = m.Source?.Name,
                 Folder = on ? GameInstaller.PackDir(game, folder) : GameInstaller.DisabledPackDir(game, folder),
+                HasVariants = m.Get(VariantsKey) is { } n && n != "0",
             };
         }
+    }
+
+    /// <summary>The dlc.rpf of an installed pack, switched on or off; null when it is gone.</summary>
+    public static string? InstalledRpf(string game, RegisteredMod m)
+    {
+        var folder = m.Get("pack") ?? m.Id[(m.Id.IndexOf(':') + 1)..];
+        return new[] { GameInstaller.PackDir(game, folder), GameInstaller.DisabledPackDir(game, folder) }
+               .Select(d => Path.Combine(d, "dlc.rpf")).FirstOrDefault(File.Exists);
+    }
+
+    /// <summary>The variants of an installed ped's components, with which are on (empty: none kept).</summary>
+    public static List<PedVariant> InstalledVariants(InstallTarget target, string modId)
+    {
+        var m = ModRegistry.Load(target.GameDir).Find(modId) ?? throw new ArgumentException(L.T($"«{modId}» is not installed."));
+        return InstalledRpf(target.GameDir, m) is { } rpf ? PedVariants.Read(rpf) : [];
+    }
+
+    /// <summary>Switch an installed ped's variants to <paramref name="wanted"/> (from <see cref="InstalledVariants"/>, <c>On</c> set).</summary>
+    public static InstallPlan PlanVariants(InstallTarget target, string modId, IReadOnlyList<PedVariant> wanted)
+    {
+        var m = ModRegistry.Load(target.GameDir).Find(modId) ?? throw new ArgumentException(L.T($"«{modId}» is not installed."));
+        var name = m.Name.Length > 0 ? m.Name : modId;
+        var on = wanted.Where(v => v.On).ToList();
+        var plan = new InstallPlan { Title = L.T($"Variants of «{name}»") };
+        plan.Add(new ActionOp(on.Count == 0
+            ? L.T($"Give «{name}» back its own components — every variant off")
+            : L.T($"Switch «{name}» to the variants {string.Join(", ", on)}; the rest of its components stay its own"), ctx =>
+        {
+            var rpf = InstalledRpf(ctx.GameDir, m) ?? throw new InvalidOperationException(L.T($"«{name}»'s dlc.rpf is gone."));
+            ctx.Journal.CopyAside(rpf, keep: false);
+            PedVariants.Apply(rpf, wanted, ctx.Target.Edition, ctx.Log);
+        }));
+        return plan;
     }
 
     public InstallPlan PlanChanges(InstallTarget target, ModRegistry registry, IReadOnlyList<ModChange> changes)

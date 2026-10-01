@@ -212,21 +212,122 @@ public static partial class GamePools
 
     /// <summary>
     /// The limits step put into an install plan, right after it makes the game load the mods folder (a plan that doesn't
-    /// use the mods folder gets none). A big mod gets the higher limits. A mod that brings its own gameconfig.xml keeps it.
+    /// use the mods folder gets none). A big mod gets the higher limits. A mod's own gameconfig.xml is merged into the
+    /// game's (<see cref="MergeLimits"/>) instead of replacing it.
     /// </summary>
     public static InstallPlan WithLimits(InstallPlan plan, InstallTarget target)
     {
         int at = plan.Ops.FindIndex(o => o is EnsureModsLoaderOp);
         if (at < 0) return plan;
+        var edition = target.Edition;
+        for (int i = 0; i < plan.Ops.Count; i++)
+            if (plan.Ops[i] is RpfPutOp put && put.GamePath.Equals(GameConfig, StringComparison.OrdinalIgnoreCase))
+            {
+                plan.Ops[i] = new RpfEditOp(GameConfig, put.ModId,
+                    L.T("Raise the game's limits in gameconfig.xml to the mod's own (the rest of the game's file stays)"),
+                    (d, log) => MergeLimits(d, File.ReadAllBytes(put.Source), log, edition));
+                if (edition == GameEdition.Enhanced)
+                    plan.Warnings.Add(L.T("The mod brings its own gameconfig.xml — in GTA V Enhanced ModDrop V takes its pool sizes, except the ones Enhanced can’t hold (the biggest model stores stay the game’s)."));
+            }
         var ops = new List<PlanOp>();
-        if (plan.Ops.Any(o => o is RpfPutOp put && put.GamePath.Equals(GameConfig, StringComparison.OrdinalIgnoreCase)))
-            plan.Warnings.Add(L.T("This mod brings its own gameconfig.xml — it replaces the raised limits ModDrop V keeps for mods."));
-        else if (LimitsOp(target.GameDir, target.Edition, ProfileFor(plan, target)) is { } op)
+        if (LimitsOp(target.GameDir, target.Edition, ProfileFor(plan, target)) is { } op)
             ops.Add(op);
         // before the mod's own steps: the plugins aren't part of it and stay when it is removed
         if (LimitAdjusters.Op(target.GameDir, target.Edition, PluginsDir(target)) is { } adjusters) ops.Add(adjusters);
         plan.Ops.InsertRange(at + 1, ops);
         return plan;
+    }
+
+    /// <summary>
+    /// Ceilings for a mod's values in GTA V Enhanced (0: the game's value stays). The model stores are allocated at start,
+    /// Legacy-sized ones crash it at Game Init; the ModelInfo arrays have no bounds check in Legacy either, but the
+    /// numbers mods set there (18000 cars) only cost memory. Liberty City (276 cars, 72 peds, 10.7k map models) uses a
+    /// fraction of each ceiling.
+    /// </summary>
+    private static readonly Dictionary<string, int> EnhancedCaps = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["DrawableStore"] = 0, ["DwdStore"] = 0, ["FragmentStore"] = 0, ["TxdStore"] = 0, ["ScaleformStore"] = 0,
+        ["CScriptEntityExtension"] = 0,
+        ["MapDataStore"] = 20000, ["StaticBounds"] = 30000, ["HandlingData"] = 4000,
+        ["MaxMloModelInfos"] = 5000, ["MaxExtraPedModelInfos"] = 1000, ["MaxExtraVehicleModelInfos"] = 1500,
+        ["MaxPedModelInfos"] = 0, ["MaxVehicleModelInfos"] = 0, ["MaxWeaponModelInfos"] = 0, ["MaxExtraWeaponModelInfos"] = 0,
+    };
+
+    // Every pool and plain limit of the mod's file, first occurrence (the Build=Any section, as Size / Setting read them).
+    private static readonly Regex AnyPoolRe = new(@"<PoolName>\s*([^<]+?)\s*</PoolName>\s*<PoolSize\s+value\s*=\s*""(\d+)""");
+    private static readonly Regex AnySettingRe = new(@"<([A-Za-z_][A-Za-z0-9_]*)\s+value\s*=\s*""(\d+)""");
+
+    /// <summary>
+    /// A mod's own gameconfig.xml merged into the one the game reads now: every pool and plain limit the mod's file sets
+    /// higher is raised to it, pools the game's file doesn't list are added, everything else stays the game's. A mod's
+    /// gameconfig is written for the game build of its day — Liberty City Preservation Project (December 2024) has no
+    /// RosGameServerVersionNumber and a smaller ScriptStore / AnimStore / ScaleformStore than Legacy 3889 fills, and
+    /// put in as it is, the game hangs on a black screen after the intro. Online-service values (Ros…, SteamAppId) and
+    /// values the game's file has more than once (per-build ones) are never taken from the mod.
+    /// </summary>
+    /// <remarks>
+    /// GTA V Enhanced gets less: its pools live in a heap of their own (raised by Pool Heap Adjuster) and it allocates the
+    /// stores up front — with Legacy-sized model stores (Liberty City: DrawableStore 479600, FragmentStore 1187500) it
+    /// crashes at Game Init. So there only pools its file lists are raised, a few with a ceiling (<see cref="EnhancedCaps"/>),
+    /// and of the plain limits only the Max… counts. What Liberty City Preservation Project needs fits them (checked in
+    /// the game, 2026-09-30).
+    /// </remarks>
+    public static byte[]? MergeLimits(byte[]? data, byte[] mod, Action<string> log, GameEdition edition = GameEdition.Legacy)
+    {
+        if (data is null) return edition == GameEdition.Enhanced ? null : mod;
+        bool enhanced = edition == GameEdition.Enhanced;
+        var xml = TextIo.DecodeUtf8Sig(data, strict: false);
+        var modXml = TextIo.DecodeUtf8Sig(mod, strict: false);
+        var changes = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (Match m in AnyPoolRe.Matches(modXml))
+        {
+            var name = m.Groups[1].Value;
+            if (!seen.Add(name) || !int.TryParse(m.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var to)) continue;
+            var now = Size(xml, name);
+            if (enhanced)
+            {
+                if (now is null) continue;                       // pools Enhanced's file doesn't list it doesn't read
+                if (EnhancedCaps.TryGetValue(name, out var cap)) to = Math.Min(to, Math.Max(cap, now.Value));
+            }
+            if (now is null) xml = AddPool(xml, name, to);
+            else if (now < to) xml = WithSize(xml, name, to);
+            else continue;
+            changes.Add($"{name} {now?.ToString(CultureInfo.InvariantCulture) ?? "(new)"} → {to}");
+        }
+        seen.Clear();
+        foreach (Match m in AnySettingRe.Matches(modXml))
+        {
+            var name = m.Groups[1].Value;
+            if (!seen.Add(name) || name == "PoolSize" || name.StartsWith("Ros", StringComparison.Ordinal) || name == "SteamAppId") continue;
+            int limit = int.MaxValue;
+            if (enhanced)
+            {
+                if (!name.StartsWith("Max", StringComparison.Ordinal)) continue;
+                if (EnhancedCaps.TryGetValue(name, out var cap)) limit = cap;
+            }
+            // a value set per build / platform (PhysicalStreamingBuffer) is paired section by section — only when both
+            // files have it as many times; otherwise only one the game's file has once
+            var re = SettingRe(name);
+            var mine = re.Matches(xml);
+            var theirs = re.Matches(modXml);
+            if (mine.Count == 0 || mine.Count != theirs.Count && mine.Count != 1) continue;
+            int i = 0;
+            xml = re.Replace(xml, x =>
+            {
+                var t = theirs[i++].Groups[2].Value;
+                if (!int.TryParse(x.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var now)
+                    || !int.TryParse(t, NumberStyles.None, CultureInfo.InvariantCulture, out var to)) return x.Value;
+                to = Math.Min(to, Math.Max(limit, now));
+                if (now >= to) return x.Value;
+                var v = to.ToString(CultureInfo.InvariantCulture);
+                changes.Add($"{name} {x.Groups[2].Value} → {v}");
+                return x.Groups[1].Value + v + x.Groups[3].Value;
+            });
+        }
+        if (changes.Count == 0) return data;
+        log(L.T($"    gameconfig.xml: the mod's limits merged into the game's — {string.Join(", ", changes)}."));
+        return new UTF8Encoding(false).GetBytes(xml);
     }
 
     public static string PluginsDir(InstallTarget target) =>

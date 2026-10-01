@@ -598,6 +598,11 @@
                               <TextBlock Text="{l:Tr 'on top'}" FontSize="11" />
                             </Button>
                           </StackPanel>
+                          <Button Grid.Column="3" Classes="ghost small" Padding="7,2" MinHeight="22" VerticalAlignment="Center"
+                                  HorizontalAlignment="Right" Command="{Binding PickVariantsCommand}" IsVisible="{Binding CanPickVariants}"
+                                  ToolTip.Tip="{l:Tr 'Switch the alternative components the mod ships'}">
+                            <TextBlock Text="{l:Tr 'variants'}" FontSize="11" />
+                          </Button>
                           <Border Grid.Column="4" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
                             <TextBlock Text="{Binding Status}" />
                           </Border>
@@ -839,10 +844,67 @@
       </Border>
     </Border>
 
+    <!-- ================= VARIANTS: alternatives of an installed ped's components ================= -->
+    <Border x:Name="VariantsScrim" Background="{DynamicResource ScrimBrush}" IsVisible="{Binding IsVariantsOpen}">
+      <Border Classes="card dialog" Width="620" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource AccentWashBrush}"
+                    BorderBrush="{DynamicResource AccentLineBrush}" BorderThickness="1">
+              <Path Data="{StaticResource IconLayers}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.7"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="20" Height="18" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="h" Text="{l:Tr 'VARIANTS'}" />
+              <TextBlock Text="{Binding VariantsTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="icon" VerticalAlignment="Top" Command="{Binding CloseVariantsCommand}"
+                    ToolTip.Tip="{l:Tr 'Close'}">
+              <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
+                    Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
+            </Button>
+          </Grid>
+          <TextBlock Grid.Row="1" Classes="desc" TextWrapping="Wrap"
+                     Text="{l:Tr 'Alternatives of the ped’s components the mod ships. Ticked ones replace its own files; untick all to get its own back. Variants that replace the same files can’t be on together.'}" />
+          <ScrollViewer Grid.Row="2" MaxHeight="380" Padding="0,0,8,0">
+            <ItemsControl ItemsSource="{Binding VariantRows}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="6" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PedVariantRow">
+                  <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,7"
+                          BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1">
+                    <CheckBox IsChecked="{Binding IsOn}" ToolTip.Tip="{Binding Tip}">
+                      <StackPanel Spacing="1">
+                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Detail}" FontSize="11" Foreground="{DynamicResource Text3Brush}"
+                                   TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </CheckBox>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+            <Button Classes="ghost" Content="{l:Tr 'Cancel'}" MinWidth="110" Command="{Binding CloseVariantsCommand}" />
+            <Button Classes="primary" MinWidth="160" Padding="22,9" Command="{Binding ApplyVariantsCommand}">
+              <TextBlock Text="{l:Tr 'Apply…'}" HorizontalAlignment="Center" />
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Border>
+
     <!-- ================= PLAN: what will be done ================= -->
     <Border x:Name="PlanScrim" Background="{DynamicResource ScrimBrush}" IsVisible="{Binding IsPlanOpen}">
       <Border Classes="card dialog" Width="660" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <StackPanel Spacing="14">
+        <!-- the steps take what height is left and scroll; the warnings scroll on their own; the buttons always show -->
+        <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto" RowSpacing="14">
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
             <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource AccentWashBrush}"
                     BorderBrush="{DynamicResource AccentLineBrush}" BorderThickness="1">
@@ -861,7 +923,7 @@
             </Button>
           </Grid>
 
-          <Border Background="{DynamicResource InputBrush}" CornerRadius="8" Padding="12,8"
+          <Border Grid.Row="1" Background="{DynamicResource InputBrush}" CornerRadius="8" Padding="12,8"
                   BorderBrush="{DynamicResource BorderBrushNormal}" BorderThickness="1">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
               <Path Data="{StaticResource IconGame}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.6"
@@ -871,7 +933,7 @@
             </Grid>
           </Border>
 
-          <ScrollViewer MaxHeight="300" Padding="0,0,8,0">
+          <ScrollViewer Grid.Row="2" MaxHeight="300" MinHeight="72" Padding="0,0,8,0">
             <ItemsControl ItemsSource="{Binding PlanSteps}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -894,42 +956,44 @@
             </ItemsControl>
           </ScrollViewer>
 
-          <ItemsControl ItemsSource="{Binding PlanWarnings}" IsVisible="{Binding HasPlanWarnings}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <StackPanel Spacing="6" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="x:String">
-                <Border Classes="caution">
-                  <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" />
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+          <ScrollViewer Grid.Row="3" MaxHeight="170" Padding="0,0,8,0" IsVisible="{Binding HasPlanWarnings}">
+            <ItemsControl ItemsSource="{Binding PlanWarnings}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="6" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Border Classes="caution">
+                    <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" />
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
 
           <!-- what a big plan takes: archive copies in mods can be gigabytes -->
-          <Border Classes="note" IsVisible="{Binding HasPlanFootprint}">
+          <Border Grid.Row="4" Classes="note" IsVisible="{Binding HasPlanFootprint}">
             <StackPanel Spacing="3">
               <TextBlock Text="{Binding PlanFootprint}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Text2Brush}" />
               <TextBlock Text="{Binding PlanSpace}" TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold"
                          Foreground="{DynamicResource Text1Brush}" IsVisible="{Binding !PlanTooBig}" />
             </StackPanel>
           </Border>
-          <Border Classes="caution" IsVisible="{Binding PlanTooBig}">
+          <Border Grid.Row="5" Classes="caution" IsVisible="{Binding PlanTooBig}">
             <TextBlock Text="{Binding PlanSpace}" TextWrapping="Wrap" FontSize="12" />
           </Border>
 
-          <TextBlock Classes="hint" Margin="0" Text="{Binding PlanNote}" />
+          <TextBlock Grid.Row="6" Classes="hint" Margin="0" Text="{Binding PlanNote}" />
 
-          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+          <StackPanel Grid.Row="7" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
             <Button Classes="ghost" Content="{l:Tr 'Cancel'}" MinWidth="110" Command="{Binding ClosePlanCommand}" />
             <Button Classes="primary" MinWidth="160" Padding="22,9" Command="{Binding ConfirmPlanCommand}">
               <TextBlock Text="{Binding PlanConfirmText}" HorizontalAlignment="Center" />
             </Button>
           </StackPanel>
-        </StackPanel>
+        </Grid>
       </Border>
     </Border>
 
@@ -1211,9 +1275,12 @@
                    Foreground="{DynamicResource AccentBrush}" FontFamily="{StaticResource DisplayFont}" LetterSpacing="1.5" />
         <!-- a plan's steps as they go, and the way out: stopping takes back everything done so far -->
         <StackPanel Spacing="8" Width="420" Margin="0,8,0,0" IsVisible="{Binding HasStageSteps}">
-          <ProgressBar Minimum="0" Maximum="{Binding StageSteps}" Value="{Binding StageStep}" Height="4" MinHeight="4" />
+          <ProgressBar Minimum="0" Maximum="1" Value="{Binding StageDone}" Height="4" MinHeight="4" />
           <TextBlock Text="{Binding StageStepText}" HorizontalAlignment="Center" FontSize="11.5" TextAlignment="Center"
                      TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text3Brush}" />
+          <TextBlock Text="{Binding StageDetail}" HorizontalAlignment="Center" FontSize="12.5" TextAlignment="Center"
+                     IsVisible="{Binding StageDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                     TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource AccentBrush}" />
           <Button Classes="ghost small" HorizontalAlignment="Center" Command="{Binding CancelRunCommand}"
                   IsVisible="{Binding CanCancelRun}"
                   ToolTip.Tip="{l:Tr 'Stop after the step that is running — everything done so far is taken back and the game is as it was'}">

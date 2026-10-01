@@ -26,6 +26,8 @@ public sealed record InstalledMod(string Id, string Name, ModKind Kind, string P
     public string? Folder { get; init; }
     /// <summary>It can be switched off and on again (false: only removed).</summary>
     public bool CanSwitch { get; init; } = true;
+    /// <summary>A ped pack that keeps variants of its components to switch between (<see cref="PedVariants"/>).</summary>
+    public bool HasVariants { get; init; }
 }
 
 /// <summary>A drop, analysed: what the detector saw, the installable packages, and per kind why it can't be installed.</summary>
@@ -65,7 +67,21 @@ public static class ModLibrary
     {
         var report = ModDetector.Detect(source);
         var result = new DropAnalysis(report, [], []);
-        foreach (var h in Handlers)
+        // an OIV package says what to do with every file in it: the other handlers needn't read it (a big one is gigabytes)
+        var oiv = Handlers.OfType<OivHandler>().First();
+        try
+        {
+            if (oiv.Analyze(source, report, env) is { } package)
+            {
+                result.Packages.Add(package);
+                return result;
+            }
+        }
+        catch (IntakeException ex)
+        {
+            result.Problems[oiv.Category] = ex.Message;
+        }
+        foreach (var h in Handlers.Where(h => h != oiv))
         {
             try
             {

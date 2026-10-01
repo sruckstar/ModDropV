@@ -83,6 +83,24 @@ public sealed partial class OivViewModel(MainViewModel shell) : FileModViewModel
     [ObservableProperty] public partial IBrush? HeaderText { get; set; }
     [ObservableProperty] public partial bool HasHeaderColor { get; set; }
     [ObservableProperty] public partial string Summary { get; set; } = "";
+    /// <summary>"oiv package", or "dlc packs" for packs laid out like the game folder.</summary>
+    [ObservableProperty] public partial string Badge { get; set; } = "";
+    /// <summary>The package brings World Travel (Liberty City Preservation Project): the player picks its map.</summary>
+    [ObservableProperty] public partial bool HasWorldTravel { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WorldTravelStoryMode))]
+    public partial bool WorldTravelOnline { get; set; }
+
+    public bool WorldTravelStoryMode
+    {
+        get => !WorldTravelOnline;
+        set => WorldTravelOnline = !value;
+    }
+
+    partial void OnWorldTravelOnlineChanged(bool value)
+    {
+        if (_pkg is not null) _pkg.WorldTravelMap = value ? WorldTravelMap.Online : WorldTravelMap.StoryMode;
+    }
 
     public ObservableCollection<OivStepRow> Steps { get; } = [];
 
@@ -95,14 +113,19 @@ public sealed partial class OivViewModel(MainViewModel shell) : FileModViewModel
         Steps.Clear();
         if (pkg is null)
         {
+            HasWorldTravel = false;
             SetWarnings([]);
             return;
         }
         Name = pkg.Name;
+        HasWorldTravel = WorldTravel.In(pkg);
+        WorldTravelOnline = pkg.WorldTravelMap == WorldTravelMap.Online;
         var by = new List<string>();
         if (pkg.Version is { } v) by.Add("v" + v);
         if (pkg.Author is { } a) by.Add(L.T($"by {a}"));
-        by.Add(pkg.FormatVersion.Length > 0 ? $"OIV {pkg.FormatVersion}" : "OIV");
+        by.Add(pkg.FromLayout ? L.T("finished packs laid out like the game folder") : pkg.FormatVersion.Length > 0 ? $"OIV {pkg.FormatVersion}" : "OIV");
+        Badge = pkg.FromLayout ? L.T("dlc packs") : L.T("oiv package");
+        if (pkg.PartNames.Count > 1) by.Add(L.T($"{pkg.PartNames.Count} parts, installed together"));
         Byline = string.Join("  ·  ", by);
         Description = pkg.Description ?? "";
         HasDescription = Description.Length > 0;
@@ -137,8 +160,10 @@ public sealed partial class OivViewModel(MainViewModel shell) : FileModViewModel
                 OivDelete => L.T("delete"),
                 OivXml => L.T("edit xml"),
                 OivText => L.T("edit text"),
+                OivLocate => L.T("replace"),
                 _ => "",
-            }, s.Path, s.InArchive ? L.T("in a copy of its archive under mods") : s.Path.EndsWith(".rpf") ? L.T("into mods") : L.T("game folder")));
+            }, s.Path, s is OivLocate ? L.T("the game’s file of that name, in a copy of its archive under mods")
+                : s.InArchive ? L.T("in a copy of its archive under mods") : s.Path.EndsWith(".rpf") ? L.T("into mods") : L.T("game folder")));
         int archives = pkg.Steps.Count(s => s.InArchive);
         Summary = L.T($"{Steps.Count} step(s) — {archives} inside game archives (done in copies under mods), " +
                   $"{Steps.Count - archives} in the game folder.");

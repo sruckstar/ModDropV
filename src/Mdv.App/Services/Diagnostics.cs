@@ -60,6 +60,7 @@ public static class Diagnostics
                                     "data/plugins/limits-enhanced/HeapAdjuster.asi",
                                     "data/plugins/limits-enhanced/PackfileLimitAdjusterEnhanced.asi",
                                     "data/plugins/limits-enhanced/WeaponLimitsAdjusterEnhanced.asi",
+                                    "data/plugins/limits-enhanced/PoolHeapAdjusterEnhanced.asi",
                                     "ShadersGen9Conversion.xml" })
         {
             var ok = File.Exists(Path.Combine(AppPaths.Root, rel));

@@ -35,7 +35,7 @@
                          Foreground="{Binding HeaderText}" />
             </StackPanel>
             <Border Grid.Column="2" Classes="badge" VerticalAlignment="Top">
-              <TextBlock Text="{l:Tr 'oiv package'}" />
+              <TextBlock Text="{Binding Badge}" />
             </Border>
           </Grid>
         </Border>
@@ -43,6 +43,32 @@
 
       <ScrollViewer Grid.Row="1" Padding="18,14,18,16">
         <StackPanel Spacing="12">
+          <!-- World Travel (Liberty City Preservation Project): which map it runs with -->
+          <StackPanel Spacing="6" IsVisible="{Binding HasWorldTravel}">
+            <TextBlock Classes="label" Text="{l:Tr 'WORLD TRAVEL MAP'}" Margin="0" />
+            <RadioButton Classes="found" GroupName="wt-map" IsChecked="{Binding WorldTravelStoryMode}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+                <Panel Width="16" Height="16" VerticalAlignment="Center">
+                  <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+                  <Ellipse Classes="radio-dot" Width="8" Height="8" />
+                </Panel>
+                <TextBlock Grid.Column="1" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Text="{l:Tr 'Story mode map — what the game loads by itself'}" />
+              </Grid>
+            </RadioButton>
+            <RadioButton Classes="found" GroupName="wt-map" IsChecked="{Binding WorldTravelOnline}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+                <Panel Width="16" Height="16" VerticalAlignment="Center">
+                  <Ellipse Classes="radio-ring" StrokeThickness="1.5" />
+                  <Ellipse Classes="radio-dot" Width="8" Height="8" />
+                </Panel>
+                <TextBlock Grid.Column="1" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Text="{l:Tr 'Online map — the game loads it in story mode too, no MP map loader needed'}" />
+              </Grid>
+            </RadioButton>
+            <TextBlock Classes="desc" TextWrapping="Wrap"
+                       Text="{l:Tr 'On the way to Liberty City, World Travel unloads Los Santos by the lists of the map you pick here. Map files of game updates newer than the mod are added to its Los Santos list.'}" />
+          </StackPanel>
           <SelectableTextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="13" LineHeight="20"
                                Foreground="{DynamicResource Text2Brush}" IsVisible="{Binding HasDescription}" />
           <TextBlock Classes="desc" Text="{l:Tr 'The package has no description.'}" IsVisible="{Binding !HasDescription}" />

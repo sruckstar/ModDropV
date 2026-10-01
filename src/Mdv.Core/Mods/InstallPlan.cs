@@ -121,8 +121,11 @@ public sealed record PlanFootprint(long Bytes, IReadOnlyList<string> NewCopies, 
     public bool TooBig => Free is { } f && f < Bytes + (256L << 20);
 }
 
-/// <summary>Where a running plan is: the step it is on (1-based) of all the steps shown to the player.</summary>
-public readonly record struct PlanProgress(int Step, int Steps, string What);
+/// <summary>
+/// Where a running plan is: the step it is on (1-based) of all the steps shown to the player; a long step also tells
+/// how much of it is done (<paramref name="Part"/>, 0…1) and what it is busy with (<paramref name="Detail"/>).
+/// </summary>
+public readonly record struct PlanProgress(int Step, int Steps, string What, double Part = 0, string? Detail = null);
 
 /// <summary>
 /// The hand on a running plan: it reports each step as it starts, and can be asked to stop — the plan stops before
@@ -136,7 +139,7 @@ public sealed class PlanRun
     public bool Cancelled => _cts.IsCancellationRequested;
     public void Cancel() => _cts.Cancel();
 
-    /// <summary>Called on the worker thread as each shown step starts.</summary>
+    /// <summary>Called on the worker thread as each shown step starts, and as a long one goes on.</summary>
     public event Action<PlanProgress>? Progress;
 
     internal void Report(PlanProgress p) => Progress?.Invoke(p);
@@ -172,6 +175,16 @@ public sealed class InstallContext(InstallTarget target, InstallJournal journal,
     public ModsOverlay Overlay => _overlay ??= ModsOverlay.Load(GameDir, Log).Begin(Journal, Target.Edition);
 
     internal ModsOverlay? LoadedOverlay => _overlay;
+
+    internal PlanRun? Run { get; init; }
+    internal PlanProgress Step { get; set; }
+
+    /// <summary>Stops a long step when the player asked the plan to stop (it is then taken back).</summary>
+    public CancellationToken Token => Run?.Token ?? CancellationToken.None;
+
+    /// <summary>A long step tells how far it is: <paramref name="part"/> of it done (0…1), <paramref name="detail"/> for the player.</summary>
+    public void StepProgress(double part, string detail) =>
+        Run?.Report(Step with { Part = Math.Clamp(part, 0, 1), Detail = detail });
 }
 
 /// <summary>One step of an <see cref="InstallPlan"/>. It records what it changes in the context's journal.</summary>
@@ -291,6 +304,7 @@ public sealed class RpfPutOp(string gamePath, string source, string modId) : Pla
 {
     public string GamePath { get; } = gamePath;
     public string Source { get; } = source;
+    public string ModId { get; } = modId;
 
     public override string Describe() => L.T($"Replace {GamePath} with {Path.GetFileName(source)} (the game's own file stays untouched)");
 
@@ -503,14 +517,18 @@ public static class InstallExecutor
         if (OnlineMode.IsOn(target.GameDir))
             throw new InvalidOperationException(L.T("The mods of this game are put away for GTA Online — bring them back first."));
         var journal = new InstallJournal(target.GameDir, log);
-        var ctx = new InstallContext(target, journal, log);
+        var ctx = new InstallContext(target, journal, log) { Run = run };
         int steps = plan.Ops.Count(o => !o.Hidden), step = 0;
         try
         {
             foreach (var op in plan.Ops)
             {
                 run?.Token.ThrowIfCancellationRequested();
-                if (!op.Hidden) run?.Report(new PlanProgress(++step, steps, op.Describe()));
+                if (!op.Hidden)
+                {
+                    ctx.Step = new PlanProgress(++step, steps, op.Describe());
+                    run?.Report(ctx.Step);
+                }
                 int recorded = ctx.Registered.Count;
                 op.Execute(ctx);
                 // a plan can install several mods (a map and its parts): each one's journal ends where it was recorded

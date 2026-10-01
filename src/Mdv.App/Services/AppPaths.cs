@@ -45,6 +45,40 @@ public static class AppPaths
     /// </summary>
     public static string SourcesDir => Ensure(Path.Combine(AppData, "sources"));
 
+    /// <summary>
+    /// Where a drop may be unpacked when <see cref="SourcesDir"/>'s drive has no room for it (a mod of many gigabytes):
+    /// <c>X:\ModDropV.tmp</c> on the game's drive, then on the drives of what was dropped.
+    /// </summary>
+    public static List<string> SpareSourceRoots(string? gameFolder, IEnumerable<string> dropped) =>
+        [.. new[] { gameFolder }.Concat(dropped).Select(Mdv.Core.SourceIntake.SpareRoot).OfType<string>()
+                                .Distinct(StringComparer.OrdinalIgnoreCase)];
+
+    /// <summary>Every spare unpack folder there is now (on any ready fixed drive).</summary>
+    public static IEnumerable<string> ExistingSpareSourceRoots()
+    {
+        DriveInfo[] drives;
+        try
+        {
+            drives = DriveInfo.GetDrives();
+        }
+        catch (IOException)
+        {
+            yield break;
+        }
+        foreach (var d in drives)
+        {
+            string? dir = null;
+            try
+            {
+                if (d.DriveType == DriveType.Fixed && d.IsReady) dir = Path.Combine(d.RootDirectory.FullName, Mdv.Core.SourceIntake.SpareFolder);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+            if (dir is not null && Directory.Exists(dir)) yield return dir;
+        }
+    }
+
     public static string SettingsFile => Path.Combine(Ensure(AppData), "settings.json");
 
     private static string Ensure(string dir)

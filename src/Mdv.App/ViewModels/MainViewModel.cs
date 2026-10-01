@@ -360,6 +360,9 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial int StageStep { get; set; }
     [ObservableProperty] public partial int StageSteps { get; set; }
     [ObservableProperty] public partial string StageStepText { get; set; } = "";
+    /// <summary>How much of the whole plan is done, 0…1 (its steps, and the part of a long one).</summary>
+    [ObservableProperty] public partial double StageDone { get; set; }
+    [ObservableProperty] public partial string StageDetail { get; set; } = "";
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CancelRunCommand))]
     public partial bool CanCancelRun { get; set; }
@@ -373,6 +376,8 @@ public sealed partial class MainViewModel : ObservableObject
         StageStep = 0;
         StageSteps = 0;
         StageStepText = "";
+        StageDone = 0;
+        StageDetail = "";
         CanCancelRun = run is not null;
         CancelRunText = L.T("Cancel");
         if (run is null) return;
@@ -381,8 +386,11 @@ public sealed partial class MainViewModel : ObservableObject
             if (_run != run) return;
             StageSteps = p.Steps;
             StageStep = p.Step;
-            HasStageSteps = p.Steps > 1;
+            StageDone = p.Steps == 0 ? 0 : (p.Step - 1 + p.Part) / p.Steps;
+            // a long step (models converted for Enhanced: half an hour for a map) says how far it is and what's left
+            HasStageSteps = p.Steps > 1 || p.Detail is not null;
             StageStepText = L.T($"Step {p.Step} of {p.Steps}: {p.What}");
+            StageDetail = p.Detail ?? "";
         });
     }
 

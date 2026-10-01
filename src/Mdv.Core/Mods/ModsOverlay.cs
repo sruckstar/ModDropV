@@ -615,8 +615,33 @@ public sealed class ModsOverlay
     public void Put(string modId, string gamePath, byte[] content)
     {
         var name = Path.GetFileName(Place(gamePath).Inner);
+        if (Edition == GameEdition.Enhanced && name.EndsWith(".ymt", StringComparison.OrdinalIgnoreCase) && YmtText.IsXml(content))
+            content = EnhancedYmt(gamePath, name, content);
         // an entry the game stores uncompressed (audio banks & co.) stays uncompressed
         Change(modId, gamePath, current => StoredEntry.FromFile(name, content, Edition, raw: current is { Kind: RpfEntryKind.Raw }));
+    }
+
+    /// <summary>A .ymt a mod ships as XML text, as PSO: GTA V Enhanced doesn't read the text (<see cref="YmtText"/>).</summary>
+    private byte[] EnhancedYmt(string gamePath, string name, byte[] content)
+    {
+        byte[]? game;
+        try
+        {
+            game = ReadOriginal(gamePath);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or RpfFormatException or RpfEncryptedException or ArgumentException)
+        {
+            game = null;
+        }
+        try
+        {
+            return YmtText.ToPso(content, name, game, _log);
+        }
+        catch (InvalidDataException ex)
+        {
+            _log(L.T($"    [!] {ex.Message} It goes in as text — GTA V Enhanced may not read it."));
+            return content;
+        }
     }
 
     /// <summary>Put an entry exactly as stored at <paramref name="gamePath"/> on behalf of <paramref name="modId"/>.</summary>

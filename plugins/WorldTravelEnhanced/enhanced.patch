@@ -1,0 +1,136 @@
+diff --git a/WorldTravel/src/Helpers.cpp b/WorldTravel/src/Helpers.cpp
+index a7fb26d..7e2d2cb 100644
+--- a/WorldTravel/src/Helpers.cpp
++++ b/WorldTravel/src/Helpers.cpp
+@@ -6,6 +6,8 @@
+ #include <iostream>
+ #include <vector>
+ #include "MpMap.h"
++#include "GameVersion.h"
++#include "PlayerLocation.h"
+ 
+ namespace helpers
+ {
+@@ -178,6 +180,39 @@ namespace helpers
+ 		}
+ 	}
+ 
++	// Enhanced: WorldTravelPatches can't switch the water to water_libertycity.xml there (switchWater has the
++	// Los Santos / Cayo Perico bounds compiled in), so Liberty City sits in the open ocean at full swell.
++	// Scale the deep-ocean waves down while in LC; [Enhanced] OceanWaveScale in WorldTravel.ini
++	// (0 = flat, 1 = game default), re-read every 2 s so it can be tuned in game.
++	bool oceanScaled = false;
++	float oceanWaveScale = 0.2f;
++	DWORD oceanIniReadAt = 0;
++
++	void EnhancedOceanCalm()
++	{
++		if (!worldtravel::gameversion::GetGameVersion())
++			return;
++		if (worldtravel::IsLibertyCity())
++		{
++			DWORD now = GetTickCount();
++			if (!oceanScaled || now - oceanIniReadAt > 2000)
++			{
++				char iniPath[MAX_PATH], buf[32];
++				GetFullPathNameA("WorldTravel.ini", MAX_PATH, iniPath, nullptr);
++				GetPrivateProfileStringA("Enhanced", "OceanWaveScale", "0.2", buf, sizeof(buf), iniPath);
++				oceanWaveScale = static_cast<float>(atof(buf));
++				oceanIniReadAt = now;
++			}
++			invoke<Void>(0xB96B00E976BE977F, oceanWaveScale); // SET_DEEP_OCEAN_SCALER
++			oceanScaled = true;
++		}
++		else if (oceanScaled && worldtravel::GetPlayerLocationID() != -1)
++		{
++			invoke<Void>(0x5E5E99285AE812DB); // RESET_DEEP_OCEAN_SCALER
++			oceanScaled = false;
++		}
++	}
++
+ 	// Blocks NPCs from spawning in unloaded areas
+ 	void NpcSpawnBlocker()
+ 	{
+@@ -240,6 +275,7 @@ namespace helpers
+ 			CayoPericoIslandHopperHelper();
+ 			worldtravel::MpMap::CheckIfMPMapIsActive();
+ 			InteriorWaterFix();
++			EnhancedOceanCalm();
+ 			NpcSpawnBlocker();
+ 			WAIT(0);
+ 		}
+diff --git a/WorldTravel/src/MpMap.cpp b/WorldTravel/src/MpMap.cpp
+index 452d6c9..ca2cecd 100644
+--- a/WorldTravel/src/MpMap.cpp
++++ b/WorldTravel/src/MpMap.cpp
+@@ -1,5 +1,6 @@
+ #include "MpMap.h"
+ #include "PlayerLocation.h"
++#include <string.h>
+ 
+ namespace worldtravel
+ {
+@@ -9,14 +10,56 @@ namespace worldtravel
+ 		float heist_police_dlc[] = { 442.4296f, -985.067f, 29.88529f };
+ 		bool mpMapEnabled = false;
+ 
++		// [Enhanced] Map in WorldTravel.ini: SP = the story mode map, MP = the online map, which is loaded here once
++		// the player is in Los Santos (no MP map loader needed). Anything else: detected by the interior below, as
++		// before (its id is the one GTA V Legacy gives it).
++		enum class MapSetting { Detect, SP, MP };
++		MapSetting mapSetting = MapSetting::Detect;
++		bool mapSettingRead = false;
++		bool mpMapLoaded = false;
++
++		void ReadMapSetting()
++		{
++			if (mapSettingRead)
++				return;
++			char iniPath[MAX_PATH], value[16];
++			GetFullPathNameA("WorldTravel.ini", MAX_PATH, iniPath, nullptr);
++			GetPrivateProfileStringA("Enhanced", "Map", "", value, sizeof(value), iniPath);
++			mapSetting = _stricmp(value, "SP") == 0 ? MapSetting::SP
++				: _stricmp(value, "MP") == 0 ? MapSetting::MP : MapSetting::Detect;
++			mapSettingRead = true;
++		}
++
+ 		bool IsMPMapActive()
+ 		{
++			ReadMapSetting();
++			if (mapSetting == MapSetting::SP)
++				return false;
++			if (mapSetting == MapSetting::MP)
++				return true;
+ 			return mpMapEnabled;
+ 		}
+ 
+ 
+ 		void CheckIfMPMapIsActive()
+ 		{
++			ReadMapSetting();
++			if (mapSetting == MapSetting::MP)
++			{
++				if (!mpMapLoaded && worldtravel::IsLosSantos() && !NETWORK::NETWORK_IS_IN_SESSION()
++					&& !DLC2::GET_IS_LOADING_SCREEN_ACTIVE() && ENTITY::DOES_ENTITY_EXIST(PLAYER::PLAYER_PED_ID()))
++				{
++					mpMapLoaded = true;
++					DLC2::_LOAD_MP_DLC_MAPS();
++					while (DLC2::GET_IS_LOADING_SCREEN_ACTIVE())
++					{
++						WAIT(0);
++					}
++				}
++				return;
++			}
++			if (mapSetting == MapSetting::SP)
++				return;
+ 			if (worldtravel::IsLosSantos())
+ 			{
+ 				if (INTERIOR::GET_INTERIOR_AT_COORDS(heist_police_dlc[0], heist_police_dlc[1], heist_police_dlc[2]) == 137473)
+@@ -30,4 +73,4 @@ namespace worldtravel
+ 			}
+ 		}
+ 	}
+-}
+\ No newline at end of file
++}

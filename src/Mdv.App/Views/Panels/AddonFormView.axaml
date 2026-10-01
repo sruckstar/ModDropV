@@ -79,6 +79,7 @@
       </StackPanel>
 
       <ScrollViewer Grid.Row="5" Padding="0,0,10,0">
+        <StackPanel Spacing="10">
         <ItemsControl ItemsSource="{Binding Items}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
@@ -105,6 +106,35 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <!-- alternatives of the ped's components the mod ships (Extras/…): ticked ones go in place of its own -->
+        <StackPanel Spacing="6" IsVisible="{Binding HasVariants}">
+          <TextBlock Classes="label" Text="{l:Tr 'VARIANTS'}" Margin="0" />
+          <TextBlock Classes="desc" FontSize="11.5" TextWrapping="Wrap"
+                     Text="{l:Tr 'The mod ships alternatives of some of the ped’s components. Ticked ones replace its own files; all of them go into the pack, so you can switch them later in the Library.'}" />
+          <ItemsControl ItemsSource="{Binding Variants}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="4" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PedVariantRow">
+                <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,6"
+                        BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1">
+                  <CheckBox IsChecked="{Binding IsOn}" ToolTip.Tip="{Binding Tip}">
+                    <StackPanel Spacing="1">
+                      <TextBlock Text="{Binding Name}" FontSize="12.5" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Detail}" FontSize="11" Foreground="{DynamicResource Text3Brush}"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </CheckBox>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+        </StackPanel>
       </ScrollViewer>
 
       <StackPanel Grid.Row="6" Spacing="5" Margin="0,0,10,0" IsVisible="{Binding ShowPack}">

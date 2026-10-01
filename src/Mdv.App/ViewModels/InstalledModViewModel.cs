@@ -14,12 +14,15 @@ namespace Mdv.App.ViewModels;
 public sealed partial class InstalledModViewModel : ObservableObject
 {
     private readonly Action<InstalledModViewModel>? _raise;
+    private readonly Action<InstalledModViewModel>? _variants;
 
     /// <param name="onTop">its versions of the files it shares with other mods are the ones the game gets</param>
     /// <param name="raise">puts it on top of the others (shows the plan first)</param>
+    /// <param name="variants">opens the variants of a ped's components it keeps</param>
     public InstalledModViewModel(InstalledMod mod, IReadOnlyList<string>? conflicts = null, bool onTop = true,
-                                 Action<InstalledModViewModel>? raise = null)
+                                 Action<InstalledModViewModel>? raise = null, Action<InstalledModViewModel>? variants = null)
     {
+        _variants = variants;
         Mod = mod;
         Enabled = mod.Enabled;
         Conflicts = conflicts ?? [];
@@ -76,6 +79,12 @@ public sealed partial class InstalledModViewModel : ObservableObject
     [RelayCommand]
     private void Raise() => _raise?.Invoke(this);
 
+    /// <summary>A ped that keeps variants of its components: they can be switched.</summary>
+    public bool CanPickVariants => Mod.HasVariants && _variants is not null && !PendingRemove;
+
+    [RelayCommand]
+    private void PickVariants() => _variants?.Invoke(this);
+
     public bool CanOpenFolder => Mod.Folder is { } f && Directory.Exists(f);
 
     [ObservableProperty]
@@ -83,7 +92,7 @@ public sealed partial class InstalledModViewModel : ObservableObject
     public partial bool Enabled { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsChanged), nameof(Status), nameof(HasStatus), nameof(CanToggle))]
+    [NotifyPropertyChangedFor(nameof(IsChanged), nameof(Status), nameof(HasStatus), nameof(CanToggle), nameof(CanPickVariants))]
     public partial bool PendingRemove { get; set; }
 
     public bool CanToggle => !PendingRemove && Mod.CanSwitch;

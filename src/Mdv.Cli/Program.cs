@@ -75,6 +75,7 @@ internal static class Program
                 "install" => Install(rest),
                 "remove" => Remove(rest),
                 "switch" => Switch(rest),
+                "variants" => Variants(rest),
                 "online" => Online(rest),
                 "cat" => Cat(rest),
                 "textures" => TexturesCmd(rest),
@@ -191,10 +192,11 @@ internal static class Program
               install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery|clothing|map|prop]
                       [--edition legacy|enhanced|auto] [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME]
                       [--replace] [--keep-kits] [--gender male|female] [--base MODEL] [--vehicle NAME] [--slot PICTURE=TEXTURE ...]
-                      [--wearer WHO] [--new-slots] [--as addon|menyoo|mapeditor] [--no-parts] [--dry-run]
+                      [--wearer WHO] [--new-slots] [--as addon|menyoo|mapeditor] [--no-parts] [--map sp|mp] [--dry-run]
                   install a dropped mod the way the app does: analyse, print the plan, run it
                   (--kind picks one of the mods found; --target sends a replacement file elsewhere;
-                  --variant picks a script mod's version; scripts print where each file goes and
+                  --variant picks a script mod's version, or a ped's variant of its components (repeat it for
+                  more); scripts print where each file goes and
                   what the mod needs from the game; add-on vehicles / peds print the checks against
                   the game — --pack names the dlcpacks folder, --replace installs the mod's Replace
                   version, --keep-kits leaves clashing modkit ids as they are, --gender picks the template
@@ -208,11 +210,15 @@ internal static class Program
                   wearer's own, --new-slots adds them as new clothes (new slots in the wearer's ymt); maps print what
                   they place and the models the game lacks — --as menyoo / mapeditor installs the mod's Menyoo / Map
                   Editor map instead of the add-on, --no-parts leaves out the game files / scripts it comes with;
+                  an OIV with World Travel (Liberty City) runs on the story mode map, --map mp on the online map;
                   every plan prints the space it needs, and Ctrl+C while it runs takes everything back)
               remove <game_dir> <mod_id> [<mod_id> ...]
                   remove installed mods (ids as `installed` prints them)
               switch <game_dir> <mod_id> on|off
                   switch an installed mod on / off
+              variants <game_dir> <mod_id> [NAME ...] [--none]
+                  the variants of an installed ped's components (alternatives the mod ships, kept in its
+                  pack); with names: exactly those on (a part of a name does), --none: all off
               online <game_dir> [on|off]
                   GTA Online: `on` moves every mod (mods folder, loaders, script hooks, .asi,
                   scripts, unsigned DLLs...) into <game_dir>\ModDropV-Stash, `off` moves them back;
@@ -663,9 +669,11 @@ internal static class Program
         var a = Parse(argv, [], []);
         NeedPositional(a, 1, int.MaxValue, "path");
         var work = PathUtil.MakeTempDir();
+        DroppedSource? dropped = null;
         try
         {
-            var dropped = SourceIntake.Gather(a.Positional, work);
+            dropped = SourceIntake.Gather(a.Positional, work, null, default,
+                                          [.. a.Positional.Select(SourceIntake.SpareRoot).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)]);
             var report = ModDetector.Detect(dropped);
             Console.WriteLine($"{dropped.Files.Count} file(s), {dropped.Archives.Count} archive(s) unpacked.");
             if (report.Found.Count == 0) Console.WriteLine("Nothing recognised.");
@@ -684,6 +692,7 @@ internal static class Program
         finally
         {
             PathUtil.TryDeleteDir(work);
+            if (dropped is not null) SourceIntake.Discard(dropped);
         }
     }
 
@@ -975,7 +984,7 @@ internal static class Program
 
     private static int Install(string[] argv)
     {
-        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--base", "--vehicle", "--slot", "--wearer", "--as", "--cancel-after"],
+        var a = Parse(argv, ["--kind", "--edition", "--target", "--variant", "--pack", "--gender", "--base", "--vehicle", "--slot", "--wearer", "--as", "--cancel-after", "--map"],
                       ["--dry-run", "--replace", "--keep-kits", "--new-slots", "--no-parts"]);
         NeedPositional(a, 2, int.MaxValue, "game_dir, path");
         var game = a.Positional[0];
@@ -983,9 +992,12 @@ internal static class Program
         var target = TargetFor(game, a.Opt("--edition")) with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") };
         target = target with { IndexCacheRoot = Mdv.Core.Index.GameIndexCache.DefaultRoot };
         var work = PathUtil.MakeTempDir();
+        DroppedSource? dropped = null;
         try
         {
-            var dropped = SourceIntake.Gather(a.Positional[1..], work, Console.WriteLine);
+            var spares = new[] { game }.Concat(a.Positional[1..]).Select(SourceIntake.SpareRoot).OfType<string>()
+                                       .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            dropped = SourceIntake.Gather(a.Positional[1..], work, Console.WriteLine, default, spares);
             var analysis = ModLibrary.Analyze(dropped, new HandlerEnv(Path.Combine(AppContext.BaseDirectory, "data")) { Edition = target.Edition });
             Console.WriteLine($"Found: {analysis.Report.Summary()}");
             foreach (var (cat, why) in analysis.Problems) Console.WriteLine($"  {cat.DisplayName()}: can't install — {why}");
@@ -1002,6 +1014,16 @@ internal static class Program
             if (pkg is AddonPackage ap) PrintAddon(ap, a, target);
             if (pkg is LiveryPackage lp) PrintLivery(lp, a, target);
             if (pkg is PlacementPackage pp) PrintPlacement(pp, target);
+            if (pkg is OivPackage op && WorldTravel.In(op))
+            {
+                op.WorldTravelMap = a.Opt("--map")?.ToLowerInvariant() switch
+                {
+                    null or "sp" => WorldTravelMap.StoryMode,
+                    "mp" => WorldTravelMap.Online,
+                    var m => throw new InvalidOperationException($"--map {m}: sp or mp"),
+                };
+                Console.WriteLine($"World Travel map: {(op.WorldTravelMap == WorldTravelMap.Online ? "online (MP)" : "story mode (SP)")} — --map sp|mp");
+            }
             var plan = ModLibrary.PlanInstall(pkg, target);
             plan.Warnings.InsertRange(0, pkg.Warnings);
             Console.WriteLine($"{plan.Title}:");
@@ -1023,6 +1045,7 @@ internal static class Program
         finally
         {
             PathUtil.TryDeleteDir(work);
+            if (dropped is not null) SourceIntake.Discard(dropped);
         }
     }
 
@@ -1125,6 +1148,14 @@ internal static class Program
         foreach (var p in ap.Compose?.NewPeds ?? [])
             Console.WriteLine($"    peds.meta for {p.Name}: {p.Gender.ToString().ToLowerInvariant()}{(p.Streamed ? ", streamed" : "")}" +
                               $"{(p.HasProps ? ", props" : "")} (--gender to change)");
+        if (ap.Compose is { Variants.Count: > 0 } withVariants)
+        {
+            var all = withVariants.Variants;
+            foreach (var v in PickVariants(all, a.All("--variant"))) PedVariants.Set(all, v, true);
+            foreach (var v in all)
+                Console.WriteLine($"    variant [{(v.On ? "x" : " ")}] {v.Name}: {string.Join(", ", v.Files.Select(f => f.Name))}");
+            Console.WriteLine("    (--variant NAME switches one on; all are kept in the pack — `variants` switches them later)");
+        }
         foreach (var c in checks.Items)
             Console.WriteLine($"    {(c.Level switch { CheckLevel.Ok => "ok ", CheckLevel.Info => " i ", _ => "[!]" })} {c.Title}: {c.Detail}" +
                               (c.Link is null ? "" : $"  ({c.Link})"));
@@ -1242,6 +1273,47 @@ internal static class Program
         {
             throw new UsageException(ex.Message);
         }
+        foreach (var step in plan.Describe()) Console.WriteLine($"  - {step}");
+        return RunPlan(plan, target);
+    }
+
+    /// <summary>The variants named (whole name, else a part of one), in the order given.</summary>
+    private static List<PedVariant> PickVariants(List<PedVariant> all, List<string> names) =>
+    [
+        .. names.Select(n => all.FirstOrDefault(v => v.Name.Equals(n, StringComparison.OrdinalIgnoreCase))
+                             ?? all.FirstOrDefault(v => v.Name.Contains(n, StringComparison.OrdinalIgnoreCase))
+                             ?? throw new UsageException($"--variant: no variant '{n}' — {string.Join("; ", all)}")),
+    ];
+
+    private static int Variants(string[] argv)
+    {
+        var a = Parse(argv, [], ["--none"]);
+        NeedPositional(a, 2, int.MaxValue, "game_dir, mod_id");
+        var (game, id) = (a.Positional[0], a.Positional[1]);
+        var target = TargetFor(game, null);
+        List<PedVariant> all;
+        try
+        {
+            all = AddonPackHandler.InstalledVariants(target, id);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new UsageException(ex.Message);
+        }
+        if (all.Count == 0)
+        {
+            Console.WriteLine($"{id} keeps no variants.");
+            return 0;
+        }
+        if (a.Positional.Count == 2 && !a.Flags.Contains("--none"))
+        {
+            foreach (var v in all) Console.WriteLine($"  [{(v.On ? "x" : " ")}] {v.Name}: {string.Join(", ", v.Files.Select(f => f.Name))}");
+            return 0;
+        }
+        var picked = PickVariants(all, [.. a.Positional.Skip(2)]);
+        foreach (var v in all) v.On = false;
+        foreach (var v in picked) PedVariants.Set(all, v, true);
+        var plan = AddonPackHandler.PlanVariants(target, id, all);
         foreach (var step in plan.Describe()) Console.WriteLine($"  - {step}");
         return RunPlan(plan, target);
     }

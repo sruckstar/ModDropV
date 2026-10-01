@@ -77,7 +77,7 @@ again from the Library.
 | **Maps and props** | Finished map packs, FiveM maps, loose `.ymap` / `.ytyp` files packed as Rockstar lays its map DLCs out; Menyoo maps into `menyooStuff\Spooner`, Map Editor maps into `scripts\AutoloadMaps`. The game files and scripts a map's readme asks for go in with it. |
 | **Clothes** | MP clothes packs, FiveM clothing and loose models for the MP male / female — as new slots at the end of the game's last clothing collection (the game crashes with one collection more), replacements for Michael, Franklin, Trevor and the MP peds — new slots are added to their `.ymt` when needed. |
 | **Vehicle liveries** | Pictures (PNG / JPG / DDS) put into a car's own textures, whole texture dictionaries, modkit liveries — for the game's cars and installed add-ons, with a 3D preview. |
-| **OIV packages** | Installed into the `mods` folder instead of the game's own archives — and removable. |
+| **OIV packages** | Installed into the `mods` folder instead of the game's own archives — and removable. A mod that comes as several packages ("Part ONE … FIVE") goes in as one. Legacy packages go into Enhanced adapted: models converted, the mod's `gameconfig.xml` merged, XML-text `.ymt` made binary, Legacy-only plugins swapped for Enhanced builds — Liberty City Preservation Project runs in GTA V Enhanced this way. |
 | **File replacements** | Textures, models, sounds, metas with no instructions: the right place is found in the game's archives for you. |
 | **Big packs and total conversions** | The space they take is shown first, every step as it goes, cancel any time with everything taken back; a mod can be put on top of others that change the same files. |
 
@@ -215,6 +215,12 @@ dotnet run --project src/Mdv.App      # the app
 - **Weapon Limits Adjuster Enhanced** — ModDrop V's port of [WeaponLimitsAdjuster](https://github.com/alexguirre/gtav-WeaponLimitsAdjuster)
   by alexguirre (whose component-array fix comes from FiveM) to GTA V Enhanced, MIT, source in `plugins/`. It lifts the
   game's limit of 470 weapon components (about 5 above its own) and goes in with the other two.
+- **Pool Heap Adjuster Enhanced** — ModDrop V's own plugin (MIT, source in `plugins/`): GTA V Enhanced keeps its pools
+  in a 136 MB heap of their own and has room for only 96 radio stations (the game uses 95) — it raises both.
+- [World Travel](https://github.com/Splatcrafter/worldTravelASI) by Splatcrafter (GPL-3.0), Liberty City Preservation
+  Project's level switcher: for GTA V Enhanced ModDrop V ships a build of its current source (plus a patch that calms
+  Liberty City's ocean and takes the story mode / online map from its .ini) and **World Travel Patches Enhanced**, its own
+  port of the limit patches; source and patch in `plugins/`.
 - ScriptHookV, ScriptHookVDotNet and RAGE Plugin Hook are never bundled — ModDrop V links to their official pages.
 - Mods in the screenshots: **ABT Audi RS7-R HAMMER**, **Equalizer .410** by HeySlickThatsMe, **Menyoo PC** by MAFINS,
   **New Police HQ Mission Row** by X_Jen67.
