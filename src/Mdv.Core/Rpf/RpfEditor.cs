@@ -27,6 +27,15 @@ public sealed class RpfEditor : IDisposable
 {
     private const int Sector = Rpf7.Sector;
 
+    /// <summary>A lower limit than RPF7's for the code running on this flow (tests).</summary>
+    internal static readonly AsyncLocal<long?> LimitOverride = new();
+
+    /// <summary>The most blocks a top-level archive may span (RPF7 offsets are 23-bit sectors: 4 GiB).</summary>
+    private static long LimitBlocks => LimitOverride.Value is { } bytes ? bytes / Sector : Rpf7.MaxBlock + 1;
+
+    /// <summary>The largest archive file RPF7 allows (4 GiB).</summary>
+    public static long MaxBytes => LimitBlocks * Sector;
+
     private abstract class Node
     {
         public required string Name;
@@ -264,6 +273,9 @@ public sealed class RpfEditor : IDisposable
 
     public bool Exists(string innerPath) => FindFile(innerPath, out _) is not null;
 
+    /// <summary>The bytes an entry takes in the archive (a nested archive: its extent), without reading it; null when absent.</summary>
+    public long? StoredLength(string innerPath) => FindFile(innerPath, out _) is { } f ? f.Blocks * Sector : null;
+
     /// <summary>The entry at <paramref name="innerPath"/> as stored (with this session's changes), or null.</summary>
     public StoredEntry? Get(string innerPath)
     {
@@ -452,9 +464,8 @@ public sealed class RpfEditor : IDisposable
         if (blocks <= arc.Blocks) return;
         if (arc.Parent is null)
         {
-            if (blocks - 1 > Rpf7.MaxBlock)
-                throw new InvalidOperationException(
-                    $"{arc.Name}: no room to grow — the archive would pass the RPF7 4 GiB limit.");
+            if (blocks > LimitBlocks)
+                throw new RpfFullException(arc.Name, blocks * Sector);
             AddFree(arc, arc.Blocks, blocks);
             arc.Blocks = blocks;
             return;

@@ -23,6 +23,8 @@ public enum ModCategory
     Replacement,
     /// <summary>An install package with its own instructions (OIV).</summary>
     Package,
+    /// <summary>Animation dictionaries (.ycd): new ones as an add-on pack, ones named like the game's in their place.</summary>
+    Animation,
 }
 
 public static class ModCategories
@@ -39,6 +41,7 @@ public static class ModCategories
         ModCategory.Map => L.T("Map"),
         ModCategory.Replacement => L.T("File replacement"),
         ModCategory.Package => L.T("OIV package"),
+        ModCategory.Animation => L.T("Animation"),
         _ => c.ToString(),
     };
 
@@ -55,6 +58,7 @@ public static class ModCategories
         ModCategory.Map => L.T("Maps"),
         ModCategory.Replacement => L.T("Replacements"),
         ModCategory.Package => L.T("OIV packages"),
+        ModCategory.Animation => L.T("Animations"),
         _ => c.ToString(),
     };
 
@@ -65,6 +69,7 @@ public static class ModCategories
         ModCategory.Script => "script",
         ModCategory.Replacement => "replace",
         ModCategory.Package => "oiv",
+        ModCategory.Animation => "anim",
         _ => c.ToString().ToLowerInvariant(),
     };
 
@@ -73,7 +78,7 @@ public static class ModCategories
 
     // the short names, for the translation catalogs
     private static readonly string[] ShortNames =
-        [L.N("weapon"), L.N("vehicle"), L.N("ped"), L.N("livery"), L.N("script"), L.N("clothing"), L.N("prop"), L.N("map"), L.N("replace"), L.N("oiv")];
+        [L.N("weapon"), L.N("vehicle"), L.N("ped"), L.N("livery"), L.N("script"), L.N("clothing"), L.N("prop"), L.N("map"), L.N("replace"), L.N("oiv"), L.N("anim")];
 }
 
 /// <summary>Where an installed mod came from: the dropped file / folder name and a content hash.</summary>

@@ -57,10 +57,11 @@ public static class Diagnostics
         foreach (var rel in new[] { "data/templates/_index.json", "data/weapons.meta", "data/weaponcomponents.meta",
                                     "data/weaponarchetypes.meta", "data/weaponanimations.meta",
                                     "data/plugins/dinput8.dll", "data/plugins/xinput1_4.dll",
-                                    "data/plugins/limits-enhanced/HeapAdjuster.asi",
-                                    "data/plugins/limits-enhanced/PackfileLimitAdjusterEnhanced.asi",
-                                    "data/plugins/limits-enhanced/WeaponLimitsAdjusterEnhanced.asi",
-                                    "data/plugins/limits-enhanced/PoolHeapAdjusterEnhanced.asi",
+                                    "data/plugins/limits/HeapAdjuster.asi",
+                                    "data/plugins/limits/PackfileLimitAdjusterEnhanced.asi",
+                                    "data/plugins/limits/WeaponLimitsAdjusterEnhanced.asi",
+                                    "data/plugins/limits/WeaponLimitsAdjuster.asi",
+                                    "data/plugins/limits/PoolHeapAdjusterEnhanced.asi",
                                     "ShadersGen9Conversion.xml" })
         {
             var ok = File.Exists(Path.Combine(AppPaths.Root, rel));

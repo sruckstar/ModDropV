@@ -25,6 +25,22 @@ public static partial class ModsLayout
     public const string OnigiriCommon = "onigiri/common";
     public const string OnigiriPlatform = "onigiri/platform";
     public const string OnigiriDlcpacks = "onigiri/dlcpacks";
+    /// <summary>Folders over <c>update.rpf/dlc_patch/&lt;pack&gt;</c> — read through our plugin <see cref="OnigiriDlcPatchAsi"/>.</summary>
+    public const string OnigiriDlcPatch = "onigiri/dlc_patch";
+    /// <summary>Folders over what the game reads straight from update.rpf (update:/, <see cref="Mods.OnigiriPaths.ReadFromUpdate"/>)
+    /// — read through our plugin <see cref="OnigiriDlcPatchAsi"/>.</summary>
+    public const string OnigiriUpdate = "onigiri/update";
+    public const string OnigiriUpdateX64 = "onigiri/update/x64";
+    public const string OnigiriUpdateCommon = "onigiri/update/common";
+    /// <summary>Mounts <c>onigiri\dlc_patch\&lt;pack&gt;</c> over the pack's patch and <c>onigiri\update</c> over update:/
+    /// (Onigiri itself has no place for either).</summary>
+    public const string OnigiriDlcPatchAsi = "OnigiriDlcPatch.asi";
+    /// <summary>
+    /// Our add-on pack in onigiri\dlcpacks for the streamed files of onigiri\platform (<see cref="Mods.OnigiriReplacePack"/>):
+    /// loose there, Onigiri sometimes never hands them to the game, and the game loads forever.
+    /// </summary>
+    public const string OnigiriReplacePack = "moddropv_replace";
+    public const string OnigiriReplaceArchive = "onigiri/dlcpacks/moddropv_replace/dlc.rpf";
 
     /// <summary>The game runs Onigiri: onigiri.asi in the game folder (a Legacy game can't — the loader is Enhanced's).</summary>
     public static bool UsesOnigiri(string gameDir) =>

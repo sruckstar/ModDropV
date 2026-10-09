@@ -64,14 +64,25 @@ public sealed partial class AddonContent
     /// <summary>The edition its models are built for, when they all say the same (null: unknown, none or mixed).</summary>
     public GameEdition? ModelsEdition => ModelEditions.Count == 1 ? ModelEditions.First() : null;
 
-    /// <summary>The kind of add-on: vehicles first, then peds, then clothes, then maps, then props (null: none of them).</summary>
+    /// <summary>The clips of its animation dictionaries, by dictionary (read from loose files; a finished pack's are not read).</summary>
+    public Dictionary<string, List<string>> Clips { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The kind of add-on: vehicles first, then peds, then clothes, then maps, then props, then animations — a pack that
+    /// streams nothing but animation dictionaries (null: none of them).
+    /// </summary>
     public ModCategory? Kind =>
         Vehicles.Count > 0 || DataTypes.Contains("VEHICLE_METADATA_FILE") ? ModCategory.Vehicle
         : Peds.Count > 0 || DataTypes.Contains("PED_METADATA_FILE") ? ModCategory.Ped
         : Collections.Count > 0 || DataTypes.Contains("SHOP_PED_APPAREL_META_FILE") ? ModCategory.Clothing
         : MapData || Ymaps.Any() ? ModCategory.Map
         : Ytyps.Any() || DataTypes.Contains("DLC_ITYP_REQUEST") ? ModCategory.Prop
+        : Anims.Any() && Streamed.All(s => s.EndsWith(".ycd", StringComparison.OrdinalIgnoreCase)) ? ModCategory.Animation
         : null;
+
+    /// <summary>Its animation dictionaries (streamed .ycd files), by the name scripts load them with.</summary>
+    public IEnumerable<string> Anims => Streamed.Where(s => s.EndsWith(".ycd", StringComparison.OrdinalIgnoreCase))
+                                                .Select(s => Path.GetFileNameWithoutExtension(s.Split('/')[^1]));
 
     /// <summary>Its placement files (streamed names ending in .ymap).</summary>
     public IEnumerable<string> Ymaps => Streamed.Where(s => s.EndsWith(".ymap", StringComparison.OrdinalIgnoreCase));
@@ -123,6 +134,7 @@ public sealed partial class AddonContent
             : Kind == ModCategory.Map
                 ? Maps.Count > 0 ? Maps.Select(m => L.T($"{m.Name} ({m.Entities} object(s))"))
                                  : Ymaps.Select(y => Path.GetFileNameWithoutExtension(y.Split('/')[^1]))
+            : Kind == ModCategory.Animation ? Anims
             : Archetypes;
 
     // ------------------------------------------------------------------ data files
@@ -318,24 +330,29 @@ public sealed partial class AddonContent
 
     // ------------------------------------------------------------------ labels
 
-    [GeneratedRegex(@"AddTextEntry\s*\(\s*['""]([^'""]+)['""]\s*,\s*['""]([^'""]*)['""]")] private static partial Regex AddTextEntryRe();
-    [GeneratedRegex(@"AddTextEntryByHash\s*\(\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*['""]([^'""]*)['""]")] private static partial Regex AddTextEntryByHashRe();
+    // a Lua string closes on its own quote: "Bukin's Style" keeps the apostrophe, 'Say \'hi\'' unescapes
+    [GeneratedRegex(@"AddTextEntry\s*\(\s*(['""])(.+?)\1\s*,\s*(['""])((?:\\.|(?!\3)[^\\])*)\3")] private static partial Regex AddTextEntryRe();
+    [GeneratedRegex(@"AddTextEntryByHash\s*\(\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*(['""])((?:\\.|(?!\2)[^\\])*)\2")] private static partial Regex AddTextEntryByHashRe();
+    [GeneratedRegex(@"\\(.)")] private static partial Regex LuaEscapeRe();
 
     /// <summary>Text labels a FiveM script sets (AddTextEntry('LABEL', 'Text')), by label hash.</summary>
     public static Dictionary<uint, string> LuaLabels(string lua)
     {
         var labels = new Dictionary<uint, string>();
-        foreach (Match m in AddTextEntryRe().Matches(lua)) labels[Gxt2.Joaat(m.Groups[1].Value)] = m.Groups[2].Value;
+        foreach (Match m in AddTextEntryRe().Matches(lua)) labels[Gxt2.Joaat(m.Groups[2].Value)] = LuaUnescape(m.Groups[4].Value);
         foreach (Match m in AddTextEntryByHashRe().Matches(lua))
         {
             var s = m.Groups[1].Value;
             uint h = s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
                 ? Convert.ToUInt32(s[2..], 16)
                 : uint.TryParse(s, out var u) ? u : 0;
-            if (h != 0) labels[h] = m.Groups[2].Value;
+            if (h != 0) labels[h] = LuaUnescape(m.Groups[3].Value);
         }
         return labels;
     }
+
+    private static string LuaUnescape(string s) =>
+        s.Contains('\\') ? LuaEscapeRe().Replace(s, m => m.Groups[1].Value switch { "n" => "\n", "t" => "\t", var c => c }) : s;
 
     // ------------------------------------------------------------------ finished packs
 

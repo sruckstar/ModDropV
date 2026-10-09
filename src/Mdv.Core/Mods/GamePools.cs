@@ -88,9 +88,54 @@ public static partial class GamePools
     // MaxMloModelInfos 220 in the game's own file (Legacy's v37 values give 12220): raised enough for add-on interiors
     private static readonly Dictionary<string, int> EnhancedSettings = new() { ["MaxMloModelInfos"] = 1220 };
 
-    private static (Dictionary<string, int> Pools, Dictionary<string, int> Settings) Table(GameEdition edition, LimitsProfile profile) =>
-        edition == GameEdition.Enhanced ? (EnhancedPools, EnhancedSettings)
-        : profile == LimitsProfile.Large ? (LargePools, LargeSettings) : (StandardPools, StandardSettings);
+    /// <summary>
+    /// How many mods ahead the limits leave room for when mods can go into the running game (<see cref="LiveInstall"/>):
+    /// a pack loaded there takes what is free since the game started — nothing is raised until it starts again.
+    /// </summary>
+    public const int LiveReserveMods = 30;
+
+    /// <summary>
+    /// What one add-on of usual size takes (a car, a ped, a weapon, a small map): its archives, its model and texture
+    /// files, the add-on vehicles, peds and weapons it declares. <see cref="LiveBudget"/> weighs a pack by these.
+    /// </summary>
+    internal static readonly Dictionary<string, int> PerModPools = new()
+    {
+        ["DrawableStore"] = 60, ["DwdStore"] = 40, ["FragmentStore"] = 20, ["TxdStore"] = 60, ["HandlingData"] = 4, [MetaDataStore] = 4,
+    };
+
+    internal static readonly Dictionary<string, int> PerModSettings = new()
+    {
+        ["MaxExtraVehicleModelInfos"] = 4, ["MaxExtraPedModelInfos"] = 4, ["MaxExtraWeaponModelInfos"] = 4, ["ArchiveCount"] = 6,
+    };
+
+    /// <summary>The heap one usual add-on can take while it loads (MB) — its declarations, the metas parsed.</summary>
+    public const int PerModHeapMb = 8;
+
+    /// <summary>The heap Heap Adjuster should give (MB): <see cref="LimitAdjusters.HeapMb"/>, and the live reserve on top.</summary>
+    public static int HeapNeed(bool reserve) => LimitAdjusters.HeapMb + (reserve ? LiveReserveMods * PerModHeapMb : 0);
+
+    /// <summary>The ArchiveCount the limits give (0: they don't set it — Enhanced keeps the game's).</summary>
+    public static int ArchivesNeed(GameEdition edition, LimitsProfile profile, bool reserve) =>
+        Table(edition, profile, reserve).Settings.GetValueOrDefault("ArchiveCount");
+
+    private static (Dictionary<string, int> Pools, Dictionary<string, int> Settings) Table(GameEdition edition, LimitsProfile profile,
+                                                                                         bool reserve = false)
+    {
+        var (pools, settings) = edition == GameEdition.Enhanced ? (EnhancedPools, EnhancedSettings)
+            : profile == LimitsProfile.Large ? (LargePools, LargeSettings) : (StandardPools, StandardSettings);
+        // the live reserve: GTA V Legacy only, as installs into the running game
+        if (!reserve || edition == GameEdition.Enhanced) return (pools, settings);
+        return (pools.ToDictionary(kv => kv.Key, kv => kv.Value + LiveReserveMods * PerModPools.GetValueOrDefault(kv.Key)),
+                settings.ToDictionary(kv => kv.Key, kv => kv.Value + LiveReserveMods * PerModSettings.GetValueOrDefault(kv.Key)));
+    }
+
+    /// <summary>Does this gameconfig.xml hold the live reserve on top of GTA V Legacy's limits for mods?</summary>
+    public static bool HasLiveReserve(string xml)
+    {
+        var (pools, settings) = Table(GameEdition.Legacy, LimitsProfile.Standard, reserve: true);
+        return PerModPools.Keys.All(k => Size(xml, k) is { } n && n >= pools[k])
+               && PerModSettings.Keys.All(k => Setting(xml, k) is not { } n || n >= settings[k]);   // plain limits it lacks stay the game's
+    }
 
     private static Regex SettingRe(string name) => new($@"(<{Regex.Escape(name)}\s+value\s*=\s*"")(\d+)("")");
 
@@ -102,10 +147,11 @@ public static partial class GamePools
     /// <summary>
     /// What the limits for <paramref name="edition"/> and <paramref name="profile"/> raise in this gameconfig.xml: the name,
     /// its size now (null: a pool the file doesn't list yet) and the new size. Plain limits the file doesn't have are left alone.
+    /// With <paramref name="reserve"/> GTA V Legacy's are raised <see cref="LiveReserveMods"/> mods further.
     /// </summary>
-    public static List<(string Name, int? Now, int To)> Missing(string xml, GameEdition edition, LimitsProfile profile)
+    public static List<(string Name, int? Now, int To)> Missing(string xml, GameEdition edition, LimitsProfile profile, bool reserve = false)
     {
-        var (pools, settings) = Table(edition, profile);
+        var (pools, settings) = Table(edition, profile, reserve);
         var list = new List<(string, int?, int)>();
         foreach (var (name, to) in pools)
             if (Size(xml, name) is not { } now || now < to) list.Add((name, Size(xml, name), to));
@@ -118,11 +164,11 @@ public static partial class GamePools
     /// Limits in this gameconfig.xml above what <paramref name="edition"/> gets: its own ones raised further, or the Legacy
     /// values (GTAV Config v37) an earlier ModDrop V build put into GTA V Enhanced. A value the game's own file
     /// (<paramref name="own"/>) has is never too high: Enhanced ships four of the v37 ones (AttachmentExtension 460,
-    /// AudioHeap 250, CGameScriptResource 3089, fwArchetypePooledMap 65521).
+    /// AudioHeap 250, CGameScriptResource 3089, fwArchetypePooledMap 65521). The live reserve is never too high either.
     /// </summary>
     public static List<string> Over(string xml, GameEdition edition, LimitsProfile profile, string? own = null)
     {
-        var (pools, settings) = Table(edition, profile);
+        var (pools, settings) = Table(edition, profile, reserve: true);
         var list = new List<string>();
         foreach (var name in StandardPools.Keys.Union(LargePools.Keys))
             if (Size(xml, name) is { } now && (own is null || Size(own, name) != now)
@@ -141,11 +187,11 @@ public static partial class GamePools
     /// The edit for the limits step: every limit for <paramref name="edition"/> and <paramref name="profile"/> raised, pools
     /// the file doesn't list added to its pool list, the rest of the file byte for byte. Null when there is no file.
     /// </summary>
-    public static byte[]? RaiseLimits(byte[]? data, GameEdition edition, LimitsProfile profile, Action<string> log)
+    public static byte[]? RaiseLimits(byte[]? data, GameEdition edition, LimitsProfile profile, Action<string> log, bool reserve = false)
     {
         if (data is null) return null;
         var xml = TextIo.DecodeUtf8Sig(data, strict: false);
-        var missing = Missing(xml, edition, profile);
+        var missing = Missing(xml, edition, profile, reserve);
         if (missing.Count == 0) return data;
         foreach (var (name, now, to) in missing)
             xml = now is null ? AddPool(xml, name, to)
@@ -171,10 +217,13 @@ public static partial class GamePools
     /// <summary>
     /// The step that raises the game's limits for mods, put before an install that uses the mods folder — null when they
     /// are that high already or there is no gameconfig.xml to raise them in. Limits ModDrop V raised higher than
-    /// <paramref name="edition"/> takes are taken back and raised again to its own.
+    /// <paramref name="edition"/> takes are taken back and raised again to its own. With mods going into the running
+    /// game (<see cref="LiveInstall.Reserving"/>, unless <paramref name="reserve"/> says) GTA V Legacy's are raised
+    /// <see cref="LiveReserveMods"/> mods further.
     /// </summary>
-    public static PlanOp? LimitsOp(string gameDir, GameEdition edition, LimitsProfile profile)
+    public static PlanOp? LimitsOp(string gameDir, GameEdition edition, LimitsProfile profile, bool? reserve = null)
     {
+        bool extra = reserve ?? LiveInstall.Reserving(edition);
         byte[]? data, own = null;
         bool mineOnTop;
         try
@@ -196,44 +245,65 @@ public static partial class GamePools
             {
                 ctx.Overlay.RemoveMod(LimitsOwner, keepCopies: true);
                 var below = ctx.Overlay.Read(GameConfig);
-                if (RaiseLimits(below, edition, profile, ctx.Log) is { } raised && !ReferenceEquals(raised, below))
+                if (RaiseLimits(below, edition, profile, ctx.Log, extra) is { } raised && !ReferenceEquals(raised, below))
                     ctx.Overlay.Put(LimitsOwner, GameConfig, raised);
             });
-        var missing = Missing(xml, edition, profile);
+        var missing = Missing(xml, edition, profile, extra);
         if (missing.Count == 0) return null;
         return new RpfEditOp(GameConfig, LimitsOwner,
             edition == GameEdition.Enhanced
                 ? L.T($"Raise the game's limits in gameconfig.xml for mods ({missing.Count} values: model and texture stores, MetaDataStore, interiors)")
+                : extra
+                    ? L.T($"Raise the game's limits in gameconfig.xml for mods and {LiveReserveMods} more installed while the game runs ({missing.Count} values: model and texture stores, add-on vehicles, peds and weapons, archives)")
                 : profile == LimitsProfile.Large
                     ? L.T($"Raise the game's limits in gameconfig.xml for a big mod ({missing.Count} values: model and texture stores, add-on vehicles, peds and weapons, archives, map and world pools)")
                     : L.T($"Raise the game's limits in gameconfig.xml for mods ({missing.Count} values: model and texture stores, add-on vehicles, peds and weapons, archives)"),
-            (d, log) => RaiseLimits(d, edition, profile, log));
+            (d, log) => RaiseLimits(d, edition, profile, log, extra));
     }
 
     /// <summary>
-    /// The limits step put into an install plan, right after it makes the game load the mods folder (a plan that doesn't
-    /// use the mods folder gets none). A big mod gets the higher limits. A mod's own gameconfig.xml is merged into the
-    /// game's (<see cref="MergeLimits"/>) instead of replacing it.
+    /// The limit plugins of the edition and their settings (<see cref="LimitAdjusters"/>) — for any mod, whether it uses
+    /// the mods folder or not. Empty when the game has them set high enough.
     /// </summary>
-    public static InstallPlan WithLimits(InstallPlan plan, InstallTarget target)
+    public static List<PlanOp> AdjusterOps(InstallTarget target, LimitsProfile profile, bool? reserve = null)
+    {
+        bool extra = reserve ?? LiveInstall.Reserving(target.Edition);
+        var ops = new List<PlanOp>();
+        if (LimitAdjusters.Op(target.GameDir, target.Edition, PluginsDir(target)) is { } adjusters) ops.Add(adjusters);
+        if (LimitAdjusters.SettingsOp(target.GameDir, target.Edition, PluginsDir(target), HeapNeed(extra),
+                                      ArchivesNeed(target.Edition, profile, extra)) is { } settings) ops.Add(settings);
+        return ops;
+    }
+
+    /// <summary>
+    /// The limits steps put into an install plan: the limit plugins first (any mod gets them), and for a plan that makes
+    /// the game load the mods folder the gameconfig.xml limits right after that step. A big mod gets the higher limits. A
+    /// mod's own gameconfig.xml is merged into the game's (<see cref="MergeLimits"/>) instead of replacing it.
+    /// </summary>
+    /// <param name="reserve">leave room for mods installed while the game runs (null: when <see cref="LiveInstall.Reserving"/>)</param>
+    public static InstallPlan WithLimits(InstallPlan plan, InstallTarget target, bool? reserve = null)
     {
         int at = plan.Ops.FindIndex(o => o is EnsureModsLoaderOp);
-        if (at < 0) return plan;
         var edition = target.Edition;
-        for (int i = 0; i < plan.Ops.Count; i++)
-            if (plan.Ops[i] is RpfPutOp put && put.GamePath.Equals(GameConfig, StringComparison.OrdinalIgnoreCase))
-            {
-                plan.Ops[i] = new RpfEditOp(GameConfig, put.ModId,
-                    L.T("Raise the game's limits in gameconfig.xml to the mod's own (the rest of the game's file stays)"),
-                    (d, log) => MergeLimits(d, File.ReadAllBytes(put.Source), log, edition));
-                if (edition == GameEdition.Enhanced)
-                    plan.Warnings.Add(L.T("The mod brings its own gameconfig.xml — in GTA V Enhanced ModDrop V takes its pool sizes, except the ones Enhanced can’t hold (the biggest model stores stay the game’s)."));
-            }
+        var profile = ProfileFor(plan, target);
         var ops = new List<PlanOp>();
-        if (LimitsOp(target.GameDir, target.Edition, ProfileFor(plan, target)) is { } op)
-            ops.Add(op);
+        if (at >= 0)
+        {
+            for (int i = 0; i < plan.Ops.Count; i++)
+                if (plan.Ops[i] is RpfPutOp put && put.GamePath.Equals(GameConfig, StringComparison.OrdinalIgnoreCase))
+                {
+                    plan.Ops[i] = new RpfEditOp(GameConfig, put.ModId,
+                        L.T("Raise the game's limits in gameconfig.xml to the mod's own (the rest of the game's file stays)"),
+                        (d, log) => MergeLimits(d, File.ReadAllBytes(put.Source), log, edition));
+                    if (edition == GameEdition.Enhanced)
+                        plan.Warnings.Add(L.T("The mod brings its own gameconfig.xml — in GTA V Enhanced ModDrop V takes its pool sizes, except the ones Enhanced can’t hold (the biggest model stores stay the game’s)."));
+                }
+            if (LimitsOp(target.GameDir, edition, profile, reserve) is { } op) ops.Add(op);
+        }
         // before the mod's own steps: the plugins aren't part of it and stay when it is removed
-        if (LimitAdjusters.Op(target.GameDir, target.Edition, PluginsDir(target)) is { } adjusters) ops.Add(adjusters);
+        ops.AddRange(AdjusterOps(target, profile, reserve));
+        plan.Warnings.AddRange(LimitAdjusters.Notes(target.GameDir, edition, PluginsDir(target), HeapNeed(reserve ?? LiveInstall.Reserving(edition)),
+                                                    ArchivesNeed(edition, profile, reserve ?? LiveInstall.Reserving(edition))));
         plan.Ops.InsertRange(at + 1, ops);
         return plan;
     }

@@ -4,7 +4,7 @@
 
 <p align="center">
   <b>Drop a GTA V mod in. It gets installed — the right way.</b><br>
-  Vehicles, weapons, scripts, maps, clothes, liveries, OIV packages and plain file swaps — straight from the archive you
+  Vehicles, weapons, scripts, maps, clothes, liveries, animations, OIV packages and plain file swaps — straight from the archive you
   downloaded, into the <code>mods</code> folder, with every step shown first and everything removable later.
 </p>
 
@@ -76,6 +76,7 @@ again from the Library.
 | **Scripts and plugins** | `.asi`, ScriptHookVDotNet, RAGE Plugin Hook / LSPDFR — each file to its place, the right version for your edition. Missing ScriptHookV, ScriptHookVDotNet or libraries are pointed out; LemonUI is added for you. |
 | **Maps and props** | Finished map packs, FiveM maps, loose `.ymap` / `.ytyp` files packed as Rockstar lays its map DLCs out; Menyoo maps into `menyooStuff\Spooner`, Map Editor maps into `scripts\AutoloadMaps`. The game files and scripts a map's readme asks for go in with it. |
 | **Clothes** | MP clothes packs, FiveM clothing and loose models for the MP male / female — as new slots at the end of the game's last clothing collection (the game crashes with one collection more), replacements for Michael, Franklin, Trevor and the MP peds — new slots are added to their `.ymt` when needed. |
+| **Animations** | Animation dictionaries (`.ycd`, or CodeWalker's `.ycd.xml` — built for you) the game doesn't have go in as an add-on pack of their own, laid out as Rockstar's DLCs keep theirs, so scripts and menus load them by name; ones named like the game's take its place, the game's file untouched. FiveM emote resources and clip sets too. |
 | **Vehicle liveries** | Pictures (PNG / JPG / DDS) put into a car's own textures, whole texture dictionaries, modkit liveries — for the game's cars and installed add-ons, with a 3D preview. |
 | **OIV packages** | Installed into the `mods` folder instead of the game's own archives — and removable. A mod that comes as several packages ("Part ONE … FIVE") goes in as one. Legacy packages go into Enhanced adapted: models converted, the mod's `gameconfig.xml` merged, XML-text `.ymt` made binary, Legacy-only plugins swapped for Enhanced builds — Liberty City Preservation Project runs in GTA V Enhanced this way. |
 | **File replacements** | Textures, models, sounds, metas with no instructions: the right place is found in the game's archives for you. |
@@ -191,16 +192,6 @@ Press **Log** in the top bar to see what happened during the last install. The f
 attach it when reporting a problem. `ModDropV.exe --diagnose` writes a report on the app and your game.
 
 ---
-
-## 🧱 Building from source
-
-You need the .NET 10 SDK. CodeWalker comes in as a git submodule:
-
-```powershell
-git clone --recursive <repo-url>
-dotnet run --project src/Mdv.App      # the app
-.\build.ps1 -Zip                       # self-contained publish\ModDropV (+ zip)
-```
 
 ## 🙏 Credits
 

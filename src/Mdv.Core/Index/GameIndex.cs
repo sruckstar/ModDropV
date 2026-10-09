@@ -188,11 +188,8 @@ public sealed class GameIndex
         // Onigiri's loose files: listed afresh every time (headers only), not cached
         var all = result.ToList();
         if (ModsLayout.UsesOnigiri(gameDir))
-            foreach (var root in new[] { ModsLayout.OnigiriCommon, ModsLayout.OnigiriPlatform })
-            {
-                var dir = Path.Combine(gameDir, root);
-                if (Directory.Exists(dir)) all.Add(IndexedArchive.ScanLoose(dir, root, ct));
-            }
+            foreach (var root in OnigiriLooseRoots(gameDir))
+                all.Add(IndexedArchive.ScanLoose(Path.Combine(gameDir, root), root, ct));
 
         return new GameIndex(gameDir, exe, all)
         {
@@ -200,6 +197,17 @@ public sealed class GameIndex
             Reused = files.Count - todo.Count,
             Elapsed = sw.Elapsed,
         };
+    }
+
+    /// <summary>Onigiri's folders of loose files that are there: <c>onigiri/common</c>, <c>onigiri/platform</c>, <c>onigiri/update/common|x64</c>, <c>onigiri/dlc_patch/&lt;pack&gt;</c>.</summary>
+    private static IEnumerable<string> OnigiriLooseRoots(string gameDir)
+    {
+        foreach (var root in new[] { ModsLayout.OnigiriCommon, ModsLayout.OnigiriPlatform, ModsLayout.OnigiriUpdateCommon, ModsLayout.OnigiriUpdateX64 })
+            if (Directory.Exists(Path.Combine(gameDir, root))) yield return root;
+        var patches = Path.Combine(gameDir, ModsLayout.OnigiriDlcPatch);
+        if (!Directory.Exists(patches)) yield break;
+        foreach (var dir in Directory.EnumerateDirectories(patches).Order(StringComparer.OrdinalIgnoreCase))
+            yield return $"{ModsLayout.OnigiriDlcPatch}/{Path.GetFileName(dir)}";
     }
 
     /// <summary>
@@ -219,7 +227,7 @@ public sealed class GameIndex
             var d = Path.Combine(gameDir, sub);
             if (Directory.Exists(d)) list.AddRange(Directory.EnumerateFiles(d, "*.rpf", SearchOption.AllDirectories));
         }
-        foreach (var sub in onigiri ? new[] { "common", "platform", "dlcpacks" } : [])
+        foreach (var sub in onigiri ? new[] { "common", "platform", "update", "dlcpacks", "dlc_patch" } : [])
         {
             var d = Path.Combine(gameDir, ModsLayout.OnigiriRoot, sub);
             if (Directory.Exists(d)) list.AddRange(Directory.EnumerateFiles(d, "*.rpf", SearchOption.AllDirectories));
@@ -350,7 +358,7 @@ public sealed class GameIndex
     /// <summary>
     /// An archive or loose root in onigiri: a pack in <c>onigiri/dlcpacks</c> is a DLC like one in the game's dlcpacks;
     /// <c>onigiri/platform</c> and <c>onigiri/common</c> (and the archives under them) are seen by the game at <c>x64/…</c> /
-    /// <c>common/…</c>, over update.rpf.
+    /// <c>common/…</c>, over update.rpf; <c>onigiri/dlc_patch/&lt;pack&gt;</c> is laid over the pack's patch (rank in <see cref="Place"/>).
     /// </summary>
     private static Basic ClassifyOnigiri(string rel)
     {
@@ -359,16 +367,34 @@ public sealed class GameIndex
         if (parts.Length == 4 && parts[1] == "dlcpacks" && Regex.IsMatch(parts[3], @"^dlc\d*\.rpf$"))
             return new Basic(ArchiveRole.Dlc, $"update/x64/dlcpacks/{parts[2]}/{parts[3]}", true, null, parts[2], 1000,
                              $"DLC {parts[2]} (onigiri)", $"dlcpacks/{parts[2]}/");
-        var root = parts.Length >= 2 && parts[1] == "platform" ? "x64" : "common";
-        var rest = string.Join('/', parts.Skip(2));
-        return new Basic(ArchiveRole.Update, rel, true, null, null, OnigiriRank, "onigiri",
+        if (parts.Length >= 3 && parts[1] == "dlc_patch")
+        {
+            var inPack = string.Join('/', parts.Skip(3));
+            return new Basic(ArchiveRole.Update, rel, true, null, null, OnigiriRank, $"onigiri → {parts[2]}",
+                             inPack.Length == 0 ? $"dlcpacks/{parts[2]}/" : $"dlcpacks/{parts[2]}/{inPack}/");
+        }
+        // onigiri/update/x64|common: laid over update:/ by our plugin — over onigiri/platform's copy of the same file too
+        bool update = parts.Length >= 3 && parts[1] == "update";
+        var root = update ? (parts[2] == "x64" ? "x64" : "common") : parts.Length >= 2 && parts[1] == "platform" ? "x64" : "common";
+        var rest = string.Join('/', parts.Skip(update ? 3 : 2));
+        return new Basic(ArchiveRole.Update, rel, true, null, null, update ? OnigiriRank + 1 : OnigiriRank, "onigiri",
                          rest.Length == 0 ? root + "/" : $"{root}/{rest}/");
     }
 
-    /// <summary>Logical path + rank of one file (a <c>dlc_patch</c> entry belongs to its pack, just above it).</summary>
+    /// <summary>
+    /// Logical path + rank of one file (a <c>dlc_patch</c> entry belongs to its pack, just above it; a file of
+    /// <c>onigiri/dlc_patch/&lt;pack&gt;</c> just above that).
+    /// </summary>
     private (string Logical, int Rank, string Source, string? Inactive) Place(int arc, string innerLower)
     {
         var info = _info[arc];
+        if (info.GameRel.StartsWith(OnigiriPrefix + "dlc_patch/", StringComparison.OrdinalIgnoreCase))
+        {
+            var over = info.GameRel.Split('/')[2];
+            int at = _dlcPos.GetValueOrDefault(over, -1);
+            return (info.LogicalRoot + innerLower, at < 0 ? info.Rank : 1000 + at * 10 + 6, info.Source,
+                    info.Inactive ?? (at < 0 ? L.T($"patches {over}, which isn't mounted") : null));
+        }
         if (info.Role != ArchiveRole.Update || !innerLower.StartsWith("dlc_patch/", StringComparison.Ordinal))
             return (info.LogicalRoot + innerLower, info.Rank, info.Source, info.Inactive);
         int slash = innerLower.IndexOf('/', 10);

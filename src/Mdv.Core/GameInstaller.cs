@@ -254,6 +254,32 @@ public static partial class GameInstaller
         log(L.T($"    Added {RpfCacheSwitch} — it keeps {edition.DisplayName()}'s RPF cache from hiding the mods folder."));
     }
 
+    /// <summary>Where <see cref="ModsLayout.OnigiriDlcPatchAsi"/> is bundled: <c>data/plugins/onigiri</c>.</summary>
+    public static string OnigiriPluginsDir(string? pluginsDir = null) =>
+        Path.Combine(pluginsDir ?? Path.Combine(AppContext.BaseDirectory, "data", "plugins"), "onigiri");
+
+    /// <summary>
+    /// Put our <see cref="ModsLayout.OnigiriDlcPatchAsi"/> into a game with Onigiri (or a newer build over an older one): it
+    /// mounts <c>onigiri\dlc_patch\&lt;pack&gt;</c> over update.rpf's patch of the pack and <c>onigiri\update</c> over
+    /// update:/ — Onigiri reads neither. Not journaled: like the onigiri folder, it stays — it does nothing while those
+    /// folders are empty.
+    /// </summary>
+    public static void EnsureOnigiriDlcPatch(string gameDir, Action<string> log, string? pluginsDir = null)
+    {
+        string asi = ModsLayout.OnigiriDlcPatchAsi;                  // not a const hole: the texts below stay translatable
+        var src = Path.Combine(OnigiriPluginsDir(pluginsDir), asi);
+        var dst = Path.Combine(gameDir, asi);
+        if (!File.Exists(src))
+        {
+            if (!File.Exists(dst))
+                log(L.T($"    [!] {asi} is missing from ModDrop V's data\\plugins\\onigiri — the game won't see the files in onigiri\\dlc_patch and onigiri\\update."));
+            return;
+        }
+        if (File.Exists(dst) && File.ReadAllBytes(dst).AsSpan().SequenceEqual(File.ReadAllBytes(src))) return;
+        PathUtil.Copy2(src, dst);
+        log(L.T($"    Installed {asi} — it lets the game see onigiri\\dlc_patch and onigiri\\update, the files over update.rpf."));
+    }
+
     public static void EnsureModsFolder(string gameDir, Action<string> log)
     {
         var mods = Path.Combine(gameDir, "mods");
@@ -417,6 +443,12 @@ public static partial class GameInstaller
     /// <exception cref="FileNotFoundException">mods, update.rpf or dlclist.xml is missing</exception>
     public static bool RegisterInDlclist(string gameDir, string dlcName, Action<string> log, InstallJournal? journal = null)
     {
+        if (journal?.DeferredPacks is { } deferred)
+        {
+            if (!deferred.Contains(dlcName, StringComparer.OrdinalIgnoreCase)) deferred.Add(dlcName);
+            log(L.T($"    The game runs: dlcpacks:/{dlcName}/ goes into dlclist.xml once it closes — it is loaded into the game now."));
+            return true;
+        }
         bool changed = false;
         EditDlclist(gameDir, text =>
         {
@@ -533,7 +565,8 @@ public static partial class GameInstaller
             PathUtil.Copy2(sub, subDest);
             log(L.T($"    {Path.GetFileName(sub)} (sub-pack) copied -> {subDest}"));
         }
-        SortDlclist(gameDir, log);                     // its components are readable only now it is in place
+        if (journal?.DeferredPacks is null)            // into the running game: listed (and sorted) once it closes
+            SortDlclist(gameDir, log);                 // its components are readable only now it is in place
         // a switched-off copy of an earlier version is superseded by this one
         var parked = DisabledPackDir(gameDir, dlcName);
         if (Directory.Exists(parked))

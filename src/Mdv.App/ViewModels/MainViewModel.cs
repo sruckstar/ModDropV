@@ -92,7 +92,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Player: the library page instead of the install page.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsInstallPage), nameof(ShowInstallPage), nameof(ShowLibraryPage), nameof(ShowWorkspace),
-                              nameof(ShowFooter))]
+                              nameof(ShowFooter), nameof(ShowLivePitch))]
     public partial bool IsLibraryPage { get; set; }
 
     public bool IsInstallPage
@@ -125,7 +125,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ToggleTheme() => IsDark = !IsDark;
 
-    public string BuildButtonText => IsPlayer ? L.T("Install into GTA V") : L.T("Build Add-On");
+    public string BuildButtonText => !IsPlayer ? L.T("Build Add-On") : LiveInstallReady ? L.T("Install into the game") : L.T("Install into GTA V");
 
     /// <summary>The footer's button: the player sees the install plan first, the modder builds right away.</summary>
     public IAsyncRelayCommand PrimaryCommand => IsPlayer ? ReviewInstallCommand : BuildCommand;
@@ -197,6 +197,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(ShowOutputCard));
         OnPropertyChanged(nameof(ShowTopCards));
+        NotifyLive();
     }
 
     // ================================================================ destination
@@ -213,7 +214,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Pack for GTA V Enhanced (gen9 models) instead of Legacy.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsLegacy), nameof(GameChipTitle))]
+    [NotifyPropertyChangedFor(nameof(IsLegacy), nameof(GameChipTitle), nameof(LiveInstallReady), nameof(BuildButtonText))]
     public partial bool IsEnhanced { get; set; }
 
     public bool IsLegacy
@@ -230,6 +231,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnIsEnhancedChanged(bool value)
     {
+        NotifyLive();
         if (IsPlayer)
         {
             _ = RefreshInstalledAsync();                 // each edition stages its own shared pack
@@ -414,7 +416,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string CopyLogLabel { get; set; } = L.T("Copy");
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowFooter))]
+    [NotifyPropertyChangedFor(nameof(ShowFooter), nameof(ShowLivePitch))]
     public partial bool ResultVisible { get; set; }
     [ObservableProperty] public partial bool ResultOk { get; set; }
     [ObservableProperty] public partial string ResultTitle { get; set; } = "";

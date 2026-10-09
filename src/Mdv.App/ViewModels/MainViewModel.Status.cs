@@ -87,9 +87,8 @@ public sealed partial class MainViewModel
         StatusSummary = IsOnlineMode ? L.T("Clean for GTA Online") : warnings == 0 ? L.T("Game ready for mods") : warnings == 1 ? L.T("1 thing to check") : L.T($"{warnings} things to check");
         _staleCopies = report.StaleCopies;
         HasStaleCopies = _staleCopies.Count > 0;
-        StaleCopiesText = HasStaleCopies
-            ? L.T($"The game was updated after these were copied: {string.Join(", ", _staleCopies.Select(a => "mods/" + a))}. Old copies are a common cause of crashes.")
-            : "";
+        var stale = string.Join("; ", report.Copies.Where(c => c.Stale is not null).Select(c => $"{c.Shown} ({c.Stale})"));
+        StaleCopiesText = HasStaleCopies ? L.T($"Out of date: {stale}. An old copy is a common cause of crashes.") : "";
     }
 
     [RelayCommand]

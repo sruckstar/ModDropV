@@ -572,7 +572,7 @@
                             <Setter Property="TextDecorations" Value="Strikethrough" />
                           </Style>
                         </Border.Styles>
-                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
                           <CheckBox IsChecked="{Binding Enabled}" IsEnabled="{Binding CanToggle}" VerticalAlignment="Center"
                                     MinWidth="0" Padding="0" ToolTip.Tip="{Binding ToggleTip}"
                                     ToolTip.ShowOnDisabled="True" />
@@ -603,14 +603,14 @@
                                   ToolTip.Tip="{l:Tr 'Switch the alternative components the mod ships'}">
                             <TextBlock Text="{l:Tr 'variants'}" FontSize="11" />
                           </Button>
-                          <Border Grid.Column="4" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
+                          <Border Grid.Column="5" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
                             <TextBlock Text="{Binding Status}" />
                           </Border>
-                          <Button Grid.Column="5" Classes="icon" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}"
+                          <Button Grid.Column="6" Classes="icon" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}"
                                   IsVisible="{Binding CanOpenFolder}" ToolTip.Tip="{l:Tr 'Open its folder'}">
                             <PathIcon Data="{StaticResource IconFolder}" Width="15" Height="15" />
                           </Button>
-                          <Button Grid.Column="6" Classes="icon" VerticalAlignment="Center" Command="{Binding ToggleRemoveCommand}"
+                          <Button Grid.Column="7" Classes="icon" VerticalAlignment="Center" Command="{Binding ToggleRemoveCommand}"
                                   ToolTip.Tip="{Binding RemoveTip}">
                             <Panel Width="16" Height="16">
                               <Path Data="{StaticResource IconTrash}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6"
@@ -710,6 +710,21 @@
       <Border Grid.Row="3" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,1,0,0"
               Background="{DynamicResource Surface1Brush}" IsVisible="{Binding ShowFooter}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18" MinHeight="44">
+          <!-- early access: installs into the running game (the loader isn't here; said whether the game runs or not) -->
+          <Border IsVisible="{Binding ShowLivePitch}" CornerRadius="9" Padding="12,7" BorderThickness="1"
+                  Background="{DynamicResource AccentWashBrush}" BorderBrush="{DynamicResource AccentLineBrush}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+              <Path Data="{StaticResource IconGame}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.7" VerticalAlignment="Center"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="20" Height="18" />
+              <StackPanel Grid.Column="1" Spacing="1">
+                <TextBlock Text="{Binding LivePitchTitle}" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}" />
+                <TextBlock FontSize="12" Foreground="{DynamicResource Text2Brush}" TextWrapping="Wrap" Text="{Binding LivePitchText}" />
+              </StackPanel>
+              <Button Grid.Column="2" Classes="ghost small" VerticalAlignment="Center" Command="{Binding OpenPatreonCommand}"
+                      Content="{l:Tr 'Support on Patreon'}" />
+            </Grid>
+          </Border>
+
           <!-- result banner -->
           <Border x:Name="ResultBanner" IsVisible="{Binding ResultVisible}" CornerRadius="9" Padding="12,7"
                   BorderThickness="1" Classes.ok="{Binding ResultOk}" Classes.err="{Binding !ResultOk}">

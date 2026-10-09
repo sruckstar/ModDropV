@@ -91,6 +91,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     public const string ClothingPrefix = "clothing:";
     public const string MapPrefix = "map:";
     public const string PropPrefix = "prop:";
+    public const string AnimPrefix = "anim:";
     private const string StagedKey = "addon.staged";
     /// <summary>Registry key: how many variants of a ped's components the installed pack keeps (<see cref="PedVariants"/>).</summary>
     public const string VariantsKey = "variants";
@@ -99,16 +100,19 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     private string Prefix => Category switch
     {
         ModCategory.Ped => PedPrefix, ModCategory.Clothing => ClothingPrefix, ModCategory.Map => MapPrefix, ModCategory.Prop => PropPrefix,
+        ModCategory.Animation => AnimPrefix,
         _ => VehiclePrefix,
     };
     private string Noun => Category switch
     {
         ModCategory.Ped => L.T("ped"), ModCategory.Clothing => L.T("clothing collection"), ModCategory.Map => L.T("placement file"), ModCategory.Prop => L.T("prop"),
+        ModCategory.Animation => L.T("animation dictionary"),
         _ => L.T("vehicle"),
     };
     private string NounPlural => Category switch
     {
         ModCategory.Ped => L.T("peds"), ModCategory.Clothing => L.T("clothing collections"), ModCategory.Map => L.T("placement files"), ModCategory.Prop => L.T("props"),
+        ModCategory.Animation => L.T("animation dictionaries"),
         _ => L.T("vehicles"),
     };
     private bool IsMapKind => Category is ModCategory.Map or ModCategory.Prop;
@@ -198,6 +202,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
 
         if (IsMapKind) return LooseMap(source, report, env, name, src);
         if (report.Primary?.Category != Category) return null;
+        if (Category == ModCategory.Animation) return LooseAnims(source, env, name, src);
         if (Category == ModCategory.Clothing) return LooseClothing(source, files, name, src, env);
         var vanilla = VanillaModels.Load(env.DataDir);
 
@@ -459,6 +464,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
     private static string Done(AddonPackage pkg)
     {
         if (pkg.Kind is ModCategory.Map or ModCategory.Prop) return MapDone(pkg);
+        if (pkg.Kind == ModCategory.Animation) return AnimsDone(pkg);
         if (pkg.Kind == ModCategory.Clothing)
         {
             var peds = CollectionsOf(pkg).Select(c => ClothingNames.PedLabel(c.Ped)).Distinct().ToList();
@@ -506,6 +512,10 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                     ? L.T($"Pack the map ({map.Files.Count} file(s): placements, archetypes, models) into a dlc.rpf") +
                       (map.Content.HasManifest ? "" : L.T(" with a manifest that loads its archetypes with its placements"))
                     : L.T($"Pack the props ({map.Files.Count} file(s)) into a dlc.rpf, their archetypes loaded for good"));
+        else if (pkg.Compose is { } anims && pkg.Kind == ModCategory.Animation)
+            parts.Add(anims.Resources.Count > 0
+                ? L.T($"Pack the FiveM resource(s) {string.Join(", ", anims.Resources)} into a dlc.rpf as an animation pack")
+                : L.T($"Pack the animation dictionar(ies) {string.Join(", ", anims.Content.Anims.Take(4))}{(anims.Content.Streamed.Count > 4 ? ", …" : "")} into a dlc.rpf"));
         else if (pkg.Compose is { } spec)
             parts.Add(spec.Resources.Count > 0
                 ? L.T($"Pack the FiveM resource(s) {string.Join(", ", spec.Resources)} into a dlc.rpf")
@@ -631,6 +641,7 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
             ModCategory.Clothing => CollectionsOf(pkg).Select(x => x.FullName).ToList(),
             ModCategory.Map => c.Ymaps.Select(y => Path.GetFileNameWithoutExtension(y.Split('/')[^1])).ToList(),
             ModCategory.Prop => c.Archetypes.ToList(),
+            ModCategory.Animation => c.Anims.ToList(),
             _ => c.SpawnNames.ToList(),
         };
         var record = new RegisteredMod
@@ -649,6 +660,8 @@ public sealed partial class AddonPackHandler(ModCategory kind) : IModHandler
                         ? L.T($"props: {string.Join(", ", names.Take(4)) + (names.Count > 4 ? ", …" : "")}") + $" · dlcpacks\\{pkg.PackName}"
                     : pkg.Kind == ModCategory.Clothing
                         ? $"{string.Join(", ", CollectionsOf(pkg).Take(3).Select(x => $"{ClothingNames.PedLabel(x.Ped)} · {x.DlcName}"))} · dlcpacks\\{pkg.PackName}"
+                    : pkg.Kind == ModCategory.Animation
+                        ? L.T($"animations: {string.Join(", ", names.Take(4)) + (names.Count > 4 ? ", …" : "")}") + $" · dlcpacks\\{pkg.PackName}"
                     : L.T($"spawn: {string.Join(", ", names.Take(4)) + (names.Count > 4 ? ", …" : "")}") + $" · dlcpacks\\{pkg.PackName}",
             },
         };

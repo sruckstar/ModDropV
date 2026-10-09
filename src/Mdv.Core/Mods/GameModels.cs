@@ -6,11 +6,13 @@ namespace Mdv.Core.Mods;
 /// The names of the game's own streamed assets — models (.ydr / .yft), texture dictionaries (.ytd), archetype
 /// files (.ytyp) and ped variations (.ymt, MP clothing collections among them), base game and DLCs — as the hashes
 /// the game looks them up by (data/game_models.bin). An add-on prop, its textures, its .ytyp or a clothing collection
-/// named like one of them would take the game's place.
+/// named like one of them would take the game's place. The game's animation dictionaries (.ycd) are a list of their own
+/// in the same form (data/game_anims.bin, <see cref="LoadAnims"/>): a dictionary named like one of them replaces it.
 /// </summary>
 public sealed class GameModels
 {
     public static readonly string FileName = "game_models.bin";
+    public static readonly string AnimsFileName = "game_anims.bin";
 
     private readonly HashSet<uint> _hashes;
 
@@ -24,9 +26,14 @@ public sealed class GameModels
     private static readonly Dictionary<string, GameModels> Cache = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The list shipped in <paramref name="dataDir"/>; empty when it's missing.</summary>
-    public static GameModels Load(string? dataDir)
+    public static GameModels Load(string? dataDir) => Load(dataDir, FileName);
+
+    /// <summary>The game's animation dictionaries shipped in <paramref name="dataDir"/>; empty when the list is missing.</summary>
+    public static GameModels LoadAnims(string? dataDir) => Load(dataDir, AnimsFileName);
+
+    private static GameModels Load(string? dataDir, string fileName)
     {
-        var path = Path.Combine(dataDir ?? DependencyCatalog.DefaultDataDir, FileName);
+        var path = Path.Combine(dataDir ?? DependencyCatalog.DefaultDataDir, fileName);
         lock (Cache)
         {
             if (Cache.TryGetValue(path, out var m)) return m;

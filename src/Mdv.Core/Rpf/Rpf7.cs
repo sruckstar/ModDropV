@@ -9,6 +9,15 @@ public class RpfFormatException(string message) : IOException(message);
 /// <summary>The archive (or one of its entries) is encrypted by the game and no keys were supplied.</summary>
 public sealed class RpfEncryptedException(string message) : RpfFormatException(message);
 
+/// <summary>An archive would pass the RPF7 limit of 4 GiB (<see cref="RpfEditor.MaxBytes"/>).</summary>
+/// <param name="needed">the length it would have needed</param>
+public sealed class RpfFullException(string archive, long needed)
+    : InvalidOperationException($"{archive}: no room to grow — the archive would pass the RPF7 4 GiB limit.")
+{
+    public string Archive { get; } = archive;
+    public long Needed { get; } = needed;
+}
+
 /// <summary>How a file entry is stored in an RPF7 archive.</summary>
 public enum RpfEntryKind
 {

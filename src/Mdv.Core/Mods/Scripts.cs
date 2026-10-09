@@ -565,6 +565,9 @@ public sealed class CopyFilesOp(IReadOnlyList<(string Source, string GameRel)> f
     /// <summary>Files other mods share: what they replace isn't kept, and the mod's journal leaves them out.</summary>
     public bool Shared { get; init; }
 
+    /// <summary>The limit plugins (<see cref="LimitAdjusters"/>): the game's, not the mod's — they stay when it is removed.</summary>
+    public bool LimitPlugins { get; init; }
+
     public override string Describe() => description;
 
     public override void Execute(InstallContext ctx)

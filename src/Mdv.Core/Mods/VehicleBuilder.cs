@@ -486,8 +486,7 @@ public static partial class VehicleBuilder
             var spec = DlcComposer.FromDrop(drop) ?? throw new IntakeException(L.T("Nothing to pack — the folder has no vehicle."));
             foreach (var w in spec.Warnings) log($"[!] {w}");
             // in content.xml as Rockstar's vehicle packs list them: layouts, handling, vehicles, modkits, variations, the models
-            var order = new[] { "VEHICLE_LAYOUTS_FILE", HandlingType, InitType, CarcolsType, VariationType };
-            var sorted = spec.Data.OrderBy(d => Array.IndexOf(order, d.Type) is var i and >= 0 ? i : d.Type == "RPF_FILE" ? 99 : 50).ToList();
+            var sorted = DlcComposer.OrderVehicleData(spec.Data);
             spec.Data.Clear();
             spec.Data.AddRange(sorted);
             spec.Content.Labels[Gxt2.Joaat(names.GameName)] = names.DisplayName;

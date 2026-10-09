@@ -78,9 +78,6 @@ public static class AddonChecks
     /// <summary>From this many add-on packs on, the limits the game has for DLC are worth a word.</summary>
     public const int ManyPacks = 25;
 
-    public const string PackfileLimitLink = "https://www.gta5-mods.com/tools/packfile-limit-adjuster";
-    public const string HeapLink = "https://www.gta5-mods.com/tools/heapadjuster";
-
     /// <summary>What another add-on pack in mods declares (its folder, device, spawn names, kits).</summary>
     private sealed record OtherPack(string Folder, bool On, string? Device, List<string> Names, List<AddonKit> Kits, List<string> Collections);
 
@@ -189,6 +186,25 @@ public static class AddonChecks
                     string.Join(", ", colls.Select(c => c.FullName))));
         }
 
+        // ---- animation dictionaries: one named like another's — the game's or another pack's — stands in for it
+        if (pkg.Kind == ModCategory.Animation)
+        {
+            var dicts = content.Anims.ToList();
+            var gameAnims = GameModels.LoadAnims(pkg.DataDir);
+            var clashes = new List<string>();
+            foreach (var d in dicts)
+            {
+                if (gameAnims.Has(d))
+                    clashes.Add(L.T($"«{d}» is an animation dictionary of the game itself — the add-on's takes its place"));
+                else if (index?.Find(d + ".ycd").FirstOrDefault(h => h.Active && !InFolder(h, ownFolders)) is { } hit)
+                    clashes.Add(L.T($"«{d}» is already in the game ({hit.Source}) — only one of the two loads"));
+            }
+            foreach (var c in clashes) r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Animation name taken"), c + "."));
+            if (clashes.Count == 0 && dicts.Count > 0)
+                r.Items.Add(new AddonCheck(CheckLevel.Ok, dicts.Count == 1 ? L.T("Animation name is free") : L.T("Animation names are free"),
+                    string.Join(", ", dicts.Take(6)) + (dicts.Count > 6 ? ", …" : "")));
+        }
+
         // ---- weapon components from another mod: listed after it, or the game stops loading without it
         r.Items.AddRange(DlcOrder.Checks(game, target.Edition, pkg.DataDir, new(content.ComponentsDefined, content.ComponentsUsed), ownFolders));
 
@@ -222,26 +238,12 @@ public static class AddonChecks
         // ---- limits
         // the others that stay in, and this one (its earlier versions aren't among the others)
         r.AddonPacks = others.Count(o => o.On && !o.Folder.Equals(pkg.PackName, StringComparison.OrdinalIgnoreCase)) + 1;
+        // the limit plugins come with any install (GamePools.AdjusterOps), in both editions
         if (r.AddonPacks >= ManyPacks)
-        {
-            if (target.Edition == GameEdition.Legacy)
-            {
-                if (!File.Exists(Path.Combine(game, "PackfileLimitAdjuster.asi")))
-                    r.Items.Add(new AddonCheck(CheckLevel.Warn, L.T("Many add-on packs"),
-                        L.T($"{r.AddonPacks} add-on packs — past a few dozen the game hits its archive limit and crashes on loading. " +
-                        $"Packfile Limit Adjuster raises it."), PackfileLimitLink));
-                var heap = Path.Combine(game, "HeapAdjuster.asi");
-                if (!File.Exists(heap) || LimitAdjusters.ForEnhanced(heap))            // the Enhanced build does nothing here
-                    r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Memory for add-ons"),
-                        L.T("With many add-on vehicles the game can run out of streaming memory (ERR_MEM_EMBEDDEDALLOC). " +
-                        "Heap Adjuster gives it more (the gameconfig.xml limits ModDrop V raises itself)."), HeapLink));
-            }
-            else
-                r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Many add-on packs"),
-                    L.T($"{r.AddonPacks} add-on packs — ModDrop V raises the game's limits for them (gameconfig.xml, Heap Adjuster and " +
-                    $"Packfile Limit Adjuster). If the game still crashes on loading, raise the values in HeapAdjuster.ini and " +
-                    $"PackfileLimitAdjusterEnhanced.ini in the game folder.")));
-        }
+            r.Items.Add(new AddonCheck(CheckLevel.Info, L.T("Many add-on packs"),
+                L.T($"{r.AddonPacks} add-on packs — ModDrop V raises the game's limits for them (gameconfig.xml, Heap Adjuster and " +
+                $"Packfile Limit Adjuster). If the game still crashes on loading, raise the values in HeapAdjuster.ini and " +
+                $"PackfileLimitAdjusterEnhanced.ini in the game folder.")));
         return r;
     }
 

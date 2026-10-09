@@ -10,6 +10,7 @@
 param(
     [switch]$Zip,
     [switch]$SkipTests,
+    [string]$HotLoad,
     [string]$Runtime = "win-x64"
 )
 $ErrorActionPreference = "Stop"
@@ -51,4 +52,17 @@ if ($Zip) {
     if (Test-Path $zipPath) { Remove-Item $zipPath }
     Compress-Archive -Path "$out\*" -DestinationPath $zipPath
     Write-Host "Zip -> $zipPath"
+}
+
+if ($HotLoad) {
+    if (-not (Test-Path $HotLoad)) { throw "no early-access loader at $HotLoad" }
+    $early = Join-Path $PSScriptRoot "publish\ModDropV-early-access"
+    if (Test-Path $early) { Remove-Item $early -Recurse -Force }
+    Copy-Item $out $early -Recurse
+    Copy-Item $HotLoad (Join-Path $early "ModDropV.HotLoad.dll")
+    $earlyZip = Join-Path $PSScriptRoot "publish\ModDropV-$version-early-access-$Runtime.zip"
+    if (Test-Path $earlyZip) { Remove-Item $earlyZip }
+    Compress-Archive -Path "$early\*" -DestinationPath $earlyZip
+    Remove-Item $early -Recurse -Force
+    Write-Host "Early access zip -> $earlyZip"
 }

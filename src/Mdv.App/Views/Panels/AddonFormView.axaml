@@ -97,7 +97,7 @@
                                IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                   <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <TextBlock Text="{l:Tr 'spawn name'}" FontSize="10" HorizontalAlignment="Right" Foreground="{DynamicResource Text3Brush}" />
+                    <TextBlock Text="{Binding Label}" FontSize="10" HorizontalAlignment="Right" Foreground="{DynamicResource Text3Brush}" />
                     <SelectableTextBlock Text="{Binding Spawn}" FontFamily="{StaticResource MonoFont}" FontSize="12.5"
                                          Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Right" />
                   </StackPanel>

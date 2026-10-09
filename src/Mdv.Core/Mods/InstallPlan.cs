@@ -2,6 +2,7 @@ using Mdv.Core;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using Mdv.Core.Index;
+using Mdv.Core.Rpf;
 using Mdv.Core.Util;
 
 namespace Mdv.Core.Mods;
@@ -29,15 +30,19 @@ public sealed class InstallPlan
     /// What the plan takes on the game's drive and how much it touches: the archives it copies into mods first (a copy is
     /// as big as the game's archive), the files it adds, and how much room the drive has.
     /// </summary>
+    /// <summary>A copy past this (7/8 of the 4 GB RPF7 limit) may not take what a plan brings.</summary>
+    private static long NearLimit => RpfEditor.MaxBytes - RpfEditor.MaxBytes / 8;
+
     public PlanFootprint Footprint(InstallTarget target)
     {
         var newCopies = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         var archives = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var adds = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         int inArchives = 0;
         long files = 0;
         // with Onigiri a change copies the archive nested in the game's (or nothing, for a loose file)
         var onigiri = ModsLayout.UsesOnigiri(target.GameDir) ? ModsOverlay.Load(target.GameDir) : null;
-        void Touch(string gamePath)
+        string? Touch(string gamePath)
         {
             string top;
             try
@@ -46,11 +51,11 @@ public sealed class InstallPlan
             }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
             {
-                return;
+                return null;
             }
             inArchives++;
             archives.Add(top);
-            if (newCopies.ContainsKey(top)) return;
+            if (newCopies.ContainsKey(top)) return top;
             if (onigiri is not null)
             {
                 try
@@ -61,11 +66,12 @@ public sealed class InstallPlan
                 {
                     // can't tell — the install checks the room itself
                 }
-                return;
+                return top;
             }
-            if (File.Exists(Path.Combine(target.ModsDir, top))) return;
+            if (File.Exists(Path.Combine(target.ModsDir, top))) return top;
             var game = new FileInfo(Path.Combine(target.GameDir, top));
             if (game.Exists) newCopies[top] = game.Length;
+            return top;
         }
         static long Size(string path)
         {
@@ -82,8 +88,9 @@ public sealed class InstallPlan
             switch (op)
             {
                 case RpfPutOp put:
-                    Touch(put.GamePath);
-                    files += Size(put.Source);
+                    long size = Size(put.Source);
+                    if (Touch(put.GamePath) is { } into) adds[into] = adds.GetValueOrDefault(into) + size;
+                    files += size;
                     break;
                 case RpfDeleteOp del: Touch(del.GamePath); break;
                 case RpfEditOp edit: Touch(edit.GamePath); break;
@@ -102,8 +109,16 @@ public sealed class InstallPlan
         {
             // not a local drive — unknown
         }
+        // a copy the plan takes close to 4 GB: said before the install, not as a failure halfway through it
+        var near = new List<string>();
+        foreach (var top in archives.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            long now = newCopies.TryGetValue(top, out var fresh) ? fresh
+                     : Size(onigiri?.CopyPath(top) ?? Path.Combine(target.ModsDir, top));
+            if (now + adds.GetValueOrDefault(top) > NearLimit) near.Add(top);
+        }
         return new PlanFootprint(newCopies.Values.Sum() + files, [.. newCopies.Keys.Order(StringComparer.OrdinalIgnoreCase)], inArchives,
-                                 [.. archives.Order(StringComparer.OrdinalIgnoreCase)], free, files);
+                                 [.. archives.Order(StringComparer.OrdinalIgnoreCase)], free, files, near);
     }
 }
 
@@ -114,8 +129,9 @@ public sealed class InstallPlan
 /// <param name="Archives">the game archives those are in</param>
 /// <param name="Free">free space on the game's drive (null: unknown)</param>
 /// <param name="Files">the files it brings (without the archive copies)</param>
+/// <param name="NearLimit">archives whose copy ends up close to the 4 GB an RPF archive can hold</param>
 public sealed record PlanFootprint(long Bytes, IReadOnlyList<string> NewCopies, int InArchives, IReadOnlyList<string> Archives, long? Free,
-                                   long Files = 0)
+                                   long Files = 0, IReadOnlyList<string>? NearLimit = null)
 {
     /// <summary>The drive has less room than the plan needs (with a margin for the rewrite of archive tables).</summary>
     public bool TooBig => Free is { } f && f < Bytes + (256L << 20);
@@ -287,7 +303,11 @@ public sealed class InstallDlcPackOp(string dlcRpf, string pack, string? done = 
 public sealed class DlclistAddOp(string pack) : PlanOp
 {
     public override string Describe() => L.T($"Add dlcpacks:/{pack}/ to dlclist.xml");
-    public override void Execute(InstallContext ctx) => GameInstaller.RegisterInDlclist(ctx.GameDir, pack, ctx.Log, ctx.Journal);
+    public override void Execute(InstallContext ctx)
+    {
+        DlclistGuard.EnsureList(ctx);
+        GameInstaller.RegisterInDlclist(ctx.GameDir, pack, ctx.Log, ctx.Journal);
+    }
 }
 
 public sealed class DlclistRemoveOp(string pack) : PlanOp
@@ -306,10 +326,17 @@ public sealed class RpfPutOp(string gamePath, string source, string modId) : Pla
     public string Source { get; } = source;
     public string ModId { get; } = modId;
 
-    public override string Describe() => L.T($"Replace {GamePath} with {Path.GetFileName(source)} (the game's own file stays untouched)");
+    public override string Describe() => DlclistGuard.IsDlclist(GamePath)
+        ? L.T($"Add the packs {Path.GetFileName(source)} lists to dlclist.xml (the packs other mods listed stay)")
+        : L.T($"Replace {GamePath} with {Path.GetFileName(source)} (the game's own file stays untouched)");
 
     public override void Execute(InstallContext ctx)
     {
+        if (DlclistGuard.IsDlclist(GamePath))
+        {
+            DlclistGuard.Merge(ctx, ctx.Overlay.Read(GamePath), File.ReadAllBytes(source), removes: false);
+            return;
+        }
         ctx.Overlay.Put(modId, GamePath, File.ReadAllBytes(source));
         ctx.Log(L.T($"    {Path.GetFileName(source)} -> {ctx.Overlay.Shown(ctx.Overlay.KeyFor(GamePath))}"));
     }
@@ -324,6 +351,11 @@ public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
 
     public override void Execute(InstallContext ctx)
     {
+        if (DlclistGuard.IsDlclist(GamePath))
+        {
+            ctx.Log(L.T("    [!] The mod deletes dlclist.xml — skipped: the game can't start without it."));
+            return;
+        }
         ctx.Overlay.Delete(modId, GamePath);
         ctx.Log(L.T($"    deleted {ctx.Overlay.Shown(ctx.Overlay.KeyFor(GamePath))}"));
     }
@@ -337,13 +369,20 @@ public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
 public sealed class RpfEditOp(string gamePath, string modId, string description, Func<byte[]?, Action<string>, byte[]?> edit) : PlanOp
 {
     public string GamePath { get; } = gamePath;
+    public string ModId { get; } = modId;
 
     public override string Describe() => description;
 
     public override void Execute(InstallContext ctx)
     {
-        var updated = edit(ctx.Overlay.Read(GamePath), ctx.Log);
+        var current = ctx.Overlay.Read(GamePath);
+        var updated = edit(current, ctx.Log);
         if (updated is null) return;
+        if (DlclistGuard.IsDlclist(GamePath))
+        {
+            DlclistGuard.Merge(ctx, current, updated, removes: true);       // its pack lines, not its version of the list
+            return;
+        }
         ctx.Overlay.Put(modId, GamePath, updated);
         ctx.Log($"    {GamePath}: {description}.");
     }
@@ -511,12 +550,22 @@ public sealed class TextPatchOp(string gameRel, string? find, string replacement
 public static class InstallExecutor
 {
     /// <param name="run">reports the steps as they start and can stop the plan (it is then taken back as on a failure)</param>
-    public static InstallContext Run(InstallPlan plan, InstallTarget target, Action<string> log, PlanRun? run = null)
+    /// <param name="live">the game runs and holds its archives (<see cref="LiveInstall"/>): packs go into dlcpacks, their
+    /// dlclist.xml lines and the game's limits are left for <see cref="LiveInstall.Finish"/> once it closes</param>
+    public static InstallContext Run(InstallPlan plan, InstallTarget target, Action<string> log, PlanRun? run = null, bool live = false)
     {
         // a mods folder made now would meet the stashed one on the way back
         if (OnlineMode.IsOn(target.GameDir))
             throw new InvalidOperationException(L.T("The mods of this game are put away for GTA Online — bring them back first."));
-        var journal = new InstallJournal(target.GameDir, log);
+        try
+        {
+            DlclistGuard.Migrate(target.GameDir, log);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException or ArgumentException or System.Text.Json.JsonException)
+        {
+            log(L.T($"[!] dlclist.xml could not be taken over from the mods layer: {ex.Message}"));
+        }
+        var journal = new InstallJournal(target.GameDir, log) { DeferredPacks = live ? [] : null };
         var ctx = new InstallContext(target, journal, log) { Run = run };
         int steps = plan.Ops.Count(o => !o.Hidden), step = 0;
         try
@@ -530,6 +579,12 @@ public static class InstallExecutor
                     run?.Report(ctx.Step);
                 }
                 int recorded = ctx.Registered.Count;
+                if (live && op is RpfEditOp { ModId: GamePools.LimitsOwner, GamePath: var gp } && gp.Equals(GamePools.GameConfig, StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Items[LiveInstall.LimitsKey] = GamePools.ProfileFor(plan, target);
+                    log(L.T("    The game runs: its limits in gameconfig.xml are raised once it closes (they count from its next start)."));
+                    continue;
+                }
                 op.Execute(ctx);
                 // a plan can install several mods (a map and its parts): each one's journal ends where it was recorded
                 foreach (var m in ctx.Registered.Skip(recorded)) m.JournalTo ??= journal.Steps.Count;
@@ -550,6 +605,10 @@ public static class InstallExecutor
                 ModsOverlay.CollectGarbage(target.GameDir);
                 ModsOverlay.TightenAfterRollback(target.GameDir, journal.Steps.OfType<RpfEntrySet>().Select(s => s.Archive), log);
             }
+            // the running game keeps its archives (and the mods layer's copies) open: say so, not "being used by another process"
+            if (ex is IOException { HResult: var hr } && (hr & 0xFFFF) is 32 or 33 && OnlineMode.GameRuns())
+                throw new IOException(L.T($"GTA V is running and keeps a file this needs open ({ex.Message}). Close the game and " +
+                                          $"install again."), ex);
             throw;
         }
         journal.Commit();
@@ -579,6 +638,8 @@ public static class InstallExecutor
                 }
             reg.Save(target.GameDir);
         }
+        // a mod went in: BattlEye would keep it (and the loaders) out of story mode
+        if (ctx.Registered.Count > 0) BattlEye.TurnOff(target.GameDir, log);
         return ctx;
     }
 

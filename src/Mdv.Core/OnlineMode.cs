@@ -384,6 +384,11 @@ public static class OnlineMode
         return found;
     }
 
+    /// <summary>The game itself runs (not just its launcher): it has its archives open.</summary>
+    public static bool GameRuns() =>
+        RunningGame().Any(n => n.Equals(GameEditions.LegacyExe, StringComparison.OrdinalIgnoreCase)
+                               || n.Equals(GameEditions.EnhancedExe, StringComparison.OrdinalIgnoreCase));
+
     private static void EnsureClosed()
     {
         var running = RunningGame();
@@ -406,6 +411,7 @@ public static class OnlineMode
         if (scan.Items.Count == 0)
         {
             log(L.T("Nothing to put away — the game folder has no mods."));
+            BattlEye.TurnOn(gameDir, log);
             return [];
         }
         var stash = StashDir(gameDir);
@@ -466,6 +472,7 @@ public static class OnlineMode
             throw new IOException(Friendly(ex), ex);
         }
         log(L.T($"{moved.Count} item(s) moved into {StashName}. The game starts without mods."));
+        BattlEye.TurnOn(gameDir, log);
         return moved;
     }
 
@@ -492,6 +499,7 @@ public static class OnlineMode
         if (left.Count == 0) TryDeleteDir(stash);
         else log(L.T($"[!] Kept in {StashName} — the game folder has these again: {string.Join(", ", left)}"));
         log(L.T($"{restored.Count} item(s) back in the game folder."));
+        BattlEye.TurnOff(gameDir, log);
         return new RestoreResult(restored, left);
     }
 

@@ -44,6 +44,28 @@ public abstract class FileModViewModel(MainViewModel shell) : ModPanelViewModel(
         var edition = Shell.Edition;
         var target = MainViewModel.TargetFor(game, edition);
         var run = new PlanRun();
+        if (Shell.LiveInstallReady && pkg is AddonPackage)
+            return (new PanelJob(L.T("Installing into the running game…"), log =>
+            {
+                log(L.T($"Installing «{pkg.Name}» ({pkg.Category.DisplayName()}) into the running {edition.DisplayName()}: {game}"));
+                var loaded = LiveInstall.Install(AppPaths.Root, pkg, target, log, run);
+                return loaded.AllLoaded
+                    ? new PanelOutcome(true, L.T("Installed into the running game"),
+                                       L.T($"«{pkg.Name}» is in the game now — spawn it with your trainer or menu. ModDrop V adds it to " +
+                                           $"dlclist.xml once the game closes."), game)
+                    : loaded.AllTaken
+                    ? new PanelOutcome(true, L.T("Installed into the running game"),
+                                       L.T($"«{pkg.Name}» goes into the game as soon as you are back in it (the game stands still " +
+                                           $"while you are out of it) — then spawn it with your trainer or menu. ModDrop V adds it " +
+                                           $"to dlclist.xml once the game closes."), game)
+                    : new PanelOutcome(true, L.T($"Installed into {edition.DisplayName()}"),
+                                       L.T($"«{pkg.Name}» is installed, but not in the running game yet: {loaded.Message}"), game);
+            })
+            {
+                Package = pkg,
+                Control = run,
+                LogHeader = pkg.Source is { } src0 ? [$"Source: {src0.Name} — {pkg.Category.DisplayName()}"] : [],
+            }, null);
         return (new PanelJob(L.T("Installing into GTA V…"), log =>
         {
             log(L.T($"Installing «{pkg.Name}» ({pkg.Category.DisplayName()}) into {edition.DisplayName()}: {game}"));
@@ -270,6 +292,7 @@ public sealed partial class ReplacementViewModel : FileModViewModel
             ModCategory.Vehicle => L.T("Vehicle replacement"),
             ModCategory.Ped => L.T("Ped replacement"),
             ModCategory.Livery => L.T("Vehicle repaint — whole texture dictionary"),
+            ModCategory.Animation => L.T("Animation replacement — the game’s own dictionaries"),
             _ => L.T("File replacement"),
         };
         _ = Preview.LoadAsync(pkg.Kind is ModCategory.Vehicle or ModCategory.Ped

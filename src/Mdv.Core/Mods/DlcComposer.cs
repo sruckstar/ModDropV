@@ -146,6 +146,21 @@ public static partial class DlcComposer
         return slug.Length > 24 ? slug[..24].TrimEnd('_') : slug;
     }
 
+    /// <summary>
+    /// Vehicle metas in the order Rockstar's vehicle packs enable them: layouts, handling, vehicles,
+    /// modkits, variations, then the model archives. The game applies a carvariations entry only to a
+    /// model vehicles.meta already registered, and resolves its kits against carcols already loaded —
+    /// enabled earlier (alphabetical order), the entry is dropped: default black paint, no tuning.
+    /// Packs without vehicles keep their order.
+    /// </summary>
+    public static List<ComposeData> OrderVehicleData(IEnumerable<ComposeData> data)
+    {
+        var list = data.ToList();
+        if (!list.Any(d => d.Type == "VEHICLE_METADATA_FILE")) return list;
+        string[] order = ["VEHICLE_LAYOUTS_FILE", "HANDLING_FILE", "VEHICLE_METADATA_FILE", "CARCOLS_FILE", "VEHICLE_VARIATION_FILE"];
+        return list.OrderBy(d => Array.IndexOf(order, d.Type) is var i and >= 0 ? i : d.Type == "RPF_FILE" ? 99 : 50).ToList();
+    }
+
     // ================================================================ reading a drop
 
     /// <summary>
@@ -253,13 +268,85 @@ public static partial class DlcComposer
     }
 
     /// <summary>
+    /// The archive an animation add-on's dictionaries go in, as Rockstar's DLCs keep theirs (mpheist:
+    /// <c>%PLATFORM%/anim/ingame/clip_anim@.rpf</c>, mounted for good): what is in it streams by its name.
+    /// </summary>
+    public const string AnimImage = "x64/anim/ingame/clip_addon.rpf";
+
+    /// <summary>
+    /// Animation dictionaries with nothing else to say what they are — loose .ycd files, or CodeWalker's XML of them
+    /// (built on packing; a dictionary that comes both ways goes in as its .ycd) — with the clip sets file they may come
+    /// with. The ones named like the game's (<paramref name="isGameDict"/>) take its place instead: they go to
+    /// <paramref name="replaced"/>, as do the ones in folders that mirror the game's archives. Null when no new dictionary
+    /// is left. Files of scripts (scripts\, plugins\) are theirs.
+    /// </summary>
+    public static ComposeSpec? FromAnimations(DroppedSource src, Func<string, bool> isGameDict, List<DroppedFile> replaced)
+    {
+        var files = src.Files.Where(f => !f.InBackupDir && !f.Origin.Replace('\\', '/').Split('/').SkipLast(1).Any(d =>
+                                             d.Equals("scripts", StringComparison.OrdinalIgnoreCase) ||
+                                             d.Equals("plugins", StringComparison.OrdinalIgnoreCase)))
+                             .OrderBy(f => f.Depth).ThenBy(f => f.Origin, PathUtil.PathOrder).ToList();
+        var spec = new ComposeSpec();
+        var streamed = new Dictionary<string, DroppedFile>(StringComparer.OrdinalIgnoreCase);
+        var binary = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // the game's form first: its XML next to it is its source
+        foreach (var f in files.Where(f => AnimDicts.IsAnimFile(f.Name)).OrderBy(f => AnimDicts.IsXml(f.Name)))
+        {
+            var dict = AnimDicts.DictName(f.Name);
+            bool game = ReplacementHandler.HintOf(f.Origin) is not null || isGameDict(dict);
+            if (!AnimDicts.IsXml(f.Name))
+            {
+                binary.Add(dict);
+                if (game)
+                {
+                    if (!replaced.Any(r => r.Name.Equals(f.Name, StringComparison.OrdinalIgnoreCase))) replaced.Add(f);
+                    continue;
+                }
+            }
+            else if (binary.Contains(dict)) continue;
+            else if (game)
+            {
+                spec.Warnings.Add(L.T($"{f.Name}: the game's dictionary {dict} comes only as XML — build it into {dict}.ycd with CodeWalker to replace it."));
+                continue;
+            }
+            AddAnim(spec, f, streamed);
+        }
+        if (spec.Content.Streamed.Count == 0) return null;
+        foreach (var f in files.Where(f => PathUtil.SuffixLower(f.Name) is ".xml" or ".meta" && !AnimDicts.IsXml(f.Name) &&
+                                           new FileInfo(f.FullPath).Length < (16 << 20) &&
+                                           ModDetector.RootTag(TextIo.DecodeUtf8Sig(File.ReadAllBytes(f.FullPath), strict: false)) == "fwClipSetManager"))
+            AddData(spec, f, "CLIP_SETS_FILE", "", streamed);
+        AddImages(spec);
+        CheckStreamed(spec, src);
+        return spec;
+    }
+
+    /// <summary>A dictionary (or its XML) into the animation archive, under the name the game streams it by.</summary>
+    private static void AddAnim(ComposeSpec spec, DroppedFile f, Dictionary<string, DroppedFile> streamed)
+    {
+        var dict = AnimDicts.DictName(f.Name.Split('^')[^1]);
+        var name = dict.ToLowerInvariant() + ".ycd";
+        if (streamed.TryGetValue(name, out var had))
+        {
+            if (!SameFile(had.FullPath, f.FullPath))
+                spec.Warnings.Add(L.T($"{name} is in the mod more than once — {had.Origin} is used, {f.Origin} is left out."));
+            return;
+        }
+        streamed[name] = f;
+        spec.Files.Add(new ComposeFile(f.FullPath, $"{AnimImage}/{name}"));
+        spec.Content.Streamed.Add(name);
+        spec.Content.Clips[dict] = AnimDicts.Clips(f.FullPath);
+    }
+
+    /// <summary>
     /// Streamed files the game reads only as RSC7 resources that aren't one — encrypted by FiveM's asset escrow (the
     /// resource has a .fxap), or broken. Packed as they are, they stop the game at loading (ERR_STR_PACK). A placement /
     /// archetype file in its XML form is fine: it's built into the game's form on packing.
     /// </summary>
     private static void CheckStreamed(ComposeSpec spec, DroppedSource src)
     {
-        var bad = spec.Files.Where(f => Rpf7.MustBeResource(PathUtil.SuffixLower(f.PackPath)) && !IsResource(f.Source) && !ReadableMap(f))
+        var bad = spec.Files.Where(f => Rpf7.MustBeResource(PathUtil.SuffixLower(f.PackPath)) && !IsResource(f.Source) && !ReadableMap(f) &&
+                                        !AnimDicts.IsXml(f.Source))
                             .Select(f => Path.GetFileName(f.PackPath)).ToList();
         if (bad.Count == 0) return;
         var list = string.Join(", ", bad.Take(5)) + (bad.Count > 5 ? L.T($" and {bad.Count - 5} more") : "");
@@ -577,7 +664,10 @@ public static partial class DlcComposer
     }
 
     private static ModCategory KindByStream(IEnumerable<DroppedFile> files) =>
-        files.Any(f => AddonContent.MapFileName(f.Name).EndsWith(".ymap", StringComparison.OrdinalIgnoreCase))
+        files.Where(f => GameIndex.StreamedExts.Contains(PathUtil.SuffixLower(f.Name))).ToList() is { Count: > 0 } res &&
+        res.All(f => PathUtil.SuffixLower(f.Name) == ".ycd")
+            ? ModCategory.Animation
+        : files.Any(f => AddonContent.MapFileName(f.Name).EndsWith(".ymap", StringComparison.OrdinalIgnoreCase))
             ? ModCategory.Map
         : files.Any(f => AddonContent.MapFileName(f.Name).EndsWith(".ytyp", StringComparison.OrdinalIgnoreCase)) &&
         !files.Any(f => PathUtil.SuffixLower(f.Name) is ".yft" or ".ydd" or ".ymt")
@@ -651,6 +741,11 @@ public static partial class DlcComposer
             spec.Files.Add(new ComposeFile(f.FullPath, $"{MapImage}/{name}"));
             spec.Content.Streamed.Add(name);
             if (ResourceEditions.EditionOf(PathUtil.SuffixLower(name), ResourceVersion(f.FullPath)) is { } med) spec.Content.ModelEditions.Add(med);
+            return;
+        }
+        if (kind == ModCategory.Animation && ext == ".ycd")
+        {
+            AddAnim(spec, f, streamed);
             return;
         }
         if (!GameIndex.StreamedExts.Contains(ext) && ext is not ".awc") return;
@@ -738,6 +833,11 @@ public static partial class DlcComposer
                     File.WriteAllBytes(dst, MapMeta.Write(MapMeta.Read(File.ReadAllBytes(f.Source), name), name));
                     log(L.T($"    {name}: built from its XML form."));
                 }
+                else if (AnimDicts.IsXml(f.Source))
+                {
+                    File.WriteAllBytes(dst, AnimDicts.Build(f.Source));
+                    log(L.T($"    {Path.GetFileName(f.PackPath)}: built from its XML form."));
+                }
                 else PathUtil.Copy2(f.Source, dst);
             }
             PedVariants.Lay(spec.Variants, tree, log);
@@ -747,7 +847,7 @@ public static partial class DlcComposer
                 TextIo.WriteText(Path.Combine(tree, "common", "data", "peds.meta"), PedMeta.Build(spec.NewPeds));
                 log(L.T($"    peds.meta written for {string.Join(", ", spec.NewPeds.Select(p => $"{p.Name} ({p.Gender.ToString().ToLowerInvariant()}{(p.Streamed ? ", streamed" : "")})"))}."));
             }
-            var data = spec.Data.ToList();
+            var data = OrderVehicleData(spec.Data);
             foreach (var c in spec.NewCollections) WriteCollection(spec, c, device, tree, data, log);
             if (spec.Content.Labels.Count > 0 && !data.Any(d => d.Type == "TEXTFILE_METAFILE"))
             {

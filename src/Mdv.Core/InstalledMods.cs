@@ -52,7 +52,7 @@ public static class ModLibrary
         new WeaponHandler(), new OivHandler(), new ReplacementHandler(), new ScriptHandler(),
         new AddonPackHandler(ModCategory.Vehicle), new AddonPackHandler(ModCategory.Ped), new LiveryHandler(),
         new AddonPackHandler(ModCategory.Clothing), new AddonPackHandler(ModCategory.Map), new AddonPackHandler(ModCategory.Prop),
-        new PlacementHandler(),
+        new AddonPackHandler(ModCategory.Animation), new PlacementHandler(),
     ];
 
     public static IModHandler HandlerFor(ModCategory category) =>
@@ -94,7 +94,8 @@ public static class ModLibrary
         }
         // a vehicle / ped / clothing handler that took the drop (as an add-on or a replacement of the game's one) says
         // more than the plain file replacement of the same files
-        if (result.Packages.Any(p => p.Category is ModCategory.Vehicle or ModCategory.Ped or ModCategory.Clothing or ModCategory.Map or ModCategory.Prop))
+        if (result.Packages.Any(p => p.Category is ModCategory.Vehicle or ModCategory.Ped or ModCategory.Clothing or ModCategory.Map or ModCategory.Prop
+                                          or ModCategory.Animation))
             result.Packages.RemoveAll(p => p.Category == ModCategory.Replacement);
         // an OIV package says what to do with every file in it — what other handlers see inside it is its content
         if (result.Packages.Any(p => p.Category == ModCategory.Package))
@@ -151,16 +152,27 @@ public static class ModLibrary
     public static void Apply(InstallTarget target, IReadOnlyCollection<ModChange> changes, Action<string> log, PlanRun? run = null)
     {
         if (changes.Count == 0) return;
+        LiveInstall.Finish(target, log);                 // what an install into the running game left, first
         InstallExecutor.Run(PlanChanges(target, changes), target, log, run);
     }
 
     /// <summary>Install an analysed package through its handler's plan.</summary>
-    public static InstallContext Install(ModPackage package, InstallTarget target, Action<string> log, PlanRun? run = null) =>
-        InstallExecutor.Run(PlanInstall(package, target), target, log, run);
+    public static InstallContext Install(ModPackage package, InstallTarget target, Action<string> log, PlanRun? run = null)
+    {
+        LiveInstall.Finish(target, log);                 // what an install into the running game left, first
+        return InstallExecutor.Run(PlanInstall(package, target), target, log, run);
+    }
 
     /// <summary>The install plan of an analysed package: its handler's, with the game's limits raised for mods first.</summary>
-    public static InstallPlan PlanInstall(ModPackage package, InstallTarget target) =>
-        GamePools.WithLimits(HandlerFor(package.Category).PlanInstall(package, target), target);
+    public static InstallPlan PlanInstall(ModPackage package, InstallTarget target)
+    {
+        var plan = GamePools.WithLimits(HandlerFor(package.Category).PlanInstall(package, target), target);
+        // the executor switches it off after any install that records a mod; here the player sees it in the plan
+        if (BattlEye.IsGame(target.GameDir) && !BattlEye.IsOff(target.GameDir))
+            plan.Add(new ActionOp(L.T($"Switch BattlEye off so the game starts with mods ({BattlEye.Switch} in {BattlEye.FileName}; " +
+                                      $"“Play GTA Online” switches it back on)"), _ => { }));
+        return plan;
+    }
 }
 
 /// <summary>

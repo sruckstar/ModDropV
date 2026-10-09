@@ -21,8 +21,8 @@ public sealed partial class MainViewModel
     public string OnlineButtonText => IsOnlineMode ? L.T("Bring mods back") : L.T("Play GTA Online");
 
     public string OnlineTip => IsOnlineMode
-        ? L.T("Put every mod back where it was — the game starts with mods again")
-        : L.T("Move every mod, loader and script hook out of the game folder for a clean GTA Online — one click brings them back");
+        ? L.T("Put every mod back where it was and switch BattlEye off — the game starts with mods again")
+        : L.T("Move every mod, loader and script hook out of the game folder and switch BattlEye back on for a clean GTA Online — one click brings them back");
 
     private bool CanToggleOnline() => !IsBuilding;
 
@@ -55,23 +55,38 @@ public sealed partial class MainViewModel
         }
         if (scan.Items.Count == 0)
         {
-            ShowResult(scan.Warnings.Count == 0, L.T("No mods in the game folder"),
-                       scan.Warnings.Count == 0 ? L.T("The game is clean for GTA Online as it is.") : string.Join("\n", scan.Warnings), null);
+            bool switched = false;
+            try
+            {
+                switched = BattlEye.TurnOn(game, OnLog);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("switching BattlEye on failed", ex);
+                scan.Warnings.Add(L.T($"Couldn’t switch BattlEye back on: {ex.Message} — take {BattlEye.Switch} out of {BattlEye.FileName} in the game folder."));
+            }
+            var text = scan.Warnings.Count > 0 ? string.Join("\n", scan.Warnings)
+                : switched ? L.T($"BattlEye is back on ({BattlEye.Switch} taken out of {BattlEye.FileName}) — the game is ready for GTA Online.")
+                : L.T("The game is clean for GTA Online as it is.");
+            ShowResult(scan.Warnings.Count == 0, L.T("No mods in the game folder"), text, null);
             return;
         }
         var plan = new InstallPlan { Title = L.T("Getting the game ready for GTA Online") };
         foreach (var group in scan.Items.GroupBy(i => i.Kind))
             plan.Add(new ActionOp(PutAwayStep(group.Key, group.Select(i => Shown(i.Name, i.IsFolder)).ToList()), _ => { }));
+        if (BattlEye.IsOff(game))
+            plan.Add(new ActionOp(L.T($"Switch BattlEye back on — GTA Online needs it ({BattlEye.Switch} comes out of {BattlEye.FileName})"), _ => { }));
         plan.Warnings.AddRange(scan.Warnings);
         if (OnlineMode.RunningGame() is { Count: > 0 } running)
             plan.Warnings.Insert(0, L.T($"GTA V is running ({string.Join(", ", running)}) — close the game first."));
         OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Put mods away"),
                  () => RunOnlineAsync(game, log => OnlineMode.PutAway(game, Edition, log), L.T("Putting the mods away…"),
                                       L.T("Ready for GTA Online"),
-                                      L.T($"The game starts without mods. They wait in {OnlineMode.StashName} — “Bring mods back” when you’re done."),
+                                      L.T($"The game starts without mods and with BattlEye on. They wait in {OnlineMode.StashName} — “Bring mods back” when you’re done."),
                                       L.T("Couldn’t put the mods away"), ""),
                  L.T($"Nothing is deleted: it all goes into {OnlineMode.StashName} in the game folder — on the same drive, so even " +
-                     $"gigabytes move in a moment — and “Bring mods back” puts it where it was. The game’s own files aren’t touched."));
+                     $"gigabytes move in a moment — and “Bring mods back” puts it where it was. The game’s own files aren’t touched. " +
+                     $"If you switched BattlEye off in the Rockstar Games Launcher or in Steam’s launch options, switch it back on there too."));
     }
 
     private void ReviewBringBack(string game)
@@ -82,11 +97,13 @@ public sealed partial class MainViewModel
             plan.Add(new ActionOp(L.T($"Move everything in {OnlineMode.StashName} back into the game folder"), _ => { }));
         foreach (var group in manifest.Items.GroupBy(i => i.Kind).OrderBy(g => g.Key))
             plan.Add(new ActionOp(L.T($"Move back: {List(group.Select(i => Shown(i.Name, i.Folder)).ToList())}"), _ => { }));
+        if (BattlEye.IsGame(game) && !BattlEye.IsOff(game))
+            plan.Add(new ActionOp(L.T($"Switch BattlEye off so the game starts with mods ({BattlEye.Switch} in {BattlEye.FileName})"), _ => { }));
         if (OnlineMode.RunningGame() is { Count: > 0 } running)
             plan.Warnings.Add(L.T($"GTA V is running ({string.Join(", ", running)}) — close the game first."));
         OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Bring mods back"),
                  () => RunOnlineAsync(game, log => OnlineMode.Restore(game, log), L.T("Bringing the mods back…"), L.T("Mods are back"),
-                                      L.T("Everything is where it was; the game starts with mods again."),
+                                      L.T("Everything is where it was and BattlEye is off; the game starts with mods again."),
                                       L.T("Couldn’t bring every mod back"), "\n\n" + L.T($"What didn’t move back is still in {OnlineMode.StashName} — close whatever uses it and try again.")),
                  L.T("Everything goes back where it was. If the game was updated in the meantime, the game status shows what " +
                      "needs a look (copies in mods, ScriptHookV)."));

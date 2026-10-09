@@ -17,6 +17,7 @@ namespace Mdv.Core.Mods;
 [JsonDerivedType(typeof(DlclistRemoved), "dlclistRemove")]
 [JsonDerivedType(typeof(StagingTouched), "staging")]
 [JsonDerivedType(typeof(RpfEntrySet), "rpfEntry")]
+[JsonDerivedType(typeof(IniKeySet), "iniKey")]
 public abstract record JournalStep;
 
 /// <summary>A file that did not exist before. Undo: delete it.</summary>
@@ -65,6 +66,18 @@ public sealed record RpfEntrySet([property: JsonPropertyName("archive")] string 
                                  [property: JsonPropertyName("prior")] string Prior) : JournalStep;
 
 /// <summary>
+/// A number set in a plugin's .ini (<see cref="LimitAdjusters"/>): <paramref name="Old"/> what it was (null: not there),
+/// <paramref name="Created"/> the file was made for it. Undo: the old value back — only while the value is still
+/// <paramref name="New"/>, so a value the player set since stays.
+/// </summary>
+public sealed record IniKeySet([property: JsonPropertyName("path")] string Path,
+                               [property: JsonPropertyName("section")] string Section,
+                               [property: JsonPropertyName("key")] string Key,
+                               [property: JsonPropertyName("old")] int? Old,
+                               [property: JsonPropertyName("new")] int New,
+                               [property: JsonPropertyName("created")] bool Created) : JournalStep;
+
+/// <summary>
 /// What one install / change transaction did to a game folder, step by step, and how to take
 /// it back. Operations record a step right after doing it; <see cref="Rollback"/> undoes the
 /// steps in reverse when something fails half-way, <see cref="Commit"/> drops the safety
@@ -103,6 +116,12 @@ public sealed class InstallJournal
     public void DirCreated(string abs) => Steps.Add(new CreatedDir(Rel(abs)));
     public void MovedWithin(string from, string to) => Steps.Add(new Moved(Rel(from), Rel(to)));
     public void DlclistAdd(string pack) => Steps.Add(new DlclistAdded(pack));
+
+    /// <summary>
+    /// Set while installing into the running game (<see cref="LiveInstall"/>): it holds update.rpf, so packs to list in
+    /// dlclist.xml are collected here instead — <see cref="LiveInstall.Finish"/> lists them once it closes.
+    /// </summary>
+    public List<string>? DeferredPacks { get; init; }
     public void DlclistRemove(string pack) => Steps.Add(new DlclistRemoved(pack));
 
     public void StagingChanged(string stagingRoot, string gamePackRpf) =>
@@ -217,6 +236,22 @@ public sealed class InstallJournal
                 case DlclistRemoved r:
                     GameInstaller.RegisterInDlclist(GameDir, r.Pack, _log, this);
                     break;
+                case IniKeySet k:
+                    var ini = Abs(k.Path);
+                    var back = LimitAdjusters.Undone(File.Exists(ini) ? File.ReadAllText(ini) : null, k);
+                    if (back is null)
+                    {
+                        if (File.Exists(ini)) _log(L.T($"    {k.Path}: {k.Key} was changed since — left as it is."));
+                        break;
+                    }
+                    if (back.Length == 0)
+                    {
+                        MoveAside(ini, keep: false);
+                        break;
+                    }
+                    CopyAside(ini, keep: false);
+                    File.WriteAllText(ini, back);
+                    break;
             }
         }
     }
@@ -278,6 +313,12 @@ public sealed class InstallJournal
                 break;
             case DlclistRemoved r:
                 GameInstaller.RegisterInDlclist(gameDir, r.Pack, log);
+                break;
+            case IniKeySet k:
+                var ini = Abs(gameDir, k.Path);
+                if (LimitAdjusters.Undone(File.Exists(ini) ? File.ReadAllText(ini) : null, k) is not { } back) break;
+                if (back.Length == 0) File.Delete(ini);
+                else File.WriteAllText(ini, back);
                 break;
             case RpfEntrySet e when transaction:
                 ModsOverlay.Undo(gameDir, e, log);

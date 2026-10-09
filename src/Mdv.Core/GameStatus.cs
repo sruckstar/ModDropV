@@ -52,7 +52,7 @@ public static class GameStatus
 {
     public const string GameKey = "game", ModsKey = "mods", LoaderKey = "loader", AsiKey = "asi",
                         ShvKey = "shv", ShvdnKey = "shvdn", RphKey = "rph", DlcKey = "dlc", CopiesKey = "copies",
-                        OnlineKey = "online", RpfCacheKey = "rpfcache";
+                        OnlineKey = "online", RpfCacheKey = "rpfcache", BattlEyeKey = "battleye";
 
     /// <param name="dlcs">from the game's file index, once built: the number of DLC packs mounted</param>
     public static GameStatusReport Read(string gameDir, GameEdition? edition = null, MountedDlcs? dlcs = null)
@@ -129,6 +129,15 @@ public static class GameStatus
                                 L.T($"With the cache on, the game can ignore the mods folder. ModDrop V adds the empty {sw} on the next install " +
                                 $"(or create it in the game folder yourself).")));
         }
+
+        // BattlEye keeps ASI loaders and script hooks out of the game
+        if (BattlEye.IsOff(gameDir))
+            r.Items.Add(new(BattlEyeKey, L.T("BattlEye"), L.T("off"), StatusLevel.Ok,
+                            L.T($"{BattlEye.Switch} is in {BattlEye.FileName}: story mode starts with mods. “Play GTA Online” switches BattlEye back on.")));
+        else
+            r.Items.Add(new(BattlEyeKey, L.T("BattlEye"), L.T("on"), StatusLevel.Info,
+                            L.T($"The anti-cheat keeps mod loaders and script hooks out of the game — unless it is switched off in the Rockstar Games " +
+                                $"Launcher or in Steam’s launch options. ModDrop V puts {BattlEye.Switch} into {BattlEye.FileName} on the next install.")));
 
         // ASI loader
         var loaders = GameInstaller.AsiLoaders.Where(l => File.Exists(Path.Combine(gameDir, l))).ToList();
@@ -213,7 +222,7 @@ public static class GameStatus
                                     : L.T("Game archives are copied into mods only when a mod changes them.")));
         else if (stale.Count > 0)
             r.Items.Add(new(CopiesKey, copiesLabel, L.T($"{stale.Count} of {r.Copies.Count} outdated"), StatusLevel.Warning,
-                            L.T("The game was updated after these were copied — an old copy is a common reason for crashes:\n") +
+                            L.T("Out of date (the game was updated after they were copied, or a pack is missing from a list) — a common reason for crashes:\n") +
                             string.Join("\n", stale.Select(c => $"{c.Shown}: {c.Stale}"))));
         else
             r.Items.Add(new(CopiesKey, copiesLabel, r.Copies.Count == 1 ? L.T("1, up to date") : L.T($"{r.Copies.Count}, up to date"),

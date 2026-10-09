@@ -145,10 +145,12 @@ public sealed partial class ModelPreview : ObservableObject
     private void ResetView() => ResetCount++;
 }
 
-/// <summary>A vehicle / ped the add-on brings: its in-game name, the spawn name, what else is known.</summary>
-public sealed record AddonItemRow(string Title, string Spawn, string Detail)
+/// <summary>A vehicle / ped the add-on brings: its in-game name, the spawn name, what else is known (an animation: its dictionary).</summary>
+public sealed record AddonItemRow(string Title, string Spawn, string Detail, string? SpawnLabel = null)
 {
     public bool HasDetail => Detail.Length > 0;
+    /// <summary>What <see cref="Spawn"/> is: "spawn name", "dictionary".</summary>
+    public string Label => SpawnLabel ?? L.T("spawn name");
 }
 
 /// <summary>One finding of the checks against the game.</summary>
@@ -314,6 +316,19 @@ public sealed partial class AddonViewModel : FileModViewModel
         if (_pkg is not { } pkg) return;
         bool ped = pkg.Kind == ModCategory.Ped;
         var c = pkg.Content;
+        if (pkg.Kind == ModCategory.Animation)
+        {
+            foreach (var d in c.Anims)
+            {
+                var clips = c.Clips.TryGetValue(d, out var list) ? list : [];
+                Items.Add(new AddonItemRow(d, d, clips.Count == 0 ? L.T("a new animation dictionary")
+                    : L.T($"clips: {string.Join(", ", clips.Take(6))}{(clips.Count > 6 ? ", …" : "")}"), L.T("dictionary")));
+            }
+            foreach (var e in pkg.Extras.OfType<ReplacementPackage>())
+                foreach (var d in e.Replaces)
+                    Items.Add(new AddonItemRow(d, d, L.T("the game’s own — replaced by the mod’s"), L.T("dictionary")));
+            return;
+        }
         if (pkg.UseReplace && pkg.Replace is { } r)
         {
             foreach (var name in r.Replaces.DefaultIfEmpty(string.Join(", ", r.Files.Select(f => f.Name).Take(3))))
@@ -391,15 +406,17 @@ public sealed partial class AddonViewModel : FileModViewModel
         }
         _loading = true;
         bool ped = pkg.Kind == ModCategory.Ped;
+        bool anim = pkg.Kind == ModCategory.Animation;
         Name = pkg.Name;
-        KindBadge = ped ? "ped" : "vehicle";
+        KindBadge = anim ? "anim" : ped ? "ped" : "vehicle";
         var c = pkg.Content;
-        int n = c.SpawnNames.Count();
-        Heading = ped ? (n > 1 ? "PEDS" : "PED") : (n > 1 ? "VEHICLES" : "VEHICLE");
+        int n = anim ? c.Anims.Count() : c.SpawnNames.Count();
+        Heading = anim ? (n > 1 ? "ANIMATIONS" : "ANIMATION") : ped ? (n > 1 ? "PEDS" : "PED") : (n > 1 ? "VEHICLES" : "VEHICLE");
         ShowItems();
         HasNewPeds = pkg.Compose is { NewPeds.Count: > 0 };
         PedIsFemale = pkg.Compose is { NewPeds: [var first, ..] } && first.Gender == PedGender.Female;
         SourceText = pkg.Finished is { } f ? L.T($"A finished add-on pack ({f.Device ?? "dlc.rpf"})")
+            : anim && pkg.Compose is { Resources.Count: 0 } ? L.T("Loose animation dictionaries — packed into a dlc.rpf on install; scripts load them by name")
             : pkg.Compose is { NewPeds.Count: > 0 } ? L.T("Models only, no peds.meta — ModDrop V writes one; all packed into a dlc.rpf on install")
             : pkg.Compose is { Resources.Count: > 0 } s ? L.T($"A FiveM resource ({string.Join(", ", s.Resources)}) — packed into a dlc.rpf on install")
             : L.T("Loose models and metas — packed into a dlc.rpf on install");
@@ -429,7 +446,7 @@ public sealed partial class AddonViewModel : FileModViewModel
 
     private Task PreviewAsync()
     {
-        if (_pkg is not { } pkg) return Preview.LoadAsync(null);
+        if (_pkg is not { } pkg || pkg.Kind == ModCategory.Animation) return Preview.LoadAsync(null);
         if (pkg.UseReplace && pkg.Replace is { } r) return Preview.LoadAsync(ct => AddonModelLoader.Load(r, ct));
         return Preview.LoadAsync(ct => AddonModelLoader.Load(pkg, ct));
     }

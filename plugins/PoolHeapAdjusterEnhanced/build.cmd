@@ -1,5 +1,5 @@
 @echo off
-rem Builds PoolHeapAdjusterEnhanced.asi into data\plugins\limits-enhanced (needs Visual Studio with C++ tools).
+rem Builds PoolHeapAdjusterEnhanced.asi into data\plugins\limits (needs Visual Studio with C++ tools).
 setlocal
 set VCVARS=
 for %%v in (18 2022) do for %%e in (Community Professional Enterprise BuildTools) do (
@@ -7,7 +7,7 @@ for %%v in (18 2022) do for %%e in (Community Professional Enterprise BuildTools
 )
 if not defined VCVARS (echo Visual Studio C++ tools not found & exit /b 1)
 call "%VCVARS%" >nul || exit /b 1
-set "OUT=%~dp0..\..\data\plugins\limits-enhanced"
+set "OUT=%~dp0..\..\data\plugins\limits"
 set "OBJ=%TEMP%\phae-obj"
 if not exist "%OBJ%" mkdir "%OBJ%"
 cl /nologo /O2 /MT /EHsc /std:c++17 /DUNICODE /D_UNICODE /LD "%~dp0dllmain.cpp" /Fo"%OBJ%\\" /Fe"%OBJ%\PoolHeapAdjusterEnhanced.asi" || exit /b 1

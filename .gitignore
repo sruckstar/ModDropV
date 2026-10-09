@@ -1,3 +1,6 @@
+# The public repository holds the program (src, data, plugins, external, build files) and the README.
+# Everything else — tests, tools, notes, promo media — stays local.
+
 # --- build output / binaries ---
 bin/
 obj/
@@ -13,28 +16,49 @@ publish/
 
 # ...except the mods-folder plugins and ASI loaders the app installs into the game folder
 !data/plugins/
-!data/plugins/*.asi
-!data/plugins/*.dll
+!data/plugins/**/
+!data/plugins/**/*.asi
+!data/plugins/**/*.dll
 # ...and the script libraries whose licence lets ModDrop V ship them (data/dependencies.json says which)
 !data/dependencies/
 !data/dependencies/*/
 !data/dependencies/*/*.dll
 
-# --- tests, developer tools, research prototypes and sample third-party mods (not needed to build or run the app) ---
+# --- tests, developer tools, research prototypes and sample third-party mods ---
 tests/
 tools/
 prototypes/
 mods_examples/
 TestResults/
 *.dev.slnx
+plugins/LoadTrace/
 
-# --- local-only texts: the 5Mods page, the YouTube video, the Russian developer notes and the plan ---
-5mods-description.txt
-youtube-description.txt
-youtube-teaser-description.txt
-docs/DEVELOPMENT.md
-docs/ROADMAP.md
+# --- documents: developer notes, plans, store/video descriptions ---
 CLAUDE.md
+plans.md
+docs/*
+!docs/images/
+*.txt
+!LICENSE.txt
+!**/LICENSE.txt
+!**/*.LICENSE.txt
+
+# --- media: only the screenshots the README shows are published ---
+*.mp4
+*.mp3
+*.wav
+*.ogg
+docs/images/*
+!docs/images/banner.png
+!docs/images/01-drop-zone.png
+!docs/images/02-vehicle.png
+!docs/images/03-vehicle-3d.png
+!docs/images/04-weapon-light.png
+!docs/images/05-plan.png
+!docs/images/06-script.png
+!docs/images/07-map.png
+!docs/images/08-clothing-light.png
+!docs/images/10-library.png
 
 # --- IDE / OS / scratch ---
 .vs/
@@ -45,5 +69,6 @@ CLAUDE.md
 *.suo
 *.log
 *.tmp
+*.npz
 Thumbs.db
 desktop.ini

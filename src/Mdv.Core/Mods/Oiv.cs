@@ -760,7 +760,7 @@ public sealed class OivHandler : FileModHandler
                 }));
                 putPaths.Add(xml.Path);
                 if (IsDlclist(xml.Path))
-                    plan.Warnings.Add(L.T("The package edits dlclist.xml in a way ModDrop V can't read as pack lines — the edit is made as is."));
+                    plan.Warnings.Add(L.T("The package edits dlclist.xml in its own way — ModDrop V makes the edit on the current list and keeps only the packs it adds or removes, so the packs other mods listed stay."));
                 break;
             case OivText text:
                 plan.Add(new RpfEditOp(text.Path, id, L.T($"Edit {text.Path} ({text.Edits.Count} line change(s))"), (content, log) =>

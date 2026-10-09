@@ -27,6 +27,7 @@ namespace Mdv.Cli;
 /// mdvctl overlay &lt;game_dir&gt;
 /// mdvctl refresh &lt;game_dir&gt; [archive...]
 /// mdvctl compact &lt;game_dir&gt; [archive...]
+/// mdvctl dlclist &lt;game_dir&gt; [fix]
 /// mdvctl textures &lt;file.ytd&gt; | &lt;game_dir&gt; &lt;game_path&gt;
 /// mdvctl online &lt;game_dir&gt; [on|off]
 /// </code>
@@ -70,12 +71,14 @@ internal static class Program
                 "raise" => Raise(rest),
                 "overlay" => Overlay(rest),
                 "refresh" => Refresh(rest),
+                "dlclist" => Dlclist(rest),
                 "limits" => Limits(rest),
                 "compact" => Compact(rest),
                 "install" => Install(rest),
                 "remove" => Remove(rest),
                 "switch" => Switch(rest),
                 "variants" => Variants(rest),
+                "hotload" => HotLoadCmd(rest),
                 "online" => Online(rest),
                 "cat" => Cat(rest),
                 "textures" => TexturesCmd(rest),
@@ -189,7 +192,10 @@ internal static class Program
                   with the mods' changes and added dlclist entries put back
               compact <game_dir> [archive ...]
                   rewrite archive copies in mods without the holes edits leave behind
-              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery|clothing|map|prop]
+              dlclist <game_dir> [fix]
+                  the installed mods' packs dlclist.xml doesn't list (a mod's own list was put over it);
+                  fix lists them again
+              install <game_dir> <path> [<path> ...] [--kind oiv|replace|weapon|script|vehicle|ped|livery|clothing|map|prop|anim]
                       [--edition legacy|enhanced|auto] [--target NAME=GAME_PATH ...] [--variant NAME] [--pack NAME]
                       [--replace] [--keep-kits] [--gender male|female] [--base MODEL] [--vehicle NAME] [--slot PICTURE=TEXTURE ...]
                       [--wearer WHO] [--new-slots] [--as addon|menyoo|mapeditor] [--no-parts] [--map sp|mp] [--dry-run]
@@ -219,6 +225,9 @@ internal static class Program
               variants <game_dir> <mod_id> [NAME ...] [--none]
                   the variants of an installed ped's components (alternatives the mod ships, kept in its
                   pack); with names: exactly those on (a part of a name does), --none: all off
+              hotload <game_dir> <mod_id | pack> ...
+                  early access: load installed add-on packs into the running GTA V Legacy without a
+                  restart (needs ModDropV.HotLoad.dll next to mdvctl); a mod id loads every pack it added
               online <game_dir> [on|off]
                   GTA Online: `on` moves every mod (mods folder, loaders, script hooks, .asi,
                   scripts, unsigned DLLs...) into <game_dir>\ModDropV-Stash, `off` moves them back;
@@ -907,6 +916,8 @@ internal static class Program
     {
         if (f.InArchives > 0)
             Console.WriteLine($"  changes {f.InArchives} file(s) inside {f.Archives.Count} game archive(s)");
+        if (f.NearLimit is { Count: > 0 } near)
+            Console.WriteLine($"  [!] close to the 4 GB RPF limit: {string.Join(", ", near)} — the install may not fit.");
         if (f.Bytes < (1L << 20)) return;
         Console.WriteLine($"  needs about {FormatSize(f.Bytes)} on the game's drive" +
                           (f.Free is { } free ? $" ({FormatSize(free)} free)" : "") +
@@ -1318,6 +1329,21 @@ internal static class Program
         return RunPlan(plan, target);
     }
 
+    private static int HotLoadCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 2, int.MaxValue, "game_dir, mod_id or pack");
+        var game = a.Positional[0];
+        var target = TargetFor(game, null);
+        var reg = ModRegistry.Load(game);
+        var packs = a.Positional.Skip(1)
+                     .SelectMany(x => reg.Mods.FirstOrDefault(m => m.Id == x) is { } mod ? HotLoad.PacksOf(mod) : [x])
+                     .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var r = HotLoad.Load(AppContext.BaseDirectory, game, target.Edition, packs);
+        Console.WriteLine(r.Message);
+        return r.AllTaken ? 0 : 1;
+    }
+
     private static int Online(string[] argv)
     {
         var a = Parse(argv, [], []);
@@ -1493,6 +1519,26 @@ internal static class Program
         return RunPlan(new InstallPlan { Title = "Refresh archive copies" }.Add(new RefreshCopiesOp(archives)), TargetFor(game, null));
     }
 
+    private static int Dlclist(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 2, "game_dir [fix]");
+        var game = a.Positional[0];
+        bool fix = a.Positional.Count > 1 && a.Positional[1].Equals("fix", StringComparison.OrdinalIgnoreCase);
+        if (fix)
+        {
+            var added = DlclistGuard.Fix(game, Console.WriteLine);
+            Console.WriteLine(added.Count == 0 ? "dlclist.xml lists every installed pack." : $"Listed again: {string.Join(", ", added)}");
+            return 0;
+        }
+        var missing = DlclistGuard.Missing(game);
+        if (DlclistGuard.Owned(game)) Console.WriteLine("dlclist.xml is owned by a mod in the mods layer — `mdvctl dlclist <game_dir> fix` takes it over.");
+        Console.WriteLine(missing.Count == 0
+            ? "dlclist.xml lists every installed pack."
+            : $"Missing from dlclist.xml: {string.Join(", ", missing)} — run `mdvctl dlclist <game_dir> fix`.");
+        return missing.Count == 0 ? 0 : 1;
+    }
+
     private static int Limits(string[] argv)
     {
         var a = Parse(argv, ["--edition"], ["--big", "--reset"]);
@@ -1510,10 +1556,10 @@ internal static class Program
         }
         else
         {
-            if (GamePools.LimitsOp(target.GameDir, target.Edition, a.Flags.Contains("--big") ? LimitsProfile.Large : LimitsProfile.Standard) is { } op)
+            var profile = a.Flags.Contains("--big") ? LimitsProfile.Large : LimitsProfile.Standard;
+            if (GamePools.LimitsOp(target.GameDir, target.Edition, profile) is { } op)
                 plan.Add(op);
-            if (LimitAdjusters.Op(target.GameDir, target.Edition, Path.Combine(AppContext.BaseDirectory, "data", "plugins")) is { } adjusters)
-                plan.Add(adjusters);
+            plan.Ops.AddRange(GamePools.AdjusterOps(target with { PluginsDir = Path.Combine(AppContext.BaseDirectory, "data", "plugins") }, profile));
             if (plan.Ops.Count == 0)
             {
                 Console.WriteLine("The game's limits are raised already (or it has no gameconfig.xml).");

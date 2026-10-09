@@ -89,10 +89,10 @@ public static class ResourceEditions
                 converted = ext.ToLowerInvariant() switch
                 {
                     ".ytd" => Load(new YtdFile(), f => f.Load(blob), f => f.TextureDict, f => { FixRenderTargets(f); return f.Save(); }),
-                    ".ydr" => Load(new YdrFile(), f => f.Load(blob), f => f.Drawable, f => { FixRenderTargets(f); return f.Save(); }),
-                    ".ydd" => Load(new YddFile(), f => f.Load(blob), f => f.DrawableDict, f => { FixRenderTargets(f); return f.Save(); }),
-                    ".yft" => Load(new YftFile(), f => f.Load(blob), f => f.Fragment, f => { FixRenderTargets(f); return f.Save(); }),
-                    ".ypt" => Load(new YptFile(), f => f.Load(blob), f => f.PtfxList, f => { FixRenderTargets(f); return f.Save(); }),
+                    ".ydr" => Load(new YdrFile(), f => f.Load(blob), f => f.Drawable, f => { PrepareGen9(f, name); return f.Save(); }),
+                    ".ydd" => Load(new YddFile(), f => f.Load(blob), f => f.DrawableDict, f => { PrepareGen9(f, name); return f.Save(); }),
+                    ".yft" => Load(new YftFile(), f => f.Load(blob), f => f.Fragment, f => { PrepareGen9(f, name); return f.Save(); }),
+                    ".ypt" => Load(new YptFile(), f => f.Load(blob), f => f.PtfxList, f => { PrepareGen9(f, name); return f.Save(); }),
                     _ => null,
                 };
             }
@@ -341,27 +341,110 @@ public static class ResourceEditions
         return changed;
     }
 
-    private static IEnumerable<TextureDictionary?> TextureDicts(object file)
+    private static IEnumerable<TextureDictionary?> TextureDicts(object file) =>
+        file switch
+        {
+            YtdFile f => [f.TextureDict],
+            YptFile f => [f.PtfxList?.TextureDictionary, .. Drawables(f).Select(d => d.ShaderGroup?.TextureDictionary)],
+            _ => Drawables(file).Select(d => d.ShaderGroup?.TextureDictionary),
+        };
+
+    /// <summary>Every model in a drawable, dictionary, fragment (cloth and physics children included) or particle resource.</summary>
+    private static IEnumerable<DrawableBase> Drawables(object file)
     {
-        IEnumerable<TextureDictionary?> Of(DrawableBase? d) => [d?.ShaderGroup?.TextureDictionary];
+        var all = new List<DrawableBase?>();
         switch (file)
         {
-            case YtdFile f: return [f.TextureDict];
-            case YdrFile f: return Of(f.Drawable);
-            case YddFile f: return (f.Drawables ?? []).SelectMany(Of);
+            case YdrFile f: all.Add(f.Drawable); break;
+            case YddFile f: all.AddRange(f.Drawables ?? []); break;
             case YftFile f:
             {
                 var fr = f.Fragment;
-                var all = new List<TextureDictionary?>();
-                all.AddRange(Of(fr?.Drawable)); all.AddRange(Of(fr?.DrawableCloth));
-                foreach (var d in fr?.DrawableArray?.data_items ?? []) all.AddRange(Of(d));
+                all.Add(fr?.Drawable); all.Add(fr?.DrawableCloth);
+                all.AddRange(fr?.DrawableArray?.data_items ?? []);
+                foreach (var c in fr?.Cloths?.data_items ?? []) all.Add(c?.Drawable);
                 foreach (var lod in new[] { fr?.PhysicsLODGroup?.PhysicsLOD1, fr?.PhysicsLODGroup?.PhysicsLOD2, fr?.PhysicsLODGroup?.PhysicsLOD3 })
-                    foreach (var c in lod?.Children?.data_items ?? []) { all.AddRange(Of(c?.Drawable1)); all.AddRange(Of(c?.Drawable2)); }
-                return all;
+                    foreach (var c in lod?.Children?.data_items ?? []) { all.Add(c?.Drawable1); all.Add(c?.Drawable2); }
+                break;
             }
-            case YptFile f:
-                return [f.PtfxList?.TextureDictionary, .. (f.PtfxList?.DrawableDictionary?.Drawables?.data_items ?? []).SelectMany(Of)];
-            default: return [];
+            case YptFile f: all.AddRange(f.PtfxList?.DrawableDictionary?.Drawables?.data_items ?? []); break;
+        }
+        return all.OfType<DrawableBase>().Distinct();
+    }
+
+    /// <summary>A Legacy model made ready for CodeWalker's gen9 writer: render targets unpacked, vertex layouts expanded.</summary>
+    private static void PrepareGen9(object file, string name)
+    {
+        FixRenderTargets(file);
+        ExpandVertexLayouts(file, name);
+    }
+
+    /// <summary>
+    /// Vertex buffers whose Legacy layout isn't the standard one (GTAV1) — half-float texture coordinates on cloth
+    /// (flags, banners, a boat's cover) — are rewritten with the standard component types, as Rockstar's own gen9
+    /// models have them (prop_flag_us: stride 32 → 36, TEXCOORD0 half2 → float2). CodeWalker's gen9 writer keeps the
+    /// half-float formats, but reads any gen9 layout back as GTAV1, so the result couldn't be read again.
+    /// </summary>
+    /// <returns>whether a buffer was changed</returns>
+    internal static bool ExpandVertexLayouts(object file, string name)
+    {
+        var geoms = Drawables(file).SelectMany(d => d.AllModels ?? []).SelectMany(m => m?.Geometries ?? []).OfType<DrawableGeometry>().ToList();
+        var expanded = geoms.Select(g => g.VertexBuffer).OfType<VertexBuffer>().Distinct().Where(vb => ExpandVertexLayout(vb, name)).ToHashSet();
+        foreach (var g in geoms)
+            if (g.VertexBuffer is { } vb && expanded.Contains(vb)) g.VertexData = vb.Data1;   // the geometry's own pointer to the data
+        return expanded.Count > 0;
+    }
+
+    private static bool ExpandVertexLayout(VertexBuffer vb, string name)
+    {
+        const VertexDeclarationTypes Standard = VertexDeclarationTypes.GTAV1;
+        if (vb.Info is not { } src || src.Types == Standard || vb.Data1?.VertexBytes is not { } bytes) return false;
+        var dst = new VertexDeclaration { Types = Standard, Flags = src.Flags };
+        dst.UpdateCountAndStride();
+        int count = (int)vb.VertexCount, inStride = vb.VertexStride, outStride = dst.Stride;
+        if (bytes.Length < count * inStride) return false;
+        var outBytes = new byte[count * outStride];
+        for (int c = 0; c < 16; c++)
+        {
+            if ((src.Flags & (1u << c)) == 0) continue;
+            var from = src.GetComponentType(c);
+            var to = dst.GetComponentType(c);
+            int so = src.GetComponentOffset(c), dO = dst.GetComponentOffset(c);
+            for (int v = 0; v < count; v++)
+                if (!ConvertComponent(bytes.AsSpan(v * inStride + so), from, outBytes.AsSpan(v * outStride + dO), to))
+                    throw new InvalidOperationException(
+                        $"{name}: a vertex component in {from} format can't be converted to {to} for GTA V Enhanced.");
+        }
+        var data = new VertexData
+        {
+            VertexStride = outStride, VertexCount = count, Info = dst,
+            VertexType = (VertexType)dst.Flags, VertexBytes = outBytes,
+        };
+        vb.Info = dst;
+        vb.VertexStride = (ushort)outStride;
+        vb.Data1 = data;
+        vb.Data2 = data;
+        return true;
+    }
+
+    private static bool ConvertComponent(ReadOnlySpan<byte> src, VertexComponentType from, Span<byte> dst, VertexComponentType to)
+    {
+        switch (from, to)
+        {
+            case var _ when from == to:
+                src[..VertexComponentTypes.GetSizeInBytes(from)].CopyTo(dst);
+                return true;
+            case (VertexComponentType.Half2, VertexComponentType.Float2):
+            case (VertexComponentType.Half4, VertexComponentType.Float4):
+                for (int i = 0; i < (from == VertexComponentType.Half2 ? 2 : 4); i++)
+                    BinaryPrimitives.WriteSingleLittleEndian(dst[(i * 4)..], (float)BinaryPrimitives.ReadHalfLittleEndian(src[(i * 2)..]));
+                return true;
+            case (VertexComponentType.RGBA8SNorm, VertexComponentType.Float3):   // a packed normal (DXGI R8G8B8A8_SNORM)
+                for (int i = 0; i < 3; i++)
+                    BinaryPrimitives.WriteSingleLittleEndian(dst[(i * 4)..], Math.Max((sbyte)src[i] / 127f, -1f));
+                return true;
+            default:
+                return false;
         }
     }
 

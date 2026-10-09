@@ -95,6 +95,7 @@ public static partial class ModDetector
         ["CMapTypes"] = (ModCategory.Prop, 4, L.N("archetypes (.ytyp as XML)")),
         ["CMapData"] = (ModCategory.Map, 4, L.N("map placement (.ymap as XML)")),
         ["SpoonerPlacements"] = (ModCategory.Map, 5, L.N("Menyoo map")),
+        ["fwClipSetManager"] = (ModCategory.Animation, 1, L.N("clip sets")),
     };
 
     /// <summary>Menu / helper libraries scripts ship with — a dependency, not a script of their own.</summary>
@@ -113,6 +114,8 @@ public static partial class ModDetector
             if (!e.Evidence.Contains(evidence)) e.Evidence.Add(evidence);
             _s[c] = (e.Score + score, e.Evidence);
         }
+
+        public bool Has(ModCategory c) => _s.ContainsKey(c);
 
         public DetectionReport Report()
         {
@@ -142,6 +145,9 @@ public static partial class ModDetector
         }
         var yftStems = new HashSet<string>(list.Where(f => PathUtil.SuffixLower(f.Origin) == ".yft")
                                                .Select(f => Path.GetFileNameWithoutExtension(f.Origin)), StringComparer.OrdinalIgnoreCase);
+        // a model's own animation (a prop's, a vehicle's va_<model>) is part of the model, not an animation mod
+        var modelStems = new HashSet<string>(list.Where(f => PathUtil.SuffixLower(f.Origin) is ".ydr" or ".yft" or ".ydd")
+                                                 .Select(f => Path.GetFileNameWithoutExtension(f.Origin)), StringComparer.OrdinalIgnoreCase);
         int counted = 0;
         foreach (var (full, origin) in list)
         {
@@ -149,7 +155,7 @@ public static partial class ModDetector
             var ext = PathUtil.SuffixLower(name);
             try
             {
-                Look(s, full, origin, name, ext, pedStems, yftStems);
+                Look(s, full, origin, name, ext, pedStems, yftStems, modelStems);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or BadImageFormatException
                                            or InvalidDataException)
@@ -161,7 +167,8 @@ public static partial class ModDetector
         return s.Report();
     }
 
-    private static void Look(Scores s, string full, string origin, string name, string ext, HashSet<string> pedStems, HashSet<string> yftStems)
+    private static void Look(Scores s, string full, string origin, string name, string ext, HashSet<string> pedStems, HashSet<string> yftStems,
+                             HashSet<string> modelStems)
     {
         var stem = Path.GetFileNameWithoutExtension(name);
 
@@ -206,6 +213,13 @@ public static partial class ModDetector
                 return;
             case ".ymf":
                 s.Add(ModCategory.Map, 1, L.T($"map manifest {name}"));
+                return;
+            case ".ycd":
+                if (IsResource(full)) LookAnim(s, name, stem, modelStems);
+                return;
+            case ".xml" when name.EndsWith(".ycd.xml", StringComparison.OrdinalIgnoreCase):
+                if (ReadText(full) is { } xml && RootTag(xml) == "ClipDictionary")
+                    LookAnim(s, name, Path.GetFileNameWithoutExtension(stem), modelStems);
                 return;
             case ".dds" or ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp":
                 LookPicture(s, name, stem, ext);
@@ -277,6 +291,16 @@ public static partial class ModDetector
             return;
         }
         if (ext == ".ydr") s.Add(ModCategory.Prop, 1, L.T($"model {name}"));
+    }
+
+    /// <summary>
+    /// An animation dictionary (.ycd, or CodeWalker's .ycd.xml of one): the first counts, more of them only add evidence —
+    /// a vehicle / ped mod with a few animations stays what its models and metas say it is.
+    /// </summary>
+    private static void LookAnim(Scores s, string name, string stem, HashSet<string> modelStems)
+    {
+        if (modelStems.Contains(stem) || stem.StartsWith("va_", StringComparison.OrdinalIgnoreCase) && modelStems.Contains(stem[3..])) return;
+        s.Add(ModCategory.Animation, s.Has(ModCategory.Animation) ? 0 : 3, L.T($"animation dictionary {name}"));
     }
 
     /// <summary>A picture named like a texture of the game's vehicles, or like a livery, is a livery's.</summary>

@@ -38,6 +38,8 @@ public partial class App : Application
         vm.ThemeChanged += ApplyTheme;
         GameIndexWarmup.Attach(vm);
         var window = new MainWindow { DataContext = vm };
+        var watch = vm.StartGameWatch();                 // installs into the running game, and what they leave for later
+        window.Closed += (_, _) => watch.Dispose();
         if (previous is not null)
         {
             window.WindowStartupLocation = WindowStartupLocation.Manual;

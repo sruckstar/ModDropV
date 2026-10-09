@@ -77,7 +77,7 @@ public sealed partial class MainViewModel
         }
         plan.Warnings.InsertRange(0, pkg.Warnings);
         // files for the game folder itself (plugins, scripts, settings) can only be taken back by removing the mod
-        bool gameFolder = plan.Ops.Any(o => o is FileEditOp or DeleteFileOp or CopyFilesOp ||
+        bool gameFolder = plan.Ops.Any(o => o is FileEditOp or DeleteFileOp or CopyFilesOp { LimitPlugins: false } ||
                                             o is CopyFileOp c && !c.GameRel.StartsWith("mods/", StringComparison.OrdinalIgnoreCase)
                                                               && !c.GameRel.StartsWith("onigiri/", StringComparison.OrdinalIgnoreCase));
         bool onigiri = ModsLayout.UsesOnigiri(game);
@@ -95,6 +95,9 @@ public sealed partial class MainViewModel
                       "Switch it off or remove it any time in the Library.")
                     : L.T("The game's own files stay untouched — everything goes into the mods folder. " +
                       "Switch it off or remove it any time in the Library.");
+        if (LiveInstallReady && pkg is AddonPackage)
+            note = L.T("The game is running: the pack goes into it right away, no restart. Its line in dlclist.xml and the game’s " +
+                       "limits are written once the game closes — ModDrop V does it by itself.");
         OpenPlan(plan, $"{Edition.DisplayName()} · {game}", L.T("Install"), () => RunJobAsync(job), note);
     }
 
@@ -148,6 +151,13 @@ public sealed partial class MainViewModel
                         (f.Free is { } free ? L.T($" — {Size(free)} free.") : ".") +
                         (f.TooBig ? L.T(" Not enough room: free some space first, or the install stops and takes itself back.") : "");
             PlanTooBig = f.TooBig;
+        }
+        if (f.NearLimit is { Count: > 0 } near)
+        {
+            // shown like a lack of room: the install may stop halfway and take itself back
+            PlanSpace = (PlanSpace.Length > 0 ? PlanSpace + " " : "") +
+                        L.T($"{string.Join(", ", near)} gets close to 4 GB, the most a game archive can hold — the install may not fit. Take out a mod that changes it first if it fails.");
+            PlanTooBig = true;
         }
         HasPlanFootprint = PlanFootprint.Length > 0 || (PlanSpace.Length > 0 && !PlanTooBig);
     }

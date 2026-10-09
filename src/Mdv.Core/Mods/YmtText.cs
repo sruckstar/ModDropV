@@ -57,6 +57,7 @@ public static class YmtText
         }
         lock (Gate)
         {
+            CollisionHashes(doc.DocumentElement!);
             int lowered = 0;
             LowerHashes(doc.DocumentElement!, 0, ref lowered);
             byte[]? built;
@@ -90,6 +91,24 @@ public static class YmtText
             }
             log(L.T($"    {name}: XML text → PSO for GTA V Enhanced ({lowered} hash name(s) lower-cased)."));
             return Align16(pso);
+        }
+    }
+
+    // ================================================================ hash_collision_<decimal>
+
+    /// <summary>
+    /// Some exporters write a hash whose name collides as <c>hash_collision_&lt;decimal&gt;</c> (Rebalanced Dispatch
+    /// Enhanced's peds.ymt); CodeWalker reads every <c>hash_…</c> as hex and failed on the whole file, which then went
+    /// into the game as text and left Enhanced loading forever. Rewritten as <c>hash_&lt;HEX&gt;</c>.
+    /// </summary>
+    private static void CollisionHashes(XmlElement node)
+    {
+        foreach (XmlNode c in node.ChildNodes)
+        {
+            if (c is XmlElement e) CollisionHashes(e);
+            else if (c is XmlText t && t.Value!.Trim() is var s && s.StartsWith("hash_collision_", StringComparison.Ordinal)
+                     && uint.TryParse(s.AsSpan(15), NumberStyles.None, CultureInfo.InvariantCulture, out var h))
+                t.Value = $"hash_{h:X8}";
         }
     }
 
