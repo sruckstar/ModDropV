@@ -125,6 +125,17 @@ internal sealed class RpfStreamBuilder
     public static Payload ResourceFromFile(string path, GameEdition edition) =>
         Resource(File.ReadAllBytes(path), Path.GetFileName(path), edition);
 
+    /// <summary>A loose RSC7 file (compressed or not) as a resource entry, its models left in the edition they are in.</summary>
+    public static Payload ResourceAsIs(string path)
+    {
+        var name = Path.GetFileName(path);
+        var raw = File.ReadAllBytes(path);
+        var (s, g) = Rpf7.ReadRsc7Flags(raw, name);
+        var blob = Rpf7.ResourceBlob(raw, s, g);
+        var (sysf, gfxf) = Rpf7.ReadRsc7Flags(blob, name);
+        return new Payload { Kind = RpfEntryKind.Resource, Blob = Rpf7.StampBigSize(blob), A = sysf, B = gfxf };
+    }
+
     /// <summary>A loose RSC7 file (compressed or not) as a resource entry for <paramref name="edition"/>.</summary>
     public static Payload Resource(byte[] raw, string name, GameEdition edition)
     {
@@ -210,7 +221,10 @@ public static class RpfPacker
     /// (xml/meta/gxt2/json) is DEFLATE-compressed. Directory children are laid out
     /// breadth-first so every directory's children are contiguous and sorted.
     /// </summary>
-    public static RpfBuildInfo PackFolder(string src, string outPath, GameEdition edition = GameEdition.Legacy)
+    /// <param name="edition">the game the models are packed for; null: as they are</param>
+    /// <param name="archives">folders packed already (full path → its .rpf): stored raw in their place</param>
+    public static RpfBuildInfo PackFolder(string src, string outPath, GameEdition? edition = GameEdition.Legacy,
+                                          IReadOnlyDictionary<string, string>? archives = null)
     {
         var nodes = new List<RpfStreamBuilder.Node>();
         var paths = new List<string>();
@@ -226,8 +240,12 @@ public static class RpfPacker
             foreach (var k in kids)
             {
                 bool isDir = k is DirectoryInfo;
+                string? packed = null;
+                if (isDir && archives?.TryGetValue(k.FullName, out packed) == true) isDir = false;
                 var node = new RpfStreamBuilder.Node { Name = k.Name, IsDir = isDir };
-                if (!isDir)
+                if (packed is not null)
+                    node.Produce = () => RpfStreamBuilder.RawFileStream(packed);
+                else if (!isDir)
                 {
                     var full = k.FullName;
                     var ext = Path.GetExtension(k.Name).ToLowerInvariant();
@@ -235,7 +253,7 @@ public static class RpfPacker
                     if (Rpf7.MustBeResource(ext) || IsRsc7(full))
                     {
                         Rpf7.ReadRsc7Flags(full);
-                        node.Produce = () => RpfStreamBuilder.ResourceFromFile(full, edition);
+                        node.Produce = edition is { } ed ? () => RpfStreamBuilder.ResourceFromFile(full, ed) : () => RpfStreamBuilder.ResourceAsIs(full);
                     }
                     else if (ext is ".rpf" or ".awc")          // audio banks are streamed from the archive as they are
                         node.Produce = () => RpfStreamBuilder.RawFileStream(full);

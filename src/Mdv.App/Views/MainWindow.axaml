@@ -16,11 +16,11 @@
         DragDrop.AllowDrop="True">
 
   <Grid>
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
       <!-- ================= HEADER ================= -->
       <Border Grid.Row="0" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
           <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
             <c:DropMark Width="34" Height="34" />
             <StackPanel VerticalAlignment="Center" Spacing="1">
@@ -111,7 +111,31 @@
             </Button.Flyout>
           </Button>
 
-          <Button Grid.Column="6" Classes="icon" Command="{Binding ToggleThemeCommand}"
+          <!-- updates: the version, checking at start, check now -->
+          <Button Grid.Column="6" Classes="icon" VerticalAlignment="Center" ToolTip.Tip="{l:Tr 'Updates'}">
+            <Panel Width="20" Height="20">
+              <Path Data="{StaticResource IconRefresh}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.7"
+                    StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="15" Height="15" />
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}" HorizontalAlignment="Right"
+                       VerticalAlignment="Top" IsVisible="{Binding HasUpdateWaiting}" />
+            </Panel>
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel Spacing="10" Width="300" Margin="4">
+                  <TextBlock Text="{Binding VersionText}" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}" />
+                  <TextBlock Text="{Binding UpdateStatus}" FontSize="12" Foreground="{DynamicResource Text2Brush}"
+                             TextWrapping="Wrap" IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <CheckBox IsChecked="{Binding CheckUpdatesAtStart}" Content="{l:Tr 'Check for updates at start'}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="ghost small" Command="{Binding CheckUpdatesNowCommand}" Content="{l:Tr 'Check now'}" />
+                    <Button Classes="ghost small" Command="{Binding OpenUpdatePageCommand}" Content="{l:Tr 'Releases'}" />
+                  </StackPanel>
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <Button Grid.Column="7" Classes="icon" Command="{Binding ToggleThemeCommand}"
                   ToolTip.Tip="{l:Tr 'Toggle light / dark theme'}" VerticalAlignment="Center">
             <Panel Width="20" Height="20">
               <PathIcon Data="{StaticResource IconSun}" Width="18" Height="18" IsVisible="{Binding IsDark}" />
@@ -210,8 +234,61 @@
         </Grid>
       </Border>
 
+      <!-- ================= UPDATE BANNER: a new version downloaded, just updated, or the update failed ================= -->
+      <Border Grid.Row="2" Margin="20,12,20,0" CornerRadius="9" Padding="12,7" BorderThickness="1"
+              IsVisible="{Binding ShowUpdateBanner}" Classes.err="{Binding IsUpdateFailed}">
+        <Border.Styles>
+          <Style Selector="Border">
+            <Setter Property="Background" Value="{DynamicResource AccentWashBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+          </Style>
+          <Style Selector="Border.err">
+            <Setter Property="Background" Value="{DynamicResource DangerWashBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+          </Style>
+        </Border.Styles>
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+          <Panel Width="20" Height="20" VerticalAlignment="Center">
+            <Path Data="{StaticResource IconRefresh}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.9"
+                  StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" IsVisible="{Binding !IsUpdateFailed}" />
+            <Path Data="{StaticResource IconAlert}" Stroke="{DynamicResource DangerBrush}" StrokeThickness="2"
+                  StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" IsVisible="{Binding IsUpdateFailed}" />
+          </Panel>
+          <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+            <TextBlock Text="{Binding UpdateTitle}" FontWeight="SemiBold" FontFamily="{StaticResource DisplayFont}" />
+            <TextBlock Text="{Binding UpdateDetail}" FontSize="12" Foreground="{DynamicResource Text2Brush}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="ghost small" VerticalAlignment="Center" Content="{l:Tr 'What’s new'}"
+                  IsVisible="{Binding HasUpdateNotes}">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <ScrollViewer MaxHeight="380" Width="480">
+                  <SelectableTextBlock Text="{Binding UpdateNotes}" TextWrapping="Wrap" FontSize="12.5" Margin="4,4,12,4" />
+                </ScrollViewer>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <Button Grid.Column="3" Classes="ghost small" VerticalAlignment="Center" Content="{l:Tr 'Skip this version'}"
+                  IsVisible="{Binding IsUpdateReady}" Command="{Binding SkipUpdateCommand}" />
+          <Button Grid.Column="4" Classes="ghost small" VerticalAlignment="Center" Content="{l:Tr 'Release page'}"
+                  IsVisible="{Binding IsUpdateFailed}" Command="{Binding OpenUpdatePageCommand}" />
+          <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsUpdateReady}">
+            <Button Classes="ghost small" VerticalAlignment="Center" Content="{l:Tr 'Later'}" Command="{Binding DismissUpdateCommand}" />
+            <Button Classes="primary" VerticalAlignment="Center" MinWidth="140" Command="{Binding RestartToUpdateCommand}"
+                    ToolTip.Tip="{l:Tr 'ModDrop V closes, updates and opens again'}">
+              <TextBlock Text="{l:Tr 'Restart now'}" HorizontalAlignment="Center" />
+            </Button>
+          </StackPanel>
+          <Button Grid.Column="5" Classes="icon" VerticalAlignment="Center" Command="{Binding DismissUpdateCommand}"
+                  IsVisible="{Binding !IsUpdateReady}">
+            <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
+                  Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
+          </Button>
+        </Grid>
+      </Border>
+
       <!-- ================= WORKSPACE: source + settings | analysis (modder, player's install page) ================= -->
-      <Grid Grid.Row="2" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowWorkspace}">
+      <Grid Grid.Row="3" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowWorkspace}">
 
         <DockPanel Grid.Column="0">
           <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,12" IsVisible="{Binding ShowTopCards}">
@@ -508,7 +585,7 @@
       </Grid>
 
       <!-- ================= LIBRARY (player): what is installed | game status ================= -->
-      <Grid Grid.Row="2" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowLibraryPage}">
+      <Grid Grid.Row="3" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowLibraryPage}">
         <Border Classes="card" Padding="16,13,6,13">
           <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
             <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,10,0">
@@ -707,7 +784,7 @@
       </Grid>
 
       <!-- ================= FOOTER ================= -->
-      <Border Grid.Row="3" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,1,0,0"
+      <Border Grid.Row="4" Padding="20,10" BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="0,1,0,0"
               Background="{DynamicResource Surface1Brush}" IsVisible="{Binding ShowFooter}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18" MinHeight="44">
           <!-- early access: installs into the running game (the loader isn't here; said whether the game runs or not) -->

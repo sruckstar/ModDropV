@@ -144,6 +144,10 @@ Games). Nothing else: .NET is bundled.
 2. Run **ModDropV.exe**. It finds your game and tells which edition it is.
 3. Drop a mod into the window.
 
+From 1.2.4 on ModDrop V updates itself: at start it looks for a new release on GitHub, downloads it in the background
+and offers **Restart now**. Your mods and settings stay; only ModDrop V's own files are replaced (the updates menu in
+the header turns the check off).
+
 No mod setup yet? ModDrop V prepares the game on the first install: the `mods` folder and the mods loader that suits
 your edition. A loader that is already there (OpenIV.asi, RageOpenV, OpenRPF…) is left as it is.
 The loader it sets up is [RageOpenV](https://www.gta5-mods.com/scripts/rageopenv) (Legacy and Enhanced): its author

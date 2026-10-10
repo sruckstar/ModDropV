@@ -16,6 +16,12 @@ public sealed class Settings
     public string Edition { get; set; } = "legacy";
     /// <summary>The add-on type the modder flow builds: "weapon", "vehicle", …</summary>
     public string AddonType { get; set; } = "weapon";
+    /// <summary>Look for a new ModDrop V on GitHub at start (at most every few hours).</summary>
+    public bool CheckUpdates { get; set; } = true;
+    /// <summary>A version the player chose to skip ("1.2.4"): its banner isn't shown at start.</summary>
+    public string SkipVersion { get; set; } = "";
+    /// <summary>When GitHub was last asked for a new version (UTC).</summary>
+    public DateTime? LastUpdateCheck { get; set; }
 
     /// <summary>Where <see cref="Save"/> writes; null (a fresh instance) = in-memory only.</summary>
     [JsonIgnore] public string? FilePath { get; private set; }

@@ -21,6 +21,15 @@ internal static class Program
             return 0;
         }
 
+        // the self-updater asked for admin rights to put a downloaded build into a folder the user can't write to
+        int apply = Array.IndexOf(args, "--apply-update");
+        if (apply >= 0 && apply + 1 < args.Length)
+        {
+            var result = AppUpdate.Apply(args[apply + 1], AppPaths.Root, AppLog.Info);
+            if (result.Kind != ApplyKind.Done) AppLog.Info($"update not applied: {result.Message}");
+            return result.Kind == ApplyKind.Done ? 0 : 1;
+        }
+
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             if (e.ExceptionObject is Exception ex)

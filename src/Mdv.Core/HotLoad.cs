@@ -41,6 +41,11 @@ public static class HotLoad
     public const string LibraryName = "ModDropV.HotLoad.dll";
     public const string PluginName = "ModDropV.HotLoad.asi";
     public const string PipeName = "ModDropV.HotLoad";
+    /// <summary>
+    /// The pipe protocol this build speaks with the loader. A build that speaks another one needs a new early-access
+    /// loader: the self-updater warns before updating (build.ps1 writes it into the build's file list).
+    /// </summary>
+    public const int Protocol = 1;
     public static readonly string ShvLink = "http://www.dev-c.com/gtav/scripthookv/";
 
     /// <summary>The early-access library, when it is next to ModDrop V.</summary>

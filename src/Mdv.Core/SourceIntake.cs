@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Mdv.Core.Mods;
 using Mdv.Core.Rpf;
 using Mdv.Core.Util;
 using SharpCompress.Archives;
@@ -332,6 +333,8 @@ public static partial class SourceIntake
 
     private sealed class Gatherer(string unpackRoot, Action<string> progress, CancellationToken ct)
     {
+        private readonly string packRoot = Path.Combine(Path.GetDirectoryName(unpackRoot)!, "packed");
+        private int _packNo;
         public List<DroppedFile> Files { get; } = [];
         public List<string> Archives { get; } = [];
         public List<string> Warnings { get; } = [];
@@ -340,6 +343,7 @@ public static partial class SourceIntake
 
         public void AddFolder(string folder, string originPrefix, bool inBackup, int nesting)
         {
+            if (LoosePack.IsPack(folder, originPrefix) && AddPack(folder, originPrefix, inBackup)) return;
             var stack = new Stack<(string Dir, string Origin, bool Backup)>();
             stack.Push((folder, originPrefix, inBackup));
             while (stack.Count > 0)
@@ -358,10 +362,22 @@ public static partial class SourceIntake
                     continue;
                 }
                 foreach (var f in files) AddFile(f, Join(origin, Path.GetFileName(f)), backup, nesting);
+                // unpacked DLC packs first: their sub-pack folders (dlc1.rpf…) go with them
+                var packed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var d in subdirs.Reverse())
+                {
+                    var name = Path.GetFileName(d);
+                    var sub = Join(origin, name);
+                    if (!name.StartsWith('.') && LoosePack.IsPack(d, sub) && AddPack(d, sub, backup || BackupDirRe().IsMatch(name)))
+                    {
+                        packed.Add(d);
+                        packed.UnionWith(LoosePack.SubPacks(d));
+                    }
+                }
                 foreach (var d in subdirs)
                 {
                     var name = Path.GetFileName(d);
-                    if (name.StartsWith('.') || name.Equals("__MACOSX", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (name.StartsWith('.') || name.Equals("__MACOSX", StringComparison.OrdinalIgnoreCase) || packed.Contains(d)) continue;
                     stack.Push((d, Join(origin, name), backup || BackupDirRe().IsMatch(name)));
                 }
             }
@@ -390,6 +406,43 @@ public static partial class SourceIntake
         }
 
         private static bool IsFirstVolume(string name) => Regex.IsMatch(name, @"\.(7z|zip|rar)\.0*1$", RegexOptions.IgnoreCase);
+
+        /// <summary>
+        /// An unpacked DLC pack (<see cref="LoosePack"/>): packed into <c>packed\NN_name\dlc.rpf</c> (its <c>dlc1.rpf</c>…
+        /// folders next to it too) and listed as that file — <c>mycar/dlc.rpf</c> for a folder <c>mycar</c>, the folder's
+        /// own origin for one named <c>dlc.rpf</c>. False (with a warning) when it can't be packed: its files are listed as they are.
+        /// </summary>
+        private bool AddPack(string dir, string origin, bool inBackup)
+        {
+            ct.ThrowIfCancellationRequested();
+            bool named = Path.GetFileName(dir).Equals("dlc.rpf", StringComparison.OrdinalIgnoreCase);
+            var packOrigin = named ? origin : Join(origin, "dlc.rpf");
+            var label = named ? Path.GetFileName(Path.GetDirectoryName(dir)) ?? "dlc" : Path.GetFileName(dir);
+            var dest = Path.Combine(packRoot, $"{++_packNo:D2}_{Slug(label)}");
+            var outs = new List<(string File, string Origin)>();
+            try
+            {
+                progress(L.T($"Packing the unpacked DLC pack {label} into dlc.rpf…"));
+                LoosePack.Pack(dir, Path.Combine(dest, "dlc.rpf"));
+                outs.Add((Path.Combine(dest, "dlc.rpf"), packOrigin));
+                var parentOrigin = packOrigin.Contains('/') ? packOrigin[..packOrigin.LastIndexOf('/')] : "";
+                foreach (var sub in LoosePack.SubPacks(dir))
+                {
+                    var name = Path.GetFileName(sub);
+                    LoosePack.Pack(sub, Path.Combine(dest, name));
+                    outs.Add((Path.Combine(dest, name), Join(parentOrigin, name)));
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException)
+            {
+                PathUtil.TryDeleteDir(dest);
+                Warnings.Add(L.T($"«{origin}» looks like an unpacked DLC pack, but it couldn’t be packed into dlc.rpf: {ex.Message}"));
+                return false;
+            }
+            foreach (var (file, o) in outs)
+                Files.Add(new DroppedFile(file, o, Path.GetFileName(file), inBackup, o.Count(c => c == '/')));
+            return true;
+        }
 
         private void Unpack(string archive, string origin, bool inBackup, int nesting)
         {

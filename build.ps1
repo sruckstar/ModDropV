@@ -10,6 +10,7 @@
 param(
     [switch]$Zip,
     [switch]$SkipTests,
+    [switch]$Release,
     [string]$HotLoad,
     [string]$Runtime = "win-x64"
 )
@@ -44,6 +45,14 @@ if ($LASTEXITCODE -ne 0) { throw "publish (cli) failed" }
 # native debug symbols shipped inside the SkiaSharp/HarfBuzz packages (~100 MB) are useless to users
 Get-ChildItem $out -Recurse -Filter *.pdb | Remove-Item -Force
 
+# the build's file list for the self-updater (Mdv.Core/AppUpdate.cs), with the early-access loader protocol it speaks
+$manifest = "ModDropV.files.txt"
+$protocol = [regex]::Match((Get-Content src\Mdv.Core\HotLoad.cs -Raw), 'const int Protocol = (\d+);').Groups[1].Value
+if (-not $protocol) { throw "no HotLoad.Protocol in src\Mdv.Core\HotLoad.cs" }
+$files = Get-ChildItem $out -Recurse -File | ForEach-Object { $_.FullName.Substring($out.Length + 1) } | Sort-Object
+$lines = @("# ModDrop V $version", "# hotload-protocol $protocol") + $files + @($manifest)
+[IO.File]::WriteAllLines((Join-Path $out $manifest), [string[]]$lines, (New-Object Text.UTF8Encoding $false))
+
 $mb = (Get-ChildItem $out -Recurse -File | Measure-Object Length -Sum).Sum / 1MB
 Write-Host ("Published {0} -> {1} ({2:N0} MB)" -f $version, $out, $mb)
 
@@ -51,7 +60,24 @@ if ($Zip) {
     $zipPath = Join-Path $PSScriptRoot "publish\ModDropV-$version-$Runtime.zip"
     if (Test-Path $zipPath) { Remove-Item $zipPath }
     Compress-Archive -Path "$out\*" -DestinationPath $zipPath
-    Write-Host "Zip -> $zipPath"
+    $sha = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    [IO.File]::WriteAllText("$zipPath.sha256", "$sha  $(Split-Path $zipPath -Leaf)`n")
+    Write-Host "Zip -> $zipPath (SHA-256 $sha)"
+}
+
+if ($Release) {
+    if (-not $Zip) { throw "-Release needs -Zip" }
+    # release notes: this version's section of the 5mods changelog, HTML turned into Markdown
+    $text = Get-Content (Join-Path $PSScriptRoot "5mods-description.txt") -Raw -Encoding UTF8
+    $m = [regex]::Match($text, "<b>$([regex]::Escape($version))</b>\s*<ul>(.*?)</ul>", "Singleline")
+    if (-not $m.Success) { throw "no changelog section for $version in 5mods-description.txt" }
+    $notes = $m.Groups[1].Value -replace '\s*<li>', "`n- " -replace '</li>', '' `
+             -replace '<a href="([^"]+)">([^<]+)</a>', '[$2]($1)' -replace '</?b>', '**' -replace '<[^>]+>', ''
+    $notesFile = Join-Path $PSScriptRoot "publishelease-notes-$version.md"
+    [IO.File]::WriteAllText($notesFile, $notes.Trim() + "`n", (New-Object Text.UTF8Encoding $false))
+    gh release create "v$version" $zipPath "$zipPath.sha256" --repo sruckstar/ModDropV --title "ModDrop V $version" --notes-file $notesFile
+    if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
+    Write-Host "Released v$version"
 }
 
 if ($HotLoad) {

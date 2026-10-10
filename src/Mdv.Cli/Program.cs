@@ -79,6 +79,7 @@ internal static class Program
                 "switch" => Switch(rest),
                 "variants" => Variants(rest),
                 "hotload" => HotLoadCmd(rest),
+                "update" => UpdateCmd(rest),
                 "online" => Online(rest),
                 "cat" => Cat(rest),
                 "textures" => TexturesCmd(rest),
@@ -228,6 +229,10 @@ internal static class Program
               hotload <game_dir> <mod_id | pack> ...
                   early access: load installed add-on packs into the running GTA V Legacy without a
                   restart (needs ModDropV.HotLoad.dll next to mdvctl); a mod id loads every pack it added
+              update check | download | apply [--app DIR]
+                  ModDrop V's own updates from its GitHub releases: `check` the latest, `download` it
+                  (SHA-256 checked, unpacked into %LOCALAPPDATA%/ModDropV/updates), `apply` the downloaded
+                  one to DIR (default: mdvctl's folder; close ModDrop V first)
               online <game_dir> [on|off]
                   GTA Online: `on` moves every mod (mods folder, loaders, script hooks, .asi,
                   scripts, unsigned DLLs...) into <game_dir>\ModDropV-Stash, `off` moves them back;
@@ -1342,6 +1347,70 @@ internal static class Program
         var r = HotLoad.Load(AppContext.BaseDirectory, game, target.Edition, packs);
         Console.WriteLine(r.Message);
         return r.AllTaken ? 0 : 1;
+    }
+
+    private static int UpdateCmd(string[] argv)
+    {
+        var a = Parse(argv, ["--app"], []);
+        NeedPositional(a, 1, 1, "check, download or apply");
+        var app = a.Opt("--app") ?? AppContext.BaseDirectory;
+        Console.WriteLine($"ModDrop V {AppUpdate.Current.ToString(3)}");
+        switch (a.Positional[0])
+        {
+            case "check":
+            case "download":
+                AppRelease? release;
+                try
+                {
+                    release = AppUpdate.LatestAsync().GetAwaiter().GetResult();
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+                {
+                    Console.Error.WriteLine($"couldn't ask GitHub: {ex.Message}");
+                    return 1;
+                }
+                if (release is null)
+                {
+                    Console.WriteLine($"no public release in {AppUpdate.Repo}");
+                    return 0;
+                }
+                Console.WriteLine($"latest: {release.Tag} — {release.ZipName} ({release.Size / 1048576.0:N1} MB), {release.Page}");
+                if (release.Version <= AppUpdate.Current)
+                {
+                    Console.WriteLine("up to date");
+                    return 0;
+                }
+                if (a.Positional[0] == "check") return 0;
+                try
+                {
+                    int shown = -1;
+                    var staged = AppUpdate.DownloadAsync(release, (have, total) =>
+                    {
+                        int step = total > 0 ? (int)(have * 10 / total) : 0;
+                        if (step == shown) return;
+                        shown = step;
+                        Console.WriteLine($"  {step * 10}%");
+                    }).GetAwaiter().GetResult();
+                    Console.WriteLine($"ready: {staged.Dir}");
+                    return 0;
+                }
+                catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or TaskCanceledException)
+                {
+                    Console.Error.WriteLine($"download failed: {ex.Message}");
+                    return 1;
+                }
+            case "apply":
+                if (AppUpdate.Ready() is not { } ready)
+                {
+                    Console.WriteLine("nothing downloaded newer than this build (`mdvctl update download`)");
+                    return 1;
+                }
+                var r = AppUpdate.Apply(ready.Dir, app, Console.WriteLine);
+                Console.WriteLine(r.Kind == ApplyKind.Done ? $"updated {app} to {ready.Version.ToString(3)}" : r.Message);
+                return r.Kind == ApplyKind.Done ? 0 : 1;
+            default:
+                throw new UsageException("update: check, download or apply");
+        }
     }
 
     private static int Online(string[] argv)
