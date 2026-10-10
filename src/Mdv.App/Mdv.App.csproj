@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Mdv.Tests" />
+    <InternalsVisibleTo Include="Mdv.UiSnapshot" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Mdv.Core\Mdv.Core.csproj" />

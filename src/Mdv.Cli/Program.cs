@@ -24,6 +24,7 @@ namespace Mdv.Cli;
 /// mdvctl delete &lt;game_dir&gt; &lt;game_path&gt; [--mod ID]
 /// mdvctl unmod &lt;game_dir&gt; &lt;mod_id&gt;
 /// mdvctl raise &lt;game_dir&gt; &lt;mod_id&gt;
+/// mdvctl order &lt;game_dir&gt; [list | set &lt;mod_id&gt;... | move &lt;mod_id&gt; &lt;pos&gt; | packs on|off]
 /// mdvctl overlay &lt;game_dir&gt;
 /// mdvctl refresh &lt;game_dir&gt; [archive...]
 /// mdvctl compact &lt;game_dir&gt; [archive...]
@@ -69,6 +70,7 @@ internal static class Program
                 "delete" => Delete(rest),
                 "unmod" => Unmod(rest),
                 "raise" => Raise(rest),
+                "order" => Order(rest),
                 "overlay" => Overlay(rest),
                 "refresh" => Refresh(rest),
                 "dlclist" => Dlclist(rest),
@@ -181,6 +183,10 @@ internal static class Program
                   (another mod's, or the game's own); a copy left with nothing is removed
               raise <game_dir> <mod_id>
                   put a mod's files on top of other mods changing the same files
+              order <game_dir> [list | set <mod_id>... | move <mod_id> <pos> | packs on|off]
+                  the load order, top (wins) first: list it; set it (the mods named go on top in
+                  that order, the rest stay as they were below); move a mod to a place (1 = top);
+                  packs on: the mods' add-on packs follow it in dlclist.xml too (a later pack wins)
               overlay <game_dir>
                   archive copies in mods (stale after a game update?) and the files mods changed
               limits <game_dir> [--edition legacy|enhanced|auto] [--big] [--reset]
@@ -1545,6 +1551,62 @@ internal static class Program
         var (game, modId) = (a.Positional[0], a.Positional[1]);
         return RunPlan(new InstallPlan { Title = $"Raise {modId}" }.Add(new OverlayRaiseOp(modId, modId)), TargetFor(game, null));
     }
+
+    private static int Order(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, int.MaxValue, "game_dir");
+        var game = a.Positional[0];
+        var cmd = a.Positional.Count > 1 ? a.Positional[1] : "list";
+        var args = a.Positional.Skip(2).ToList();
+        var reg = ModRegistry.Load(game);
+        var order = ModOrder.Of(game);
+        switch (cmd)
+        {
+            case "list":
+                if (args.Count > 0) throw new UsageException($"unrecognized arguments: {string.Join(' ', args)}");
+                var conflicts = ModOrder.Conflicts(game, order);
+                Console.WriteLine($"{game}: {order.Count} mod(s), top (wins) first{(reg.OrderPacks ? "; add-on packs follow the order in dlclist.xml" : "")}");
+                for (int i = 0; i < order.Count; i++)
+                {
+                    var m = reg.Find(order[i])!;
+                    var off = m.Enabled ? "" : " (off)";
+                    var shares = conflicts.TryGetValue(m.Id, out var c)
+                        ? $"  — shares files with {string.Join(", ", c.Others.Select(o => reg.Find(o)?.Name ?? o))}"
+                        : "";
+                    Console.WriteLine($"  {i + 1,3}. {m.Name} [{m.Id}]{off}{shares}");
+                }
+                return 0;
+            case "set":
+                if (args.Count == 0) throw new UsageException("the following arguments are required: mod_id...");
+                return SetOrder(game, Guard(() => ModOrder.Put(order, args)));
+            case "move":
+                if (args.Count != 2) throw new UsageException("the following arguments are required: mod_id, pos");
+                if (!int.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var pos) || pos < 1)
+                    throw new UsageException($"argument pos: invalid place: '{args[1]}' (1 = top)");
+                return SetOrder(game, Guard(() => ModOrder.Moved(order, args[0], pos - 1)));
+            case "packs":
+                if (args.Count != 1 || args[0] is not ("on" or "off")) throw new UsageException("order packs: expected on or off");
+                return RunPlan(new InstallPlan { Title = "Load order" }.Add(new ModOrderOp(order, packs: args[0] == "on")), TargetFor(game, null));
+            default:
+                throw new UsageException($"order: unknown action '{cmd}' (list, set, move, packs)");
+        }
+
+        static List<string> Guard(Func<List<string>> f)
+        {
+            try
+            {
+                return f();
+            }
+            catch (ArgumentException ex)
+            {
+                throw new UsageException(ex.Message);
+            }
+        }
+    }
+
+    private static int SetOrder(string game, List<string> order) =>
+        RunPlan(new InstallPlan { Title = "Load order" }.Add(new ModOrderOp(order)), TargetFor(game, null));
 
     private static int Overlay(string[] argv)
     {

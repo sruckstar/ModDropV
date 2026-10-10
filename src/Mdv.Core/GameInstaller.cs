@@ -469,9 +469,13 @@ public static partial class GameInstaller
         return changed;
     }
 
-    /// <summary>Put the mods' packs in dlclist.xml in the order their weapon components need (<see cref="DlcOrder"/>).</summary>
-    public static void SortDlclist(string gameDir, Action<string> log) =>
-        EditDlclist(gameDir, text => DlcOrder.Sorted(text, gameDir, log), createFromGame: false, log);
+    /// <summary>
+    /// Put the mods' packs in dlclist.xml in the order their weapon components need (<see cref="DlcOrder"/>) — and the load
+    /// order, when the player asked so.
+    /// </summary>
+    /// <param name="order">the load order a plan is setting (else the registry's)</param>
+    public static void SortDlclist(string gameDir, Action<string> log, IReadOnlyList<string>? order = null) =>
+        EditDlclist(gameDir, text => DlcOrder.Sorted(text, gameDir, log, order), createFromGame: false, log);
 
     private static string? Changed(string? updated, ref bool changed)
     {

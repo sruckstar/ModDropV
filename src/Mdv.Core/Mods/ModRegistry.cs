@@ -74,6 +74,14 @@ public sealed class ModRegistry
     [JsonPropertyName("format")] public int Format { get; set; } = CurrentFormat;
     [JsonPropertyName("mods")] public List<RegisteredMod> Mods { get; set; } = [];
 
+    /// <summary>The load order, top (wins) first — <see cref="ModOrder"/>; empty until the first plan sets it.</summary>
+    [JsonPropertyName("order")] public List<string> Order { get; set; } = [];
+
+    /// <summary>The mods' add-on packs are listed in dlclist.xml in the load order too (a later pack wins).</summary>
+    [JsonPropertyName("orderPacks")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool OrderPacks { get; set; }
+
     /// <summary>Other tools' registries already taken over (file names).</summary>
     [JsonPropertyName("imports")] public List<string> Imports { get; set; } = [];
 
@@ -170,5 +178,9 @@ public sealed class ModRegistry
         Mods[i] = mod;
     }
 
-    public bool Remove(string id) => Mods.RemoveAll(m => m.Id == id) > 0;
+    public bool Remove(string id)
+    {
+        Order.Remove(id);
+        return Mods.RemoveAll(m => m.Id == id) > 0;
+    }
 }

@@ -1,11 +1,13 @@
 using Mdv.Core;
 using System.ComponentModel;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Mdv.App.ViewModels;
 
 namespace Mdv.App.Views;
@@ -40,6 +42,69 @@ public partial class MainWindow : Window
         {
             if (ReferenceEquals(e.Source, PlanScrim)) Vm?.ClosePlanCommand.Execute(null);
         };
+        // the load order: a row is dragged by its handle, Alt+↑ / Alt+↓ move the row a button of it has the focus in
+        OrderList.AddHandler(PointerPressedEvent, OnOrderPressed, RoutingStrategies.Tunnel);
+        OrderList.PointerMoved += OnOrderMoved;
+        OrderList.PointerReleased += (_, e) => EndOrderDrag(e.Pointer);
+        OrderList.PointerCaptureLost += (_, _) => EndOrderDrag(null);
+        OrderList.AddHandler(KeyDownEvent, OnOrderKey, RoutingStrategies.Tunnel);
+    }
+
+    private LoadOrderRow? _dragged;
+
+    private void OnOrderPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (Vm is not { IsBuilding: false } || !e.GetCurrentPoint(OrderList).Properties.IsLeftButtonPressed) return;
+        var grip = (e.Source as Control)?.GetSelfAndVisualAncestors().OfType<Border>().FirstOrDefault(b => b.Classes.Contains("grip"));
+        if (grip?.DataContext is not LoadOrderRow row) return;
+        _dragged = row;
+        row.Dragging = true;
+        e.Pointer.Capture(OrderList);
+        e.Handled = true;
+    }
+
+    private void OnOrderMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragged is not { } row || Vm is not { } vm) return;
+        // near the edges of the visible part the list scrolls along
+        double y = e.GetPosition(OrderScroll).Y;
+        if (y < 24) OrderScroll.Offset = OrderScroll.Offset.WithY(Math.Max(0, OrderScroll.Offset.Y - 12));
+        else if (y > OrderScroll.Bounds.Height - 24) OrderScroll.Offset = OrderScroll.Offset.WithY(OrderScroll.Offset.Y + 12);
+
+        var at = e.GetPosition(OrderList).Y;
+        int target = -1;
+        for (int i = 0; i < vm.OrderView.Count; i++)
+        {
+            if (OrderList.ContainerFromIndex(i) is not { } c || c.TranslatePoint(new Point(0, 0), OrderList) is not { } top) continue;
+            target = i;
+            if (at < top.Y + c.Bounds.Height) break;
+        }
+        if (target >= 0) vm.MoveOrderRow(row, target);
+    }
+
+    private void EndOrderDrag(IPointer? pointer)
+    {
+        if (_dragged is not { } row) return;
+        _dragged = null;
+        row.Dragging = false;
+        pointer?.Capture(null);
+    }
+
+    private void OnOrderKey(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.Alt || e.Key is not (Key.Up or Key.Down) || Vm is not { IsBuilding: false } vm) return;
+        if ((e.Source as Control)?.DataContext is not LoadOrderRow row) return;
+        bool up = e.Key == Key.Up;
+        vm.MoveOrderRow(row, vm.OrderView.IndexOf(row) + (up ? -1 : 1));
+        e.Handled = true;
+        // the row's container may be a new one now: the focus follows the row
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (OrderList.ContainerFromIndex(vm.OrderView.IndexOf(row)) is not { } c) return;
+            var button = c.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Command == (up ? row.UpCommand : row.DownCommand));
+            button?.Focus(NavigationMethod.Directional);
+            c.BringIntoView();
+        }, DispatcherPriority.Background);
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

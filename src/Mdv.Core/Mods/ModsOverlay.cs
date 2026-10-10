@@ -147,6 +147,11 @@ public sealed class OverlayLayer
     /// <summary><c>live</c> (the top layer: what the archive holds), <c>absent</c> (the mod deleted the file)
     /// or <c>blob:&lt;sha&gt;</c> (a covered version, kept aside).</summary>
     [JsonPropertyName("content")] public string Content { get; set; } = ModsOverlay.Live;
+    /// <summary>The mod edited the version below (gameconfig.xml's limits, an OIV's XML changes) rather than bringing its
+    /// own: built on what was under it, it can't change places with it (<see cref="ModsOverlay.Restack"/>).</summary>
+    [JsonPropertyName("edit")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Edit { get; set; }
 }
 
 /// <summary>A file inside a game archive that mods changed: what was there before them, and their versions, bottom to top.</summary>
@@ -169,6 +174,12 @@ public sealed class OverlayState
     /// <summary>Switched-off mods: mod id → game path → its version (<c>absent</c> or <c>blob:&lt;sha&gt;</c>), put back when switched on.</summary>
     [JsonPropertyName("parked")] public Dictionary<string, Dictionary<string, string>> Parked { get; set; } = [];
 }
+
+/// <summary>What <see cref="ModsOverlay.Restack"/> did.</summary>
+/// <param name="Rewritten">files whose live version changed</param>
+/// <param name="Reordered">files whose versions changed places (the live one or only covered ones)</param>
+/// <param name="Merged">files left as they are: a mod edited the version under it</param>
+public sealed record RestackResult(int Rewritten, int Reordered, IReadOnlyList<string> Merged);
 
 /// <summary>A game path other mods already change.</summary>
 /// <param name="Owners">mod ids, the one whose version the game sees first</param>
@@ -664,13 +675,14 @@ public sealed class ModsOverlay
     // ================================================================ changes
 
     /// <summary>Put <paramref name="content"/> (a loose file) at <paramref name="gamePath"/> on behalf of <paramref name="modId"/>.</summary>
-    public void Put(string modId, string gamePath, byte[] content)
+    /// <param name="edit">the content is the version below, edited (<see cref="OverlayLayer.Edit"/>)</param>
+    public void Put(string modId, string gamePath, byte[] content, bool edit = false)
     {
         var name = Path.GetFileName(Place(gamePath).Inner);
         if (Edition == GameEdition.Enhanced && name.EndsWith(".ymt", StringComparison.OrdinalIgnoreCase) && YmtText.IsXml(content))
             content = EnhancedYmt(gamePath, name, content);
         // an entry the game stores uncompressed (audio banks & co.) stays uncompressed
-        Change(modId, gamePath, current => StoredEntry.FromFile(name, content, Edition, raw: current is { Kind: RpfEntryKind.Raw }));
+        Change(modId, gamePath, current => StoredEntry.FromFile(name, content, Edition, raw: current is { Kind: RpfEntryKind.Raw }), edit);
     }
 
     /// <summary>A .ymt a mod ships as XML text, as PSO: GTA V Enhanced doesn't read the text (<see cref="YmtText"/>).</summary>
@@ -712,7 +724,7 @@ public sealed class ModsOverlay
     }
 
     /// <param name="make">the new entry from the current one; null deletes it</param>
-    private void Change(string modId, string gamePath, Func<StoredEntry?, StoredEntry?> make)
+    private void Change(string modId, string gamePath, Func<StoredEntry?, StoredEntry?> make, bool edit = false)
     {
         var (top, inner) = Place(gamePath);
         var key = $"{top}/{inner}";
@@ -736,7 +748,7 @@ public sealed class ModsOverlay
         // a mod's earlier version goes (a reinstall lands on top); whatever is live now gets covered
         entry.Layers.RemoveAll(l => l.Mod == modId);
         if (entry.Layers.Count > 0 && entry.Layers[^1].Content == Live) entry.Layers[^1].Content = Save(current);
-        entry.Layers.Add(new OverlayLayer { Mod = modId, Content = Live });
+        entry.Layers.Add(new OverlayLayer { Mod = modId, Content = Live, Edit = edit });
 
         if (data is null) ed.Delete(inner);
         else PutIn(ed, top, inner, data);
@@ -869,29 +881,72 @@ public sealed class ModsOverlay
         _kept.Clear();
     }
 
-    /// <summary>Put a mod's versions on top of every other mod's (it wins its conflicts).</summary>
-    public int Raise(string modId)
+    /// <summary>
+    /// Put the mods' versions in <paramref name="order"/> (top first — the first one wins): where it changes who is on top,
+    /// the new top's version goes live and the old one is kept aside. Owners the order doesn't name (the shared limits)
+    /// keep their places, and so does a file one of the mods edited rather than replaced (<see cref="OverlayLayer.Edit"/>,
+    /// gameconfig.xml): its version is built on the one under it.
+    /// </summary>
+    public RestackResult Restack(IReadOnlyList<string> order)
     {
-        int n = 0;
-        var below = PathsOf(modId).Where(k => State.Entries[k].Layers[^1].Mod != modId).ToList();
-        var taken = ClearFirst(below);                          // the covered version's space takes ours
-        foreach (var key in below)
+        var (moves, merged) = PlanRestack(order);
+        var live = moves.Where(kv => State.Entries[kv.Key].Layers[^1] != kv.Value[^1]).Select(kv => kv.Key).ToList();
+        var taken = ClearFirst(live);                         // the covered version's space takes the new top's
+        foreach (var key in live)
         {
             var entry = State.Entries[key];
-            int i = entry.Layers.FindIndex(l => l.Mod == modId);
             var (top, inner) = Place(key);
             var ed = Editor(top);
             var prior = Save(ed.Get(inner));
-            entry.Layers[^1].Content = taken.GetValueOrDefault(key, prior);
-            var mine = entry.Layers[i];
-            entry.Layers.RemoveAt(i);
-            Apply(ed, top, inner, mine.Content);
-            mine.Content = Live;
-            entry.Layers.Add(mine);
+            var was = entry.Layers[^1];
+            var now = moves[key][^1];
+            was.Content = taken.GetValueOrDefault(key, prior);
+            Apply(ed, top, inner, now.Content);
+            now.Content = Live;
             _pending.Add((top, inner, prior));
-            n++;
         }
-        return n;
+        foreach (var (key, layers) in moves) State.Entries[key].Layers = layers;
+        return new RestackResult(live.Count, moves.Count, merged);
+    }
+
+    /// <summary>What <see cref="Restack"/> would do (nothing is written): the files whose live version goes to another mod.</summary>
+    public List<(string Key, string From, string To)> RestackPreview(IReadOnlyList<string> order) =>
+        [.. PlanRestack(order).Moves.Where(kv => State.Entries[kv.Key].Layers[^1] != kv.Value[^1])
+                                    .Select(kv => (kv.Key, State.Entries[kv.Key].Layers[^1].Mod, kv.Value[^1].Mod))];
+
+    /// <summary>The entries whose layers change places for <paramref name="order"/> (their new layers), and the ones left as edited.</summary>
+    private (Dictionary<string, List<OverlayLayer>> Moves, List<string> Merged) PlanRestack(IReadOnlyList<string> order)
+    {
+        var rank = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int i = 0; i < order.Count; i++) rank.TryAdd(order[i], i);
+        string? config = null;
+        try
+        {
+            config = KeyFor(GamePools.GameConfig);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            // Onigiri has no place for it
+        }
+        var moves = new Dictionary<string, List<OverlayLayer>>(StringComparer.Ordinal);
+        var merged = new List<string>();
+        foreach (var (key, entry) in State.Entries)
+        {
+            var slots = Enumerable.Range(0, entry.Layers.Count).Where(i => rank.ContainsKey(entry.Layers[i].Mod)).ToList();
+            if (slots.Count < 2) continue;
+            // bottom slot first: the lowest in the order goes lowest
+            var placed = slots.Select(i => entry.Layers[i]).OrderByDescending(l => rank[l.Mod]).ToList();
+            if (slots.Select(i => entry.Layers[i]).SequenceEqual(placed)) continue;
+            if (key == config || entry.Layers.Any(l => l.Edit))
+            {
+                merged.Add(key);
+                continue;
+            }
+            var layers = entry.Layers.ToList();
+            for (int k = 0; k < slots.Count; k++) layers[slots[k]] = placed[k];
+            moves[key] = layers;
+        }
+        return (moves, merged);
     }
 
     /// <summary>

@@ -179,9 +179,11 @@ public static partial class DlcOrder
 
     /// <summary>
     /// dlclist.xml text with the mods' packs ordered so every pack comes after the packs whose components it uses (otherwise
-    /// as they were), or null when the order is already right.
+    /// as they were — or, when the player asked so, in the load order: a mod higher in it later, its pack wins;
+    /// <see cref="ModOrder.PackRanks"/>), or null when the order is already right.
     /// </summary>
-    public static string? Sorted(string dlclist, string gameDir, Action<string> log)
+    /// <param name="order">the load order a plan is setting (else the registry's)</param>
+    public static string? Sorted(string dlclist, string gameDir, Action<string> log, IReadOnlyList<string>? order = null)
     {
         var dir = GameInstaller.DlcpacksDir(gameDir);
         if (!Directory.Exists(dir)) return null;
@@ -192,20 +194,31 @@ public static partial class DlcOrder
             .ToList();
         if (entries.Count < 2) return null;
 
-        var comps = entries.Select(m => Of(Path.Combine(dir, m.Groups[1].Value, "dlc.rpf"))).ToList();
+        string Name(int i) => entries[i].Groups[1].Value;
+        // the load order first (among the places its mods' packs take), then what the components need
+        var seq = Enumerable.Range(0, entries.Count).ToList();
+        if (ModOrder.PackRanks(gameDir, order) is { } ranks)
+        {
+            var slots = seq.Where(i => ranks.ContainsKey(Name(i))).ToList();
+            var placed = slots.OrderByDescending(i => ranks[Name(i)]).ToList();
+            for (int k = 0; k < slots.Count; k++) seq[slots[k]] = placed[k];
+        }
+        var comps = seq.Select(i => Of(Path.Combine(dir, Name(i), "dlc.rpf"))).ToList();
         var providers = Providers(comps);
-        var order = Order(providers);
-        if (order.SequenceEqual(Enumerable.Range(0, entries.Count))) return null;
+        var final = Order(providers).Select(k => seq[k]).ToList();
+        if (final.SequenceEqual(Enumerable.Range(0, entries.Count))) return null;
 
-        foreach (var (i, pos) in order.Select((i, pos) => (i, pos)))
-            if (pos > i && providers[i].Count > 0)
-                log(L.T($"    dlclist.xml: '{entries[i].Groups[1].Value}' moved after '{string.Join("', '", providers[i].Select(j => entries[j].Groups[1].Value))}' — it uses its weapon components."));
+        if (!seq.SequenceEqual(Enumerable.Range(0, entries.Count)))
+            log(L.T("    dlclist.xml: the mods' packs put in the load order (a pack higher in it is listed later and wins)."));
+        foreach (var (k, pos) in Order(providers).Select((k, pos) => (k, pos)))
+            if (pos > k && providers[k].Count > 0)
+                log(L.T($"    dlclist.xml: '{Name(seq[k])}' moved after '{string.Join("', '", providers[k].Select(j => Name(seq[j])))}' — it uses its weapon components."));
 
         var sb = new System.Text.StringBuilder();
         int at = 0;
         for (int k = 0; k < entries.Count; k++)
         {
-            sb.Append(dlclist, at, entries[k].Index - at).Append(entries[order[k]].Value);
+            sb.Append(dlclist, at, entries[k].Index - at).Append(entries[final[k]].Value);
             at = entries[k].Index + entries[k].Length;
         }
         return sb.Append(dlclist, at, dlclist.Length - at).ToString();

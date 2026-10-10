@@ -588,26 +588,43 @@
       <Grid Grid.Row="3" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowLibraryPage}">
         <Border Classes="card" Padding="16,13,6,13">
           <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,10,0">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,10,0">
               <TextBlock Classes="h" Text="{l:Tr 'INSTALLED MODS'}" />
               <Border Grid.Column="1" Classes="badge" IsVisible="{Binding HasInstalled}" VerticalAlignment="Center">
                 <TextBlock Text="{Binding InstalledCount}" />
               </Border>
-              <TextBox Grid.Column="3" Classes="search" Width="230" Text="{Binding LibrarySearch}" PlaceholderText="{l:Tr 'Search'}"
-                       IsVisible="{Binding HasInstalled}">
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0" IsVisible="{Binding HasInstalled}">
+                <RadioButton Classes="filter" GroupName="libview" IsChecked="{Binding IsModsView}"
+                             ToolTip.Tip="{l:Tr 'The mods by category: switch them on and off, remove them'}">
+                  <TextBlock Text="{l:Tr 'Mods'}" />
+                </RadioButton>
+                <RadioButton Classes="filter" GroupName="libview" IsChecked="{Binding IsOrderView}"
+                             ToolTip.Tip="{l:Tr 'Which mod wins where mods change the same game files'}">
+                  <TextBlock Text="{l:Tr 'Load order'}" />
+                </RadioButton>
+              </StackPanel>
+              <TextBox Grid.Column="4" Classes="search" Width="230" Text="{Binding LibrarySearch}" PlaceholderText="{l:Tr 'Search'}"
+                       >
+                <TextBox.IsVisible>
+                  <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="IsModsView" />
+                    <Binding Path="HasInstalled" />
+                  </MultiBinding>
+                </TextBox.IsVisible>
                 <TextBox.InnerLeftContent>
                   <Path Data="{StaticResource IconSearch}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.7"
                         StrokeLineCap="Round" Stretch="Uniform" Width="12" Height="12" Margin="10,0,0,0" />
                 </TextBox.InnerLeftContent>
               </TextBox>
-              <Button Grid.Column="4" Classes="icon" Command="{Binding RefreshLibraryCommand}" VerticalAlignment="Center"
+              <Button Grid.Column="5" Classes="icon" Command="{Binding RefreshLibraryCommand}" VerticalAlignment="Center"
                       ToolTip.Tip="{l:Tr 'Read the game folder again'}">
                 <Path Data="{StaticResource IconRefresh}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
               </Button>
             </Grid>
 
-            <ItemsControl Grid.Row="1" ItemsSource="{Binding LibraryFilters}" IsVisible="{Binding HasInstalled}" Margin="0,0,10,0">
+            <Panel Grid.Row="1" IsVisible="{Binding IsModsView}">
+            <ItemsControl ItemsSource="{Binding LibraryFilters}" IsVisible="{Binding HasInstalled}" Margin="0,0,10,0">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <WrapPanel ItemSpacing="6" LineSpacing="6" />
@@ -624,10 +641,120 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Grid.Row="1" Classes="desc" Margin="0,0,10,0" IsVisible="{Binding !HasInstalled}"
+            <TextBlock Classes="desc" Margin="0,0,10,0" IsVisible="{Binding !HasInstalled}"
                        Text="{Binding InstalledEmptyText}" />
+            </Panel>
 
-            <ScrollViewer Grid.Row="2" IsVisible="{Binding HasInstalled}" Padding="0,0,10,0">
+            <!-- load order: the options -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,10,0" IsVisible="{Binding IsOrderView}">
+              <StackPanel Spacing="2" VerticalAlignment="Center">
+                <TextBlock Classes="desc" TextWrapping="Wrap"
+                           Text="{l:Tr 'Top wins: where mods change the same game files, the game gets the version of the one higher up. Drag a mod by its handle or use the arrows (Alt+↑ / Alt+↓).'}" />
+                <TextBlock Classes="hint" Text="{Binding OrderSharedCount}" IsVisible="{Binding HasOrder}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center" IsVisible="{Binding HasOrder}">
+                <CheckBox IsChecked="{Binding OrderOnlyShared}" FontSize="12">
+                  <TextBlock Text="{l:Tr 'Only mods that share files'}" />
+                </CheckBox>
+                <CheckBox IsChecked="{Binding OrderPacks}" FontSize="12"
+                          ToolTip.Tip="{l:Tr 'A pack listed later in dlclist.xml wins over one before it (add-on cars with the same name, edited game metas). The packs a weapon pack needs still come first.'}">
+                  <TextBlock Text="{l:Tr 'Add-on packs follow it in dlclist.xml'}" />
+                </CheckBox>
+              </StackPanel>
+            </Grid>
+
+            <!-- load order: the list -->
+            <TextBlock Grid.Row="2" Classes="desc" Margin="0,0,10,0" Text="{Binding OrderEmptyText}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsOrderView" />
+                  <Binding Path="!HasOrder" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
+            <ScrollViewer Grid.Row="2" Padding="0,0,10,0" x:Name="OrderScroll">
+              <ScrollViewer.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsOrderView" />
+                  <Binding Path="HasOrder" />
+                </MultiBinding>
+              </ScrollViewer.IsVisible>
+              <ItemsControl x:Name="OrderList" ItemsSource="{Binding OrderView}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Spacing="4" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:LoadOrderRow">
+                    <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="4,5,6,5"
+                            BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1"
+                            Classes.moved="{Binding Moved}" Classes.dragging="{Binding Dragging}" Classes.off="{Binding !Enabled}">
+                      <Border.Styles>
+                        <Style Selector="Border.moved">
+                          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        </Style>
+                        <Style Selector="Border.dragging">
+                          <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+                          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        </Style>
+                        <Style Selector="Border.off TextBlock.wname">
+                          <Setter Property="Opacity" Value="0.55" />
+                        </Style>
+                      </Border.Styles>
+                      <Grid ColumnDefinitions="Auto,30,Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                        <Border Classes="grip" Background="Transparent" Cursor="SizeNorthSouth" Padding="4,2"
+                                VerticalAlignment="Stretch" ToolTip.Tip="{l:Tr 'Drag to move'}">
+                          <Path Data="{StaticResource IconGrip}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="2.6"
+                                StrokeLineCap="Round" Stretch="Uniform" Width="9" Height="14" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="{Binding Position}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                   Foreground="{DynamicResource Text3Brush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <Border Grid.Column="2" Classes="badge" VerticalAlignment="Center" MinWidth="64">
+                          <TextBlock Text="{Binding CategoryName}" HorizontalAlignment="Center" />
+                        </Border>
+                        <TextBlock Grid.Column="3" Classes="wname" Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <Border Grid.Column="4" Classes="badge soon" VerticalAlignment="Center" IsVisible="{Binding !Enabled}">
+                          <TextBlock Text="{Binding Off}" />
+                        </Border>
+                        <Panel Grid.Column="5" VerticalAlignment="Center" IsVisible="{Binding HasConflicts}">
+                          <Border Classes="badge wins" ToolTip.Tip="{Binding ConflictsTip}" IsVisible="{Binding WinsAll}">
+                            <TextBlock Text="{Binding Wins}" />
+                          </Border>
+                          <Border Classes="badge conflict" ToolTip.Tip="{Binding ConflictsTip}" IsVisible="{Binding !WinsAll}">
+                            <TextBlock Text="{Binding Wins}" />
+                          </Border>
+                        </Panel>
+                        <Button Grid.Column="6" Classes="icon" Command="{Binding TopCommand}" VerticalAlignment="Center"
+                                ToolTip.Tip="{l:Tr 'To the top'}">
+                          <Path Data="{StaticResource IconToTop}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
+                                StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="12" Height="12" />
+                        </Button>
+                        <Button Grid.Column="7" Classes="icon updown" Command="{Binding UpCommand}" VerticalAlignment="Center"
+                                ToolTip.Tip="{l:Tr 'Up (Alt+↑)'}">
+                          <Path Data="{StaticResource IconUp}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.8"
+                                StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="12" Height="7" />
+                        </Button>
+                        <Button Grid.Column="8" Classes="icon updown" Command="{Binding DownCommand}" VerticalAlignment="Center"
+                                ToolTip.Tip="{l:Tr 'Down (Alt+↓)'}">
+                          <Path Data="{StaticResource IconDown}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.8"
+                                StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="12" Height="7" />
+                        </Button>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+
+            <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+              <ScrollViewer.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsModsView" />
+                  <Binding Path="HasInstalled" />
+                </MultiBinding>
+              </ScrollViewer.IsVisible>
               <StackPanel Spacing="6">
                 <TextBlock Classes="desc" IsVisible="{Binding LibraryNoMatch}" Text="{l:Tr 'Nothing installed matches this filter.'}" />
                 <ItemsControl ItemsSource="{Binding InstalledView}">
@@ -705,7 +832,8 @@
             </ScrollViewer>
 
             <!-- marked changes: nothing is touched until they are reviewed and applied -->
-            <Border Grid.Row="3" Classes="note" Margin="0,2,10,0" IsVisible="{Binding HasPendingChanges}">
+            <Panel Grid.Row="3" IsVisible="{Binding IsModsView}">
+            <Border Classes="note" Margin="0,2,10,0" IsVisible="{Binding HasPendingChanges}">
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                 <StackPanel VerticalAlignment="Center" Spacing="1">
                   <TextBlock Text="{Binding PendingSummary}" FontWeight="SemiBold" FontSize="12.5" />
@@ -719,9 +847,28 @@
                 </Button>
               </Grid>
             </Border>
-            <TextBlock Grid.Row="3" Classes="desc" Margin="0,2,10,0" IsVisible="{Binding !HasPendingChanges}"
+            <TextBlock Classes="desc" Margin="0,2,10,0" IsVisible="{Binding !HasPendingChanges}"
                        Text="{l:Tr 'Untick to switch a mod off, the bin removes it — the changes are applied together after a look at the plan.'}"
                        />
+            </Panel>
+            <Panel Grid.Row="3" IsVisible="{Binding IsOrderView}">
+              <Border Classes="note" Margin="0,2,10,0" IsVisible="{Binding HasOrderChanges}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                  <StackPanel VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="{Binding OrderSummary}" FontWeight="SemiBold" FontSize="12.5" />
+                    <TextBlock Classes="desc" FontSize="11" Text="{l:Tr 'Nothing changes in the game until you apply.'}" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Classes="ghost small" Content="{l:Tr 'Revert'}" VerticalAlignment="Center"
+                          Command="{Binding RevertOrderCommand}" />
+                  <Button Grid.Column="2" Classes="primary" Padding="16,7" FontSize="12.5" VerticalAlignment="Center"
+                          Command="{Binding ReviewOrderCommand}" ToolTip.Tip="{l:Tr 'See which files change hands, then apply'}">
+                    <TextBlock Text="{l:Tr 'Apply order…'}" />
+                  </Button>
+                </Grid>
+              </Border>
+              <TextBlock Classes="desc" Margin="0,2,10,0" IsVisible="{Binding !HasOrderChanges}"
+                         Text="{l:Tr 'A new mod goes on top, an updated one keeps its place. Every mod keeps its files: the order only picks whose the game gets.'}" />
+            </Panel>
           </Grid>
         </Border>
 

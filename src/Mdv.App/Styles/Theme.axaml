@@ -454,6 +454,13 @@
   <Style Selector="Border.badge.conflict > TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource WarnBrush}" />
   </Style>
+  <Style Selector="Border.badge.wins">
+    <Setter Property="Background" Value="{DynamicResource SuccessWashBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SuccessWashBrush}" />
+  </Style>
+  <Style Selector="Border.badge.wins > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+  </Style>
   <Style Selector="Border.badge.soon">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushStrong}" />

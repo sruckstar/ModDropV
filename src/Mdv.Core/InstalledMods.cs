@@ -167,6 +167,7 @@ public static class ModLibrary
     public static InstallPlan PlanInstall(ModPackage package, InstallTarget target)
     {
         var plan = GamePools.WithLimits(HandlerFor(package.Category).PlanInstall(package, target), target);
+        plan.Warnings.AddRange(ModOrder.Hints(plan, target.GameDir));
         // the executor switches it off after any install that records a mod; here the player sees it in the plan
         if (BattlEye.IsGame(target.GameDir) && !BattlEye.IsOff(target.GameDir))
             plan.Add(new ActionOp(L.T($"Switch BattlEye off so the game starts with mods ({BattlEye.Switch} in {BattlEye.FileName}; " +

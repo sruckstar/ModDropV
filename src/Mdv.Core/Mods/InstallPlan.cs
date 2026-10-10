@@ -183,6 +183,14 @@ public sealed class InstallContext(InstallTarget target, InstallJournal journal,
     /// <summary>Registry ids switched on (true) / off (false).</summary>
     public Dictionary<string, bool> Switched { get; } = [];
 
+    /// <summary>The load order a step set (<see cref="ModOrderOp"/>); recorded once the plan is committed.</summary>
+    public List<string>? Order { get; set; }
+    /// <summary>A step switched <see cref="ModRegistry.OrderPacks"/>; recorded once the plan is committed.</summary>
+    public bool? OrderPacks { get; set; }
+
+    /// <summary>The load order before the plan's own changes: the one a step set, else the registry's.</summary>
+    public List<string> CurrentOrder() => Order ?? ModOrder.Of(ModRegistry.Load(GameDir), Overlay.State);
+
     public string Abs(string gameRel) => InstallJournal.Abs(GameDir, gameRel);
 
     private ModsOverlay? _overlay;
@@ -346,6 +354,7 @@ public sealed class RpfPutOp(string gamePath, string source, string modId) : Pla
 public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
 {
     public string GamePath { get; } = gamePath;
+    public string ModId { get; } = modId;
 
     public override string Describe() => L.T($"Delete {GamePath} (in a copy of its archive — the game's own stays untouched)");
 
@@ -356,7 +365,7 @@ public sealed class RpfDeleteOp(string gamePath, string modId) : PlanOp
             ctx.Log(L.T("    [!] The mod deletes dlclist.xml — skipped: the game can't start without it."));
             return;
         }
-        ctx.Overlay.Delete(modId, GamePath);
+        ctx.Overlay.Delete(ModId, GamePath);
         ctx.Log(L.T($"    deleted {ctx.Overlay.Shown(ctx.Overlay.KeyFor(GamePath))}"));
     }
 }
@@ -383,7 +392,7 @@ public sealed class RpfEditOp(string gamePath, string modId, string description,
             DlclistGuard.Merge(ctx, current, updated, removes: true);       // its pack lines, not its version of the list
             return;
         }
-        ctx.Overlay.Put(modId, GamePath, updated);
+        ctx.Overlay.Put(modId, GamePath, updated, edit: true);
         ctx.Log($"    {GamePath}: {description}.");
     }
 }
@@ -447,15 +456,41 @@ public sealed class OverlayRemoveOp(string modId, string name, bool reinstall = 
     }
 }
 
-/// <summary>Put a mod's files on top of other mods' versions of the same files.</summary>
+/// <summary>Put a mod on top of the load order: its files win over other mods' versions of the same files.</summary>
 public sealed class OverlayRaiseOp(string modId, string name) : PlanOp
 {
     public override string Describe() => L.T($"Give «{name}» priority over other mods changing the same files");
 
     public override void Execute(InstallContext ctx)
     {
-        int n = ctx.Overlay.Raise(modId);
-        ctx.Log(L.T($"    «{name}» is now on top in {n} file(s)."));
+        var order = ctx.CurrentOrder();
+        if (!order.Contains(modId)) order.Add(modId);    // not in the registry (a test, an old record): raised all the same
+        ModOrderOp.Apply(ctx, ModOrder.Moved(order, modId, 0));
+    }
+}
+
+/// <summary>
+/// Set the load order (top first): where mods change the same files, the higher one's version goes live. With
+/// <paramref name="packs"/> the mods' add-on packs start (true) or stop (false) following it in dlclist.xml.
+/// </summary>
+public sealed class ModOrderOp(IReadOnlyList<string> order, string? summary = null, bool? packs = null) : PlanOp
+{
+    public override string Describe() => summary ?? L.T("Put the mods in the new load order");
+
+    public override void Execute(InstallContext ctx)
+    {
+        if (packs is not null) ctx.OrderPacks = packs;
+        Apply(ctx, [.. order]);
+    }
+
+    internal static void Apply(InstallContext ctx, List<string> order)
+    {
+        ctx.Order = order;
+        var done = ctx.Overlay.Restack(order);
+        ctx.Log(L.T($"    Load order: {done.Rewritten} file(s) now get another mod's version, {done.Reordered} reordered in all."));
+        foreach (var key in done.Merged.Take(5))
+            ctx.Log(L.T($"    [!] {key}: a mod edited the version under it — the order there stays."));
+        if (done.Merged.Count > 5) ctx.Log(L.T($"    [!] …and {done.Merged.Count - 5} more such file(s)."));
     }
 }
 
@@ -591,6 +626,7 @@ public static class InstallExecutor
                 ctx.LoadedOverlay?.Commit();                 // each step's archive edits land together
             }
             run?.Token.ThrowIfCancellationRequested();
+            if (!live) FollowOrder(ctx);
             ctx.LoadedOverlay?.DropKeptCopies();
         }
         catch (Exception ex)
@@ -619,9 +655,10 @@ public static class InstallExecutor
             overlay.Save();
         }
 
-        if (ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0)
+        if (ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0 || ctx.Order is not null || ctx.OrderPacks is not null)
         {
             var reg = ModRegistry.Load(target.GameDir);
+            var before = ModOrder.Of(reg, ctx.LoadedOverlay?.State ?? ModOrder.StateOf(target.GameDir));
             foreach (var m in ctx.Registered)
             {
                 var upTo = journal.Steps.Take(m.JournalTo ?? journal.Steps.Count);
@@ -636,11 +673,41 @@ public static class InstallExecutor
                     m.Enabled = on;
                     m.Updated = DateTime.UtcNow;
                 }
+            var known = reg.Mods.Select(m => m.Id).ToHashSet(StringComparer.Ordinal);
+            reg.Order = [.. (ctx.Order ?? ModOrder.After(before, ctx.Registered.Select(m => m.Id), ctx.Unregistered)).Where(known.Contains)];
+            if (ctx.OrderPacks is { } packs) reg.OrderPacks = packs;
             reg.Save(target.GameDir);
         }
         // a mod went in: BattlEye would keep it (and the loaders) out of story mode
         if (ctx.Registered.Count > 0) BattlEye.TurnOff(target.GameDir, log);
         return ctx;
+    }
+
+    /// <summary>
+    /// The mods' versions in the archives follow the load order once the plan's steps are done: a new mod is on top already,
+    /// a reinstalled or switched-on one goes back to its place. Packs follow it in dlclist.xml when the player asked so.
+    /// </summary>
+    private static void FollowOrder(InstallContext ctx)
+    {
+        if (ctx.LoadedOverlay is null && ctx.Order is null) return;
+        bool asked = ctx.Order is not null;
+        var reg = ModRegistry.Load(ctx.GameDir);
+        var order = ctx.Order ??= ModOrder.After(ModOrder.Of(reg, ctx.Overlay.State), ctx.Registered.Select(m => m.Id), ctx.Unregistered);
+        var done = ctx.Overlay.Restack(order);
+        if (done.Rewritten > 0)
+            ctx.Log(L.T($"    Load order kept: {done.Rewritten} file(s) go back to the version of the mod higher in the order."));
+        ctx.Overlay.Commit();
+        if (asked && (ctx.OrderPacks ?? reg.OrderPacks))
+        {
+            try
+            {
+                GameInstaller.SortDlclist(ctx.GameDir, ctx.Log, order);
+            }
+            catch (FileNotFoundException)
+            {
+                // no dlclist.xml of the mods yet: nothing to order
+            }
+        }
     }
 
     /// <summary>

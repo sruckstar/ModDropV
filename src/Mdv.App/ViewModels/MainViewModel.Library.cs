@@ -60,6 +60,7 @@ public sealed partial class MainViewModel
         var game = IsPlayer ? InstalledGameDir() : null;
         List<InstalledMod> mods = [];
         Dictionary<string, (List<string> Others, bool OnTop)> conflicts = [];
+        OrderData? order = null;
         string empty;
         if (IsPlayer && GameFolder.Trim() is { Length: > 0 } chosen && OnlineMode.IsOn(chosen))
         {
@@ -77,10 +78,10 @@ public sealed partial class MainViewModel
             IsReadingLibrary = true;
             try
             {
-                (mods, conflicts) = await Task.Run(() =>
+                (mods, conflicts, order) = await Task.Run(() =>
                 {
                     var list = ModLibrary.List(target);
-                    return (list, Conflicts(game, list));
+                    return (list, Conflicts(game, list), ReadOrder(game));
                 });
             }
             catch (Exception ex)
@@ -104,37 +105,19 @@ public sealed partial class MainViewModel
         HasInstalled = Installed.Count > 0;
         InstalledCount = Installed.Count.ToString(CultureInfo.InvariantCulture);
         InstalledEmptyText = empty;
+        ShowOrder(order, order is { Mods.Count: 0 } ? L.T("Nothing installed into this game by ModDrop V yet — drop a mod on the Install page.") : empty);
         BuildFilters();
         UpdatePending();
     }
 
-    /// <summary>
-    /// Installed mod → the other installed mods that change some of the same game files
-    /// (through the mods layer). Reads only.
-    /// </summary>
+    /// <summary>Installed mod → the other installed mods (by name) that change some of the same game files. Reads only.</summary>
     private static Dictionary<string, (List<string> Others, bool OnTop)> Conflicts(string game, List<InstalledMod> mods)
     {
-        var result = new Dictionary<string, (List<string>, bool)>();
-        if (!File.Exists(ModsOverlay.StatePath(game))) return result;
-        var overlay = ModsOverlay.Load(game);
         var names = mods.ToDictionary(m => m.Id, m => m.Name);
-        // the shared limits are no mod; add-on packs installed before them keep a raised pool of their own and share
-        // gameconfig.xml without clashing: each builds on the one below
-        var raisers = ModRegistry.Load(game).Mods.Where(r => r.Get("pools") == "1").Select(r => r.Id).ToHashSet();
-        foreach (var m in mods)
-        {
-            var shared = overlay.PathsOf(m.Id)
-                                .Select(p => p.Equals(GamePools.GameConfig, StringComparison.OrdinalIgnoreCase) && raisers.Contains(m.Id)
-                                    ? [.. overlay.OwnersOf(p).Where(o => o == m.Id || !raisers.Contains(o))]
-                                    : overlay.OwnersOf(p))
-                                .Select(o => o.Where(x => x != GamePools.LimitsOwner).ToList())
-                                .Where(o => o.Count > 1).ToList();
-            var others = shared.SelectMany(o => o).Where(o => o != m.Id).Distinct()
-                               .Select(o => names.GetValueOrDefault(o, o)).OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase)
-                               .ToList();
-            if (others.Count > 0) result[m.Id] = (others, shared.All(o => o[0] == m.Id));
-        }
-        return result;
+        return ModOrder.Conflicts(game, mods.Select(m => m.Id)).ToDictionary(
+            kv => kv.Key,
+            kv => (kv.Value.Others.Select(o => names.GetValueOrDefault(o, o)).OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase).ToList(),
+                   kv.Value.OnTop));
     }
 
     /// <summary>Put a mod's versions of the files it shares with other mods on top — through the plan.</summary>
