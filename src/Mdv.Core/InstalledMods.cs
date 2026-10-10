@@ -28,6 +28,10 @@ public sealed record InstalledMod(string Id, string Name, ModKind Kind, string P
     public bool CanSwitch { get; init; } = true;
     /// <summary>A ped pack that keeps variants of its components to switch between (<see cref="PedVariants"/>).</summary>
     public bool HasVariants { get; init; }
+    /// <summary>The full path of the file / folder it was installed from (a repair installs it again from there).</summary>
+    public string? SourcePath { get; init; }
+    /// <summary>The report of its last install (<see cref="InstallReport"/>), when there is one.</summary>
+    public string? Report { get; init; }
 }
 
 /// <summary>A drop, analysed: what the detector saw, the installable packages, and per kind why it can't be installed.</summary>
@@ -121,6 +125,7 @@ public static class ModLibrary
         if (!Directory.Exists(target.ModsDir)) return [];
         var reg = ModRegistry.Load(target.GameDir);
         return Handlers.SelectMany(h => h.List(target, reg))
+                       .Select(m => reg.Find(m.Id) is { } rec ? m with { SourcePath = rec.Source?.Path, Report = rec.Report } : m)
                        .OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 

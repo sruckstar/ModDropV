@@ -588,7 +588,17 @@
       <Grid Grid.Row="3" ColumnDefinitions="*,360" ColumnSpacing="14" Margin="20,12" IsVisible="{Binding ShowLibraryPage}">
         <Border Classes="card" Padding="16,13,6,13">
           <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,0,10,0">
+            <!-- the search column gives way first, so the refresh button stays inside a narrow card -->
+            <Grid ColumnSpacing="10" Margin="0,0,10,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="1000*" MaxWidth="230" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
               <TextBlock Classes="h" Text="{l:Tr 'INSTALLED MODS'}" />
               <Border Grid.Column="1" Classes="badge" IsVisible="{Binding HasInstalled}" VerticalAlignment="Center">
                 <TextBlock Text="{Binding InstalledCount}" />
@@ -606,9 +616,12 @@
                              ToolTip.Tip="{l:Tr 'Every file mods share, and whose version the game gets — pick one per file'}">
                   <TextBlock Text="{l:Tr 'Conflicts'}" />
                 </RadioButton>
+                <RadioButton Classes="filter" GroupName="libview" IsChecked="{Binding IsProfilesView}"
+                             ToolTip.Tip="{l:Tr 'Sets of mods to switch between, and the last changes to undo'}">
+                  <TextBlock Text="{l:Tr 'Profiles'}" />
+                </RadioButton>
               </StackPanel>
-              <TextBox Grid.Column="4" Classes="search" Width="230" Text="{Binding LibrarySearch}" PlaceholderText="{l:Tr 'Search'}"
-                       >
+              <TextBox Grid.Column="4" Classes="search" MinWidth="0" Text="{Binding LibrarySearch}" PlaceholderText="{l:Tr 'Search'}">
                 <TextBox.IsVisible>
                   <MultiBinding Converter="{x:Static BoolConverters.And}">
                     <Binding Path="IsModsView" />
@@ -620,7 +633,16 @@
                         StrokeLineCap="Round" Stretch="Uniform" Width="12" Height="12" Margin="10,0,0,0" />
                 </TextBox.InnerLeftContent>
               </TextBox>
-              <Button Grid.Column="5" Classes="icon" Command="{Binding RefreshLibraryCommand}" VerticalAlignment="Center"
+              <Button Grid.Column="5" Classes="icon" Command="{Binding CheckModsCommand}" VerticalAlignment="Center"
+                      IsVisible="{Binding HasInstalled}"
+                      ToolTip.Tip="{l:Tr 'Check every mod: its files there and unchanged, its packs listed, the copies up to date'}">
+                <Panel Width="15" Height="15">
+                  <Path Data="{StaticResource IconShield}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
+                        StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" IsVisible="{Binding !IsChecking}" />
+                  <Ellipse Width="9" Height="9" Fill="{DynamicResource AccentBrush}" IsVisible="{Binding IsChecking}" />
+                </Panel>
+              </Button>
+              <Button Grid.Column="6" Classes="icon" Command="{Binding RefreshLibraryCommand}" VerticalAlignment="Center"
                       ToolTip.Tip="{l:Tr 'Read the game folder again'}">
                 <Path Data="{StaticResource IconRefresh}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.7"
                       StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
@@ -691,6 +713,118 @@
                 </TextBox.InnerLeftContent>
               </TextBox>
             </Grid>
+
+            <!-- profiles: what they are, saving and importing one -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,10,0" IsVisible="{Binding IsProfilesView}">
+              <StackPanel Spacing="2" VerticalAlignment="Center">
+                <TextBlock Classes="desc" TextWrapping="Wrap"
+                           Text="{l:Tr 'A profile keeps which mods are on, the load order and the pins. Switching turns its mods on and the rest off — nothing is downloaded or copied twice.'}" />
+                <TextBlock Classes="hint" Text="{Binding ProfileNow}" />
+              </StackPanel>
+              <TextBox Grid.Column="1" Width="170" Text="{Binding NewProfileName}" VerticalAlignment="Center" MaxLength="60"
+                       PlaceholderText="{l:Tr 'New profile name'}">
+                <TextBox.KeyBindings>
+                  <KeyBinding Gesture="Enter" Command="{Binding SaveProfileCommand}" />
+                </TextBox.KeyBindings>
+              </TextBox>
+              <Button Grid.Column="2" Classes="ghost small" Padding="10,5" VerticalAlignment="Center" Command="{Binding SaveProfileCommand}"
+                      ToolTip.Tip="{l:Tr 'Keep the mods as they are now under this name (a profile of the same name is updated)'}">
+                <TextBlock Text="{l:Tr 'Save current'}" FontSize="12" />
+              </Button>
+              <Button Grid.Column="3" Classes="ghost small" Padding="10,5" VerticalAlignment="Center" Command="{Binding ImportProfileCommand}"
+                      ToolTip.Tip="{l:Tr 'Add a profile from a .mdvprofile file (exported here or by another player)'}">
+                <TextBlock Text="{l:Tr 'Import…'}" FontSize="12" />
+              </Button>
+            </Grid>
+
+            <!-- profiles: the list, then the recent changes -->
+            <ScrollViewer Grid.Row="2" Padding="0,0,10,0" IsVisible="{Binding IsProfilesView}">
+              <StackPanel Spacing="4">
+                <ItemsControl ItemsSource="{Binding Profiles}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="4" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProfileRow">
+                      <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,6,6,6"
+                              BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1" Classes.active="{Binding IsActive}">
+                        <Border.Styles>
+                          <Style Selector="Border.active">
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                          </Style>
+                        </Border.Styles>
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                          <StackPanel Spacing="1" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding ModsTip}">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="{DynamicResource Text3Brush}" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                          <Border Grid.Column="1" Classes="badge wins" VerticalAlignment="Center" IsVisible="{Binding IsActive}">
+                            <TextBlock Text="{l:Tr 'active'}" />
+                          </Border>
+                          <Border Grid.Column="1" Classes="badge soon" VerticalAlignment="Center" IsVisible="{Binding Changed}"
+                                  ToolTip.Tip="{l:Tr 'Switched to last — the mods changed since (save it again to keep them so)'}">
+                            <TextBlock Text="{l:Tr 'changed'}" />
+                          </Border>
+                          <Button Grid.Column="2" Classes="bare" VerticalAlignment="Center" Command="{Binding InstallMissingCommand}"
+                                  IsVisible="{Binding HasMissing}" ToolTip.Tip="{Binding MissingTip}">
+                            <Border Classes="badge conflict">
+                              <TextBlock Text="{Binding MissingText}" />
+                            </Border>
+                          </Button>
+                          <Button Grid.Column="3" Classes="ghost small" Padding="10,3" MinHeight="24" VerticalAlignment="Center"
+                                  Command="{Binding SwitchCommand}" IsVisible="{Binding !IsActive}"
+                                  ToolTip.Tip="{l:Tr 'Its mods on, the rest off, its load order and pins (shows the plan first)'}">
+                            <TextBlock Text="{l:Tr 'Switch'}" FontSize="11.5" />
+                          </Button>
+                          <Button Grid.Column="4" Classes="icon" VerticalAlignment="Center" Command="{Binding ExportCommand}"
+                                  IsVisible="{Binding CanEdit}" ToolTip.Tip="{l:Tr 'Export to a file: its mods and the files they came from'}">
+                            <Path Data="{StaticResource IconExport}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6"
+                                  StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
+                          </Button>
+                          <Button Grid.Column="5" Classes="icon" VerticalAlignment="Center" Command="{Binding DeleteCommand}"
+                                  IsVisible="{Binding CanEdit}" ToolTip.Tip="{l:Tr 'Delete the profile (the mods stay as they are)'}">
+                            <Path Data="{StaticResource IconTrash}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6"
+                                  StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="15" Height="15" />
+                          </Button>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Classes="h" Text="{l:Tr 'RECENT CHANGES'}" Margin="0,12,0,2" IsVisible="{Binding HasSnapshots}" />
+                <ItemsControl ItemsSource="{Binding Snapshots}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="2" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SnapshotRow">
+                      <Grid ColumnDefinitions="118,*,Auto" ColumnSpacing="10" Margin="4,3,0,3">
+                        <TextBlock Text="{Binding When}" FontFamily="{StaticResource MonoFont}" FontSize="11.5"
+                                   Foreground="{DynamicResource Text3Brush}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Title}" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Text="{Binding Names}" FontSize="11" Foreground="{DynamicResource Text3Brush}"
+                                     TextTrimming="CharacterEllipsis" IsVisible="{Binding HasNames}" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Classes="ghost small" Padding="8,2" MinHeight="22" VerticalAlignment="Center"
+                                Command="{Binding UndoCommand}" ToolTip.Tip="{Binding UndoTip}">
+                          <StackPanel Orientation="Horizontal" Spacing="5">
+                            <Path Data="{StaticResource IconUndo}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.8"
+                                  StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="10" Height="10" VerticalAlignment="Center" />
+                            <TextBlock Text="{l:Tr 'Undo'}" FontSize="11" />
+                          </StackPanel>
+                        </Button>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </ScrollViewer>
 
             <!-- conflicts: the files -->
             <TextBlock Grid.Row="2" Classes="desc" Margin="0,0,10,0" TextWrapping="Wrap"
@@ -887,7 +1021,7 @@
                             <Setter Property="TextDecorations" Value="Strikethrough" />
                           </Style>
                         </Border.Styles>
-                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
                           <CheckBox IsChecked="{Binding Enabled}" IsEnabled="{Binding CanToggle}" VerticalAlignment="Center"
                                     MinWidth="0" Padding="0" ToolTip.Tip="{Binding ToggleTip}"
                                     ToolTip.ShowOnDisabled="True" />
@@ -921,14 +1055,38 @@
                                   ToolTip.Tip="{l:Tr 'Switch the alternative components the mod ships'}">
                             <TextBlock Text="{l:Tr 'variants'}" FontSize="11" />
                           </Button>
+                          <!-- what the last check found -->
+                          <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                                      IsVisible="{Binding IsBroken}">
+                            <Button Classes="bare" VerticalAlignment="Center" Command="{Binding RepairCommand}"
+                                    ToolTip.Tip="{Binding HealthTip}">
+                              <Border Classes="badge broken">
+                                <TextBlock Text="{l:Tr 'broken'}" />
+                              </Border>
+                            </Button>
+                            <Button Classes="ghost small" Padding="7,2" MinHeight="22" VerticalAlignment="Center"
+                                    Command="{Binding RepairCommand}" ToolTip.Tip="{Binding HealthTip}">
+                              <TextBlock Text="{l:Tr 'repair'}" FontSize="11" />
+                            </Button>
+                          </StackPanel>
+                          <Border Grid.Column="4" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasNotes}"
+                                  Background="Transparent" ToolTip.Tip="{Binding HealthTip}">
+                            <TextBlock Text="{l:Tr 'changed'}" />
+                          </Border>
                           <Border Grid.Column="5" Classes="badge" VerticalAlignment="Center" IsVisible="{Binding HasStatus}">
                             <TextBlock Text="{Binding Status}" />
                           </Border>
-                          <Button Grid.Column="6" Classes="icon" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}"
+                          <Button Grid.Column="6" Classes="icon" VerticalAlignment="Center" Command="{Binding OpenReportCommand}"
+                                  IsVisible="{Binding HasReport}"
+                                  ToolTip.Tip="{l:Tr 'Open its install report: what went where, what was replaced, what was skipped and why'}">
+                            <Path Data="{StaticResource IconLog}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6"
+                                  StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="14" Height="14" />
+                          </Button>
+                          <Button Grid.Column="7" Classes="icon" VerticalAlignment="Center" Command="{Binding OpenFolderCommand}"
                                   IsVisible="{Binding CanOpenFolder}" ToolTip.Tip="{l:Tr 'Open its folder'}">
                             <PathIcon Data="{StaticResource IconFolder}" Width="15" Height="15" />
                           </Button>
-                          <Button Grid.Column="7" Classes="icon" VerticalAlignment="Center" Command="{Binding ToggleRemoveCommand}"
+                          <Button Grid.Column="8" Classes="icon" VerticalAlignment="Center" Command="{Binding ToggleRemoveCommand}"
                                   ToolTip.Tip="{Binding RemoveTip}">
                             <Panel Width="16" Height="16">
                               <Path Data="{StaticResource IconTrash}" Stroke="{DynamicResource Text2Brush}" StrokeThickness="1.6"
@@ -990,6 +1148,8 @@
                 </Button>
               </Grid>
             </Panel>
+            <TextBlock Grid.Row="3" Classes="desc" Margin="0,2,10,0" TextWrapping="Wrap" IsVisible="{Binding IsProfilesView}"
+                       Text="{l:Tr 'Every install, removal, switch and reorder is kept here (the last 20): undo puts the mods back the way they were before it.'}" />
             <Panel Grid.Row="3" IsVisible="{Binding IsOrderView}">
               <Border Classes="note" Margin="0,2,10,0" IsVisible="{Binding HasOrderChanges}">
                 <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
@@ -1101,7 +1261,7 @@
                 <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
               </Style>
             </Border.Styles>
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10">
               <Panel Width="20" Height="20" VerticalAlignment="Top" Margin="0,1,0,0">
                 <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource SuccessBrush}" StrokeThickness="2.4"
                       StrokeLineCap="Round" Stretch="Uniform" IsVisible="{Binding ResultOk}" />
@@ -1113,11 +1273,20 @@
                 <TextBlock Text="{Binding ResultDetail}" FontSize="12" Foreground="{DynamicResource Text2Brush}"
                            TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
               </StackPanel>
-              <Button Grid.Column="2" Classes="ghost small" Content="{l:Tr 'Show log'}" VerticalAlignment="Center"
+              <Button Grid.Column="2" Classes="ghost small" Content="{l:Tr 'Repair…'}" VerticalAlignment="Center"
+                      Command="{Binding RepairAllCommand}" IsVisible="{Binding ResultCanRepair}"
+                      ToolTip.Tip="{l:Tr 'Put right what the check found: a plan for what can be fixed in place, the mod’s own file for broken files'}" />
+              <Button Grid.Column="3" Classes="ghost small" Content="{l:Tr 'Undo'}" VerticalAlignment="Center"
+                      Command="{Binding UndoResultCommand}" IsVisible="{Binding ResultCanUndo}"
+                      ToolTip.Tip="{l:Tr 'Put the mods back the way they were before this (shows the plan first)'}" />
+              <Button Grid.Column="4" Classes="ghost small" Content="{l:Tr 'Show log'}" VerticalAlignment="Center"
                       Command="{Binding OpenLogCommand}" IsVisible="{Binding HasLog}" />
-              <Button Grid.Column="3" Classes="ghost small" Content="{l:Tr 'Open folder'}" VerticalAlignment="Center"
+              <Button Grid.Column="5" Classes="ghost small" Content="{l:Tr 'Install report'}" VerticalAlignment="Center"
+                      Command="{Binding OpenResultReportCommand}" IsVisible="{Binding HasResultReport}"
+                      ToolTip.Tip="{l:Tr 'What went where, what was replaced (and whose it was), what was skipped and why — a text file to keep or send'}" />
+              <Button Grid.Column="6" Classes="ghost small" Content="{l:Tr 'Open folder'}" VerticalAlignment="Center"
                       Command="{Binding OpenResultCommand}" IsVisible="{Binding HasResultPath}" />
-              <Button Grid.Column="4" Classes="icon" VerticalAlignment="Top" Command="{Binding DismissResultCommand}">
+              <Button Grid.Column="7" Classes="icon" VerticalAlignment="Top" Command="{Binding DismissResultCommand}">
                 <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.8"
                       Width="10" Height="10" Stretch="Uniform" StrokeLineCap="Round" />
               </Button>

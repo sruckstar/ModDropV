@@ -88,20 +88,29 @@ public sealed class ModSource
     /// <summary>SHA-256 (hex) of the content — the same drop installed twice hashes the same.</summary>
     [JsonPropertyName("sha256")] public string? Sha256 { get; set; }
 
+    /// <summary>The dropped file / folder (full path): a repair installs the mod again from it (<see cref="ModCheck"/>).</summary>
+    [JsonPropertyName("path")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Path { get; set; }
+
     /// <summary>
     /// Hash a file, or a folder (every file's relative path and content, in path order, so
     /// the result doesn't depend on the order the file system lists them in).
     /// </summary>
     public static ModSource Of(string path, string? name = null)
     {
-        var src = new ModSource { Name = name ?? Path.GetFileName(Path.TrimEndingDirectorySeparator(path)) };
+        var src = new ModSource
+        {
+            Name = name ?? System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(path)),
+            Path = System.IO.Path.GetFullPath(path),
+        };
         using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         if (File.Exists(path))
             Feed(sha, path);
         else if (Directory.Exists(path))
         {
             var files = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
-                                 .Select(f => (Rel: Path.GetRelativePath(path, f).Replace('\\', '/'), Full: f))
+                                 .Select(f => (Rel: System.IO.Path.GetRelativePath(path, f).Replace('\\', '/'), Full: f))
                                  .OrderBy(f => f.Rel, StringComparer.Ordinal);
             foreach (var (rel, full) in files)
             {

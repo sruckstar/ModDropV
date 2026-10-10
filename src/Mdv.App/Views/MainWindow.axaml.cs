@@ -1,4 +1,5 @@
 using Mdv.Core;
+using Mdv.Core.Mods;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
@@ -149,6 +150,8 @@ public partial class MainWindow : Window
         if (DataContext is not MainViewModel vm) return;
         vm.PickFolder = PickFolderAsync;
         vm.PickArchives = PickArchivesAsync;
+        vm.PickProfileSave = PickProfileSaveAsync;
+        vm.PickProfileOpen = PickProfileOpenAsync;
         vm.CopyToClipboard = async text =>
         {
             if (Clipboard is { } cb) await cb.SetTextAsync(text);
@@ -185,5 +188,30 @@ public partial class MainWindow : Window
             ],
         });
         return result.Select(f => f.TryGetLocalPath()).OfType<string>().ToList();
+    }
+
+    private static FilePickerFileType ProfileType => new(L.T("ModDrop V profiles")) { Patterns = ["*" + ProfileFile.Extension] };
+
+    private async Task<string?> PickProfileSaveAsync(string title, string suggested)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggested,
+            DefaultExtension = ProfileFile.Extension.TrimStart('.'),
+            FileTypeChoices = [ProfileType],
+        });
+        return file?.TryGetLocalPath();
+    }
+
+    private async Task<string?> PickProfileOpenAsync(string title)
+    {
+        var result = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = [ProfileType, new FilePickerFileType(L.T("All files")) { Patterns = ["*"] }],
+        });
+        return result.Count > 0 ? result[0].TryGetLocalPath() : null;
     }
 }

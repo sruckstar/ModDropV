@@ -493,6 +493,13 @@
   </Style>
 
   <!-- ============ badges with a meaning ============ -->
+  <Style Selector="Border.badge.broken">
+    <Setter Property="Background" Value="{DynamicResource DangerWashBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="Border.badge.broken > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+  </Style>
   <Style Selector="Border.badge.conflict">
     <Setter Property="Background" Value="{DynamicResource WarnWashBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource WarnLineBrush}" />

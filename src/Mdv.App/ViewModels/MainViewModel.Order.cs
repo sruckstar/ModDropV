@@ -26,12 +26,13 @@ public sealed partial class MainViewModel
     [ObservableProperty] public partial bool IsOrderView { get; set; }
     public bool IsModsView
     {
-        get => !IsOrderView && !IsConflictsView;
+        get => !IsOrderView && !IsConflictsView && !IsProfilesView;
         set
         {
             if (!value) return;
             IsOrderView = false;
             IsConflictsView = false;
+            IsProfilesView = false;
         }
     }
 
@@ -55,7 +56,11 @@ public sealed partial class MainViewModel
 
     partial void OnIsOrderViewChanged(bool value)
     {
-        if (value) IsConflictsView = false;
+        if (value)
+        {
+            IsConflictsView = false;
+            IsProfilesView = false;
+        }
         OnPropertyChanged(nameof(IsModsView));
     }
     partial void OnOrderOnlySharedChanged(bool value) => FilterOrder();

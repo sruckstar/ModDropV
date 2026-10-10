@@ -16,15 +16,18 @@ public sealed partial class InstalledModViewModel : ObservableObject
     private readonly Action<InstalledModViewModel>? _raise;
     private readonly Action<InstalledModViewModel>? _variants;
     private readonly Action<InstalledModViewModel>? _shared;
+    private readonly Action<InstalledModViewModel>? _repair;
 
     /// <param name="onTop">its versions of the files it shares with other mods are the ones the game gets</param>
     /// <param name="raise">puts it on top of the others (shows the plan first)</param>
     /// <param name="variants">opens the variants of a ped's components it keeps</param>
     /// <param name="shared">shows the files it shares with other mods</param>
+    /// <param name="repair">puts right what a check found broken (a plan, or the mod installed again)</param>
     public InstalledModViewModel(InstalledMod mod, IReadOnlyList<string>? conflicts = null, bool onTop = true,
                                  Action<InstalledModViewModel>? raise = null, Action<InstalledModViewModel>? variants = null,
-                                 Action<InstalledModViewModel>? shared = null)
+                                 Action<InstalledModViewModel>? shared = null, Action<InstalledModViewModel>? repair = null)
     {
+        _repair = repair;
         _variants = variants;
         _shared = shared;
         Mod = mod;
@@ -94,6 +97,45 @@ public sealed partial class InstalledModViewModel : ObservableObject
     private void PickVariants() => _variants?.Invoke(this);
 
     public bool CanOpenFolder => Mod.Folder is { } f && Directory.Exists(f);
+
+    // ---------------------------------------------------------------- verify / repair, install report
+
+    /// <summary>What the last check found (null: not checked since the library was read for this game).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBroken), nameof(HealthTip), nameof(HasNotes))]
+    public partial ModHealth? Health { get; set; }
+
+    /// <summary>The last check found something broken.</summary>
+    public bool IsBroken => Health is { Broken: true };
+    /// <summary>Nothing broken, but something worth knowing (a setting changed since the install).</summary>
+    public bool HasNotes => Health is { Broken: false, Problems.Count: > 0 };
+
+    /// <summary>What is wrong, a line per problem (the first dozen), and how the repair goes.</summary>
+    public string HealthTip
+    {
+        get
+        {
+            if (Health is not { Problems.Count: > 0 } h) return "";
+            var lines = h.Problems.Take(12).Select(p => $"{(p.Broken ? "•" : "○")} {p.Path}: {p.What}").ToList();
+            if (h.Problems.Count > 12) lines.Add(L.T($"…and {h.Problems.Count - 12} more"));
+            if (h.NeedsReinstall)
+                lines.Add(h.SourceThere
+                    ? L.T($"“repair” installs it again from {Path.GetFileName(Path.TrimEndingDirectorySeparator(h.SourcePath!))}.")
+                    : L.T("“repair” asks for the file it was installed from (it isn’t where it was) and installs it again."));
+            else if (h.Broken) lines.Add(L.T("“repair” shows the plan that puts it right."));
+            if (!h.Fingerprinted) lines.Add(L.T("Installed before ModDrop V 1.3: only whether its files are there is checked."));
+            return string.Join('\n', lines);
+        }
+    }
+
+    [RelayCommand]
+    private void Repair() => _repair?.Invoke(this);
+
+    /// <summary>Its last install left a report.</summary>
+    public bool HasReport => Mod.Report is { } r && File.Exists(r);
+
+    [RelayCommand]
+    private void OpenReport() => MainViewModel.OpenReport(Mod.Report);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsChanged), nameof(Status), nameof(HasStatus))]

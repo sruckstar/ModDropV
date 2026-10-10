@@ -25,6 +25,8 @@ namespace Mdv.Cli;
 /// mdvctl unmod &lt;game_dir&gt; &lt;mod_id&gt;
 /// mdvctl raise &lt;game_dir&gt; &lt;mod_id&gt;
 /// mdvctl order &lt;game_dir&gt; [list | set &lt;mod_id&gt;... | move &lt;mod_id&gt; &lt;pos&gt; | packs on|off]
+/// mdvctl profile &lt;game_dir&gt; [list | save|switch|delete &lt;name&gt; | none | rename &lt;name&gt; &lt;to&gt; | export &lt;name&gt; &lt;file&gt; | import &lt;file&gt;]
+/// mdvctl undo &lt;game_dir&gt; [list | &lt;n&gt;]
 /// mdvctl overlay &lt;game_dir&gt;
 /// mdvctl refresh &lt;game_dir&gt; [archive...]
 /// mdvctl compact &lt;game_dir&gt; [archive...]
@@ -73,6 +75,11 @@ internal static class Program
                 "order" => Order(rest),
                 "conflicts" => ConflictsCmd(rest),
                 "pin" => PinCmd(rest),
+                "check" => CheckCmd(rest),
+                "repair" => RepairCmd(rest),
+                "report" => ReportCmd(rest),
+                "profile" => ProfileCmd(rest),
+                "undo" => UndoCmd(rest),
                 "overlay" => Overlay(rest),
                 "refresh" => Refresh(rest),
                 "dlclist" => Dlclist(rest),
@@ -195,6 +202,25 @@ internal static class Program
               pin <game_dir> <file> <mod_id | order>
                   give the game that mod's version of one shared file whatever the load order says
                   (the file as `conflicts` lists it); order: back to the load order
+              check <game_dir> [mod_id ...] [--quick]
+                  is every installed mod the way its install left it: its files there and unchanged
+                  (by the SHA-256 recorded at the install; --quick compares lengths only), its versions
+                  in the copies in mods, its packs in dlclist.xml, the limits it raised, copies older
+                  than the game; exit code 1 when something is broken
+              repair <game_dir> [mod_id ...]
+                  fix what `check` finds that can be fixed in place (dlclist.xml lines, stale copies);
+                  mods with broken files are listed with the command that installs them again from their file
+              report <game_dir> <mod_id>
+                  the install report of a mod's last install (also in %LOCALAPPDATA%\ModDropV\logs\installs)
+              profile <game_dir> [list | save <name> | switch <name> | none | delete <name> | rename <name> <to>
+                      | export <name> <file> | import <file>]
+                  sets of mods with their load order and pins: save the mods as they stand under a name; switch
+                  to one (its mods on, the rest off, its order and pins; one plan); none switches every mod off;
+                  export / import a profile file (.mdvprofile: the mods and the files they came from)
+              undo <game_dir> [list | <n>]
+                  the last changes to the mods (installs, removals, switches, order, pins), newest first; <n>
+                  puts the mods back the way they were before change n (1 = the last): what it and the later
+                  ones installed goes, switches, order and pins come back
               overlay <game_dir>
                   archive copies in mods (stale after a game update?) and the files mods changed
               limits <game_dir> [--edition legacy|enhanced|auto] [--big] [--reset]
@@ -1655,6 +1681,211 @@ internal static class Program
         string? to = mod == "order" ? null : mod;
         if (to is not null && !c.Mods.Contains(to)) throw new UsageException($"{to} has no version of {c.Path} (it has: {string.Join(", ", c.Mods)})");
         return RunPlan(new InstallPlan { Title = "Pin a file" }.Add(new PinFileOp(c.Area, c.Key, to)), TargetFor(game, null));
+    }
+
+    private static int CheckCmd(string[] argv)
+    {
+        var a = Parse(argv, [], ["--quick"]);
+        NeedPositional(a, 1, int.MaxValue, "game_dir");
+        var health = Check(a);
+        int broken = health.Count(h => h.Broken);
+        Console.WriteLine(broken == 0 ? $"{health.Count} mod(s) checked — all in order." : $"{health.Count} mod(s) checked — {broken} with problems.");
+        foreach (var h in health)
+        {
+            var state = !h.Enabled ? "off" : h.Broken ? "BROKEN" : "ok";
+            Console.WriteLine($"  [{state}] {h.Name} ({h.Id}){(h.Fingerprinted ? "" : " — installed before 1.3: only whether its files are there")}");
+            foreach (var p in h.Problems)
+                Console.WriteLine($"      {(p.Broken ? "[!]" : "[i]")} {p.Path}: {p.What}{p.Fix switch
+                {
+                    RepairKind.Reinstall => " → install it again",
+                    RepairKind.Dlclist or RepairKind.Refresh => " → mdvctl repair",
+                    _ => "",
+                }}");
+            if (h.Broken && h.Report is { } r && File.Exists(r)) Console.WriteLine($"      install report: {r}");
+        }
+        return broken == 0 ? 0 : 1;
+    }
+
+    private static List<ModHealth> Check(Args a)
+    {
+        var game = a.Positional[0];
+        var ids = a.Positional.Skip(1).ToList();
+        var reg = ModRegistry.Load(game);
+        if (ids.FirstOrDefault(id => reg.Find(id) is null) is { } unknown) throw new UsageException($"{unknown} is not an installed mod of this game");
+        return ModCheck.Verify(game, ids.Count == 0 ? null : ids, a.Flags.Contains("--quick"),
+                               (part, name) => { if (name.Length > 0) Console.Error.WriteLine($"  checking {name}…"); });
+    }
+
+    private static int RepairCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, int.MaxValue, "game_dir");
+        var game = a.Positional[0];
+        var health = Check(a);
+        if (!health.Any(h => h.Broken))
+        {
+            Console.WriteLine("Nothing to repair — every mod checked is in order.");
+            return 0;
+        }
+        int code = 0;
+        if (ModCheck.PlanRepair(health) is { } plan)
+        {
+            Console.WriteLine(plan.Title + ":");
+            foreach (var step in plan.Describe()) Console.WriteLine($"  - {step}");
+            code = RunPlan(plan, TargetFor(game, null));
+        }
+        foreach (var h in health.Where(h => h.NeedsReinstall))
+        {
+            code = 1;
+            Console.WriteLine(h.SourceThere
+                ? $"[!] {h.Name}: install it again — mdvctl install \"{game}\" \"{h.SourcePath}\""
+                : $"[!] {h.Name}: install it again from its file (the one it came from{(h.SourcePath is null ? "" : $", {h.SourcePath},")} isn't there)");
+        }
+        return code;
+    }
+
+    private static int ReportCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 2, 2, "game_dir, mod_id");
+        var m = ModRegistry.Load(a.Positional[0]).Find(a.Positional[1]) ?? throw new UsageException($"{a.Positional[1]} is not an installed mod of this game");
+        if (m.Report is not { } path || !File.Exists(path))
+        {
+            Console.Error.WriteLine($"{m.Name}: no install report (installed before ModDrop V 1.3, or the report was deleted).");
+            return 1;
+        }
+        Console.Error.WriteLine(path);
+        Console.Write(File.ReadAllText(path));
+        return 0;
+    }
+
+    private static int ProfileCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 4, "game_dir");
+        var game = a.Positional[0];
+        var cmd = a.Positional.Count > 1 ? a.Positional[1] : "list";
+        var args = a.Positional.Skip(2).ToList();
+        void Need(int n, string names)
+        {
+            if (args.Count != n) throw new UsageException($"profile {cmd}: expected {names}");
+        }
+        var target = TargetFor(game, null);
+        try
+        {
+            switch (cmd)
+            {
+                case "list":
+                {
+                    Need(0, "nothing more");
+                    var reg = ModRegistry.Load(game);
+                    var now = ModProfiles.Current(target);
+                    Console.WriteLine($"{game}: {reg.Profiles.Count} profile(s); now {now.EnabledCount} of {now.Mods.Count} mod(s) on");
+                    foreach (var p in reg.Profiles)
+                    {
+                        var mark = ModProfiles.Matches(p, now) ? "*" : p.Name == reg.Profile ? "~" : " ";
+                        var missing = p.Mods.Count(m => reg.Find(m.Id) is null);
+                        Console.WriteLine($"  {mark} {p.Name}: {p.EnabledCount} of {p.Mods.Count} mod(s) on{(missing > 0 ? $", {missing} not installed" : "")}" +
+                                          $" — saved {p.When.ToLocalTime():yyyy-MM-dd HH:mm}");
+                    }
+                    if (reg.Profiles.Count > 0) Console.WriteLine("  (* the mods are as it has them; ~ switched to last, changed since)");
+                    return 0;
+                }
+                case "save":
+                    Need(1, "name");
+                    var saved = ModProfiles.Save(target, args[0]);
+                    Console.WriteLine($"Profile «{saved.Name}» saved: {saved.EnabledCount} of {saved.Mods.Count} mod(s) on.");
+                    return 0;
+                case "switch":
+                case "none":
+                {
+                    Need(cmd == "none" ? 0 : 1, cmd == "none" ? "nothing more" : "name");
+                    var profile = cmd == "none" ? ModProfiles.Vanilla
+                        : ModProfiles.Find(ModRegistry.Load(game), args[0]) ?? throw new UsageException($"there is no profile «{args[0]}»");
+                    return RunSetup(ModProfiles.PlanSwitch(target, profile), target);
+                }
+                case "delete":
+                    Need(1, "name");
+                    ModProfiles.Delete(game, args[0]);
+                    Console.WriteLine($"Profile «{args[0]}» deleted (the mods stay as they are).");
+                    return 0;
+                case "rename":
+                    Need(2, "name, to");
+                    ModProfiles.Rename(game, args[0], args[1]);
+                    return 0;
+                case "export":
+                {
+                    Need(2, "name, file");
+                    var p = ModProfiles.Find(ModRegistry.Load(game), args[0]) ?? throw new UsageException($"there is no profile «{args[0]}»");
+                    var file = Path.HasExtension(args[1]) ? args[1] : args[1] + ProfileFile.Extension;
+                    ModProfiles.Export(p, target.Edition, file);
+                    Console.WriteLine($"Profile «{p.Name}» written to {Path.GetFullPath(file)}.");
+                    return 0;
+                }
+                case "import":
+                {
+                    Need(1, "file");
+                    if (!File.Exists(args[0])) throw new UsageException($"no such file: {args[0]}");
+                    var p = ModProfiles.Import(args[0]);
+                    ModProfiles.Add(game, p);
+                    Console.WriteLine($"Profile «{p.Name}» added: {p.EnabledCount} of {p.Mods.Count} mod(s) on.");
+                    foreach (var m in ModProfiles.Plan(target, p, false, "").Missing)
+                        Console.WriteLine($"[!] not installed: {m.Name}{(m.Source?.Path is { } src ? $" — mdvctl install \"{game}\" \"{src}\"" : "")}");
+                    return 0;
+                }
+                default:
+                    throw new UsageException($"profile: unknown action '{cmd}' (list, save, switch, none, delete, rename, export, import)");
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidDataException or InvalidOperationException or IOException)
+        {
+            Console.Error.WriteLine($"[!] {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int UndoCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 2, "game_dir");
+        var game = a.Positional[0];
+        var reg = ModRegistry.Load(game);
+        var what = a.Positional.Count > 1 ? a.Positional[1] : "list";
+        if (what == "list")
+        {
+            Console.WriteLine($"{game}: the last {reg.Snapshots.Count} change(s), newest first");
+            for (int i = 0; i < reg.Snapshots.Count; i++)
+            {
+                var s = reg.Snapshots[i];
+                var names = s.Names(reg);
+                var more = names.Length > 0 && !s.Title.Contains(names, StringComparison.Ordinal) ? $" ({names})" : "";
+                Console.WriteLine($"  {i + 1,3}. {s.When.ToLocalTime():yyyy-MM-dd HH:mm}  {s.Title}{more}");
+            }
+            return 0;
+        }
+        if (!int.TryParse(what, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 1 || n > reg.Snapshots.Count)
+            throw new UsageException($"undo: a change from the list, 1 to {reg.Snapshots.Count} (got '{what}')");
+        var target = TargetFor(game, null);
+        return RunSetup(ModProfiles.PlanUndo(target, reg.Snapshots[n - 1]), target);
+    }
+
+    /// <summary>Print and run a switch to a setup; the mods it lacks are named with the command that installs them.</summary>
+    private static int RunSetup(SetupPlan sp, InstallTarget target)
+    {
+        Console.WriteLine(sp.Plan.Title + ":");
+        if (sp.Empty)
+        {
+            foreach (var w in sp.Plan.Warnings) Console.WriteLine($"[!] {w}");
+            Console.WriteLine("  nothing to change — the mods are that way already.");
+        }
+        else
+        {
+            foreach (var step in sp.Plan.Describe()) Console.WriteLine($"  - {step}");
+            if (RunPlan(sp.Plan, target) != 0) return 1;
+        }
+        foreach (var m in sp.Missing.Where(m => m.Source?.Path is not null))
+            Console.WriteLine($"    install it again: mdvctl install \"{target.GameDir}\" \"{m.Source!.Path}\"");
+        return sp.Missing.Count > 0 ? 1 : 0;
     }
 
     private static int SetOrder(string game, List<string> order) =>

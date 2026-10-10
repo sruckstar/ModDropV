@@ -496,8 +496,12 @@ public sealed partial class MainViewModel : ObservableObject
         await RefreshStatusAsync();
     }
 
+    /// <summary>When the run being shown started: the result banner offers the install report it wrote.</summary>
+    private DateTime? _runStarted;
+
     private void StartLog(IEnumerable<string> header)
     {
+        _runStarted = DateTime.UtcNow;
         _log.Clear();
         foreach (var line in header) _log.AppendLine(line);
         LogText = _log.ToString();
@@ -559,6 +563,10 @@ public sealed partial class MainViewModel : ObservableObject
         ResultDetail = detail;
         ResultPath = path;
         HasResultPath = path is not null;
+        ResultReport = _runStarted is { } since && InstallReport.Last is { } last && last.When >= since && File.Exists(last.Path) ? last.Path : null;
+        OfferUndo(ok, _runStarted);
+        _runStarted = null;
+        ResultCanRepair = false;
         ResultVisible = true;
         AppLog.Info($"result: {title} | {detail.Replace('\n', ' ')}");
     }

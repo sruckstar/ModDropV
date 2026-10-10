@@ -11,6 +11,7 @@
   <StreamGeometry x:Key="IconArchive">M4 8h16v11.5c0 .83-.67 1.5-1.5 1.5h-13C4.67 21 4 20.33 4 19.5zM3 4h18v4H3zM10 12h4</StreamGeometry>
   <StreamGeometry x:Key="IconTrash">M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5</StreamGeometry>
   <StreamGeometry x:Key="IconUndo">M9 5 4 10l5 5M4 10h10a5.5 5.5 0 0 1 0 11H9</StreamGeometry>
+  <StreamGeometry x:Key="IconExport">M12 14.5V4M7.5 8.5 12 4l4.5 4.5M5 13.5v6h14v-6</StreamGeometry>
   <StreamGeometry x:Key="IconLog">M5 6h14M5 10.5h14M5 15h9M5 19.5h6</StreamGeometry>
   <StreamGeometry x:Key="IconCube">M12 2.8 20 7.2v9.6L12 21.2 4 16.8V7.2zM4 7.2l8 4.4 8-4.4M12 11.6v9.6</StreamGeometry>
   <StreamGeometry x:Key="IconExpand">M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7</StreamGeometry>

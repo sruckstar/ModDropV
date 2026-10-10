@@ -49,7 +49,11 @@ public sealed partial class MainViewModel
 
     partial void OnIsConflictsViewChanged(bool value)
     {
-        if (value) IsOrderView = false;
+        if (value)
+        {
+            IsOrderView = false;
+            IsProfilesView = false;
+        }
         OnPropertyChanged(nameof(IsModsView));
     }
     partial void OnConflictModChanged(ConflictModFilter? value)

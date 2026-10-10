@@ -134,6 +134,9 @@ public static class Diagnostics
         return false;
     }
 
+    /// <summary>Open a file with the program the system has for it (a report in the text viewer).</summary>
+    public static void OpenFile(string path) => Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+
     /// <summary>Reveal a path in the file manager.</summary>
     public static void OpenInFileManager(string path)
     {

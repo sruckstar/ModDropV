@@ -672,6 +672,63 @@ public sealed class ModsOverlay
     private static List<string> DlcPacks(string xml) =>
         [.. Regex.Matches(xml, @"<Item>\s*dlcpacks:[\\/]+([^<]+?)[\\/]*\s*</Item>", RegexOptions.IgnoreCase).Select(m => m.Groups[1].Value)];
 
+    // ================================================================ checks
+
+    /// <summary>The places (archive copies, loose roots) a mod has versions in — the archives <see cref="Status"/> names.</summary>
+    public IReadOnlyList<string> PlacesOf(string modId) =>
+        [.. State.Entries.Where(kv => kv.Value.Layers.Any(l => l.Mod == modId)).Select(kv => TopOf(kv.Key)).Distinct(StringComparer.Ordinal)];
+
+    /// <summary>
+    /// What is wrong with a mod's versions in the mods layer (<see cref="ModCheck"/>): the copy of an archive gone, its live
+    /// version no longer in the copy, a version kept aside (covered, or parked while it is off) gone. Key → what. Reads only.
+    /// </summary>
+    public List<(string Key, string What)> Check(string modId)
+    {
+        var found = new List<(string Key, string What)>();
+        bool BlobGone(string content) =>
+            content.StartsWith(BlobPrefix, StringComparison.Ordinal) && !File.Exists(BlobPath(content[BlobPrefix.Length..]));
+        foreach (var place in State.Entries.Where(kv => kv.Value.Layers.Any(l => l.Mod == modId)).GroupBy(kv => TopOf(kv.Key)))
+        {
+            var top = place.Key;
+            var copy = CopyPath(top);
+            bool loose = IsLoose(top);
+            IEntryStore? store = null;
+            try
+            {
+                if (loose) store = LooseStoreOf(top, copy);
+                else if (File.Exists(copy)) store = new ArchiveStore(OpenEditor(copy));
+                else if (place.Any(kv => kv.Value.Layers[^1] is { Content: Live } l && l.Mod == modId))
+                    found.Add((place.First().Key, L.T($"{Shown(top)} is gone — none of its files there reach the game")));
+                foreach (var (key, e) in place)
+                    for (int i = 0; i < e.Layers.Count; i++)
+                    {
+                        var l = e.Layers[i];
+                        if (l.Mod != modId) continue;
+                        if (i == e.Layers.Count - 1)
+                        {
+                            if (l.Content == Live && store is not null && !store.Exists(Place(key).Inner))
+                                found.Add((key, L.T($"no longer in {Shown(top)}")));
+                        }
+                        else if (BlobGone(l.Content))
+                            found.Add((key, L.T("its version, kept under another mod's, is gone")));
+                    }
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or RpfFormatException or RpfEncryptedException or UnauthorizedAccessException)
+            {
+                found.Add((place.First().Key, L.T($"{Shown(top)} can't be read: {ex.Message}")));
+            }
+            finally
+            {
+                store?.Dispose();
+            }
+        }
+        // switched off: its versions wait in the blobs until it is switched on again
+        if (State.Parked.TryGetValue(modId, out var parked))
+            foreach (var (key, content) in parked)
+                if (BlobGone(content)) found.Add((key, L.T("its version, kept while it is switched off, is gone")));
+        return found;
+    }
+
     // ================================================================ changes
 
     /// <summary>Put <paramref name="content"/> (a loose file) at <paramref name="gamePath"/> on behalf of <paramref name="modId"/>.</summary>

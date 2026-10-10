@@ -188,6 +188,9 @@ public sealed class InstallContext(InstallTarget target, InstallJournal journal,
     /// <summary>A step switched <see cref="ModRegistry.OrderPacks"/>; recorded once the plan is committed.</summary>
     public bool? OrderPacks { get; set; }
 
+    /// <summary>The profile a step switched to (<see cref="ModProfiles.PlanSwitch"/>); recorded as the active one once the plan is committed.</summary>
+    public string? Profile { get; set; }
+
     /// <summary>The load order before the plan's own changes: the one a step set, else the registry's.</summary>
     public List<string> CurrentOrder() => Order ?? ModOrder.Of(ModRegistry.Load(GameDir), Overlay.State);
 
@@ -258,6 +261,9 @@ public sealed class InstallContext(InstallTarget target, InstallJournal journal,
 
     internal PlanRun? Run { get; init; }
     internal PlanProgress Step { get; set; }
+
+    /// <summary>The run's report once it went through (<see cref="InstallReport"/>); null when it couldn't be written.</summary>
+    public string? Report { get; internal set; }
 
     /// <summary>Stops a long step when the player asked the plan to stop (it is then taken back).</summary>
     public CancellationToken Token => Run?.Token ?? CancellationToken.None;
@@ -648,6 +654,24 @@ public static class InstallExecutor
         // a mods folder made now would meet the stashed one on the way back
         if (OnlineMode.IsOn(target.GameDir))
             throw new InvalidOperationException(L.T("The mods of this game are put away for GTA Online — bring them back first."));
+        // every line goes into the run's report too
+        var started = DateTime.UtcNow;
+        var lines = new List<string>();
+        var shown = log;
+        log = line =>
+        {
+            lock (lines) lines.Add(line);
+            shown(line);
+        };
+        ModRegistry? before = null;
+        try
+        {
+            before = ModRegistry.Load(target.GameDir);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // the report goes without the owners of replaced files
+        }
         try
         {
             DlclistGuard.Migrate(target.GameDir, log);
@@ -697,10 +721,12 @@ public static class InstallExecutor
                 ModsOverlay.CollectGarbage(target.GameDir);
                 ModsOverlay.TightenAfterRollback(target.GameDir, journal.Steps.OfType<RpfEntrySet>().Select(s => s.Archive), log);
             }
+            var report = InstallReport.Write(plan, ctx, Lines(lines), started, before, ex);
             // the running game keeps its archives (and the mods layer's copies) open: say so, not "being used by another process"
             if (ex is IOException { HResult: var hr } && (hr & 0xFFFF) is 32 or 33 && OnlineMode.GameRuns())
                 throw new IOException(L.T($"GTA V is running and keeps a file this needs open ({ex.Message}). Close the game and " +
-                                          $"install again."), ex);
+                                          $"install again."), ex) { Data = { [InstallReport.DataKey] = report } };
+            if (report is not null) ex.Data[InstallReport.DataKey] = report;
             throw;
         }
         journal.Commit();
@@ -711,15 +737,29 @@ public static class InstallExecutor
             overlay.Save();
         }
 
-        if (ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0 || ctx.Order is not null || ctx.OrderPacks is not null
-            || ctx.JournalChanges.Count > 0 || ctx.Pins is not null || ctx.FilePins is not null)
+        ctx.Report = InstallReport.Write(plan, ctx, Lines(lines), started, before, null);
+        var reg = ModRegistry.Load(target.GameDir);
+        bool changed = ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0 || ctx.Order is not null
+                       || ctx.OrderPacks is not null || ctx.JournalChanges.Count > 0 || ctx.Pins is not null || ctx.FilePins is not null
+                       || ctx.Profile is not null;
+        if (changed)
         {
-            var reg = ModRegistry.Load(target.GameDir);
-            var before = ModOrder.Of(reg, ctx.LoadedOverlay?.State ?? ModOrder.StateOf(target.GameDir));
+            var wasOrder = ModOrder.Of(reg, ctx.LoadedOverlay?.State ?? ModOrder.StateOf(target.GameDir));
+            // how the mods were before it, for an undo
+            if (ModProfiles.Snapshot(plan, ctx, reg, wasOrder) is { } snapshot)
+            {
+                reg.Snapshots.Insert(0, snapshot);
+                if (reg.Snapshots.Count > ModProfiles.KeepSnapshots) reg.Snapshots.RemoveRange(ModProfiles.KeepSnapshots, reg.Snapshots.Count - ModProfiles.KeepSnapshots);
+            }
+            if (ctx.Profile is { } profile) reg.Profile = profile;
             Settle(ctx);
-            foreach (var m in ctx.Registered) reg.Upsert(m);
+            foreach (var m in ctx.Registered)
+            {
+                m.Report = ctx.Report ?? m.Report;
+                reg.Upsert(m);
+            }
             foreach (var (id, rewritten) in ctx.JournalChanges)
-                if (reg.Find(id) is { } changed) changed.Journal = rewritten;
+                if (reg.Find(id) is { } rechained) rechained.Journal = rewritten;
             if (ctx.Pins is { } pins) reg.Pins = pins;
             if (ctx.FilePins is { } filePins) reg.FilePins = filePins;
             foreach (var id in ctx.Unregistered) reg.Remove(id);
@@ -730,10 +770,19 @@ public static class InstallExecutor
                     m.Updated = DateTime.UtcNow;
                 }
             var known = reg.Mods.Select(m => m.Id).ToHashSet(StringComparer.Ordinal);
-            reg.Order = [.. (ctx.Order ?? ModOrder.After(before, ctx.Registered.Select(m => m.Id), ctx.Unregistered)).Where(known.Contains)];
+            reg.Order = [.. (ctx.Order ?? ModOrder.After(wasOrder, ctx.Registered.Select(m => m.Id), ctx.Unregistered)).Where(known.Contains)];
             if (ctx.OrderPacks is { } packs) reg.OrderPacks = packs;
-            reg.Save(target.GameDir);
         }
+        // what the mods' files are now, for a check later (ModCheck)
+        try
+        {
+            changed |= ModCheck.Record(target.GameDir, reg, ctx.Registered.Select(m => m.Id), journal.Steps);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            log(L.T($"    [!] The installed files could not be fingerprinted for a later check: {ex.Message}"));
+        }
+        if (changed) reg.Save(target.GameDir);
         // a mod went in: BattlEye would keep it (and the loaders) out of story mode
         if (ctx.Registered.Count > 0) BattlEye.TurnOff(target.GameDir, log);
         return ctx;
@@ -772,6 +821,11 @@ public static class InstallExecutor
                 // no dlclist.xml of the mods yet: nothing to order
             }
         }
+    }
+
+    private static List<string> Lines(List<string> lines)
+    {
+        lock (lines) return [.. lines];
     }
 
     /// <summary>The journals of the mods the plan recorded so far are final: the plan's steps from each one's start to its record.</summary>

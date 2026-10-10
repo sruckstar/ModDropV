@@ -33,6 +33,19 @@ public sealed class RegisteredMod
     /// <summary>What the install did to the game, for taking it back.</summary>
     [JsonPropertyName("journal")] public List<JournalStep> Journal { get; set; } = [];
 
+    /// <summary>
+    /// What the mod's files in the game folder were when it went in: game-relative path → <c>&lt;length&gt;:&lt;sha256&gt;</c>
+    /// (<see cref="ModCheck"/>). Null for mods installed before ModDrop V 1.3.
+    /// </summary>
+    [JsonPropertyName("files")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, string>? Files { get; set; }
+
+    /// <summary>The install report of its last install (<see cref="InstallReport"/>), a full path.</summary>
+    [JsonPropertyName("report")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Report { get; set; }
+
     /// <summary>Set when the record was taken over from another tool's registry.</summary>
     [JsonPropertyName("importedFrom")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -92,6 +105,17 @@ public sealed class ModRegistry
 
     /// <summary>The same for files of the game folder (<see cref="GameFiles"/>): game-relative path, lower case, '/' → mod id.</summary>
     [JsonPropertyName("filePins")] public Dictionary<string, string> FilePins { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>The profiles the player keeps (<see cref="ModProfiles"/>): named sets of mods with their order and pins.</summary>
+    [JsonPropertyName("profiles")] public List<ModSetup> Profiles { get; set; } = [];
+
+    /// <summary>The profile switched to (or saved) last; the mods may have changed since (<see cref="ModProfiles.Matches"/>).</summary>
+    [JsonPropertyName("profile")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Profile { get; set; }
+
+    /// <summary>How the mods were before each of the last plans, newest first (<see cref="ModProfiles.PlanUndo"/>).</summary>
+    [JsonPropertyName("snapshots")] public List<ModSnapshot> Snapshots { get; set; } = [];
 
     /// <summary>Other tools' registries already taken over (file names).</summary>
     [JsonPropertyName("imports")] public List<string> Imports { get; set; } = [];
@@ -160,7 +184,7 @@ public sealed class ModRegistry
     public void Save(string gameDir)
     {
         var path = PathFor(gameDir);
-        if (Mods.Count == 0 && Imports.Count == 0)
+        if (Mods.Count == 0 && Imports.Count == 0 && Profiles.Count == 0)
         {
             File.Delete(path);                             // nothing installed: the mods folder is left as it was
             Upgraded = false;

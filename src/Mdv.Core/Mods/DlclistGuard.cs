@@ -134,15 +134,20 @@ public static class DlclistGuard
     {
         var plan = new InstallPlan { Title = L.T("Fix dlclist.xml") };
         var added = new List<string>();
-        plan.Add(new ActionOp(L.T("List the installed mods' packs in dlclist.xml again"), ctx =>
-        {
-            foreach (var p in Missing(ctx.GameDir))
-                if (GameInstaller.RegisterInDlclist(ctx.GameDir, p, ctx.Log, ctx.Journal)) added.Add(p);
-            ctx.Log(added.Count == 0
-                ? L.T("    dlclist.xml lists every installed pack.")
-                : L.T($"    dlclist.xml: {added.Count} pack(s) listed again ({string.Join(", ", added)})."));
-        }));
+        plan.Add(RelistOp(added));
         InstallExecutor.Run(plan, new InstallTarget(gameDir, GameEditions.Detect(gameDir) ?? GameEdition.Legacy, Path.GetTempPath()), log);
         return added;
     }
+
+    /// <summary>The step that lists the packs <see cref="Missing"/> finds again; they go into <paramref name="added"/>.</summary>
+    public static PlanOp RelistOp(List<string>? added = null) =>
+        new ActionOp(L.T("List the installed mods' packs in dlclist.xml again"), ctx =>
+        {
+            var listed = added ?? [];
+            foreach (var p in Missing(ctx.GameDir))
+                if (GameInstaller.RegisterInDlclist(ctx.GameDir, p, ctx.Log, ctx.Journal)) listed.Add(p);
+            ctx.Log(listed.Count == 0
+                ? L.T("    dlclist.xml lists every installed pack.")
+                : L.T($"    dlclist.xml: {listed.Count} pack(s) listed again ({string.Join(", ", listed)})."));
+        });
 }

@@ -89,6 +89,7 @@ public sealed partial class MainViewModel
         HasStaleCopies = _staleCopies.Count > 0;
         var stale = string.Join("; ", report.Copies.Where(c => c.Stale is not null).Select(c => $"{c.Shown} ({c.Stale})"));
         StaleCopiesText = HasStaleCopies ? L.T($"Out of date: {stale}. An old copy is a common cause of crashes.") : "";
+        CheckAfterGameUpdate();
     }
 
     [RelayCommand]

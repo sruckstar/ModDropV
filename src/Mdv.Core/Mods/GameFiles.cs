@@ -97,6 +97,20 @@ public static class GameFiles
         Chains(ModRegistry.Load(gameDir).Mods.Select(m => KeyValuePair.Create(m.Id, m.Journal)));
 
     /// <summary>
+    /// Where <paramref name="mod"/>'s version of <paramref name="path"/> is now (game-relative): the file itself, or — when
+    /// another mod's version is above it in a chain — the stash of the link above.
+    /// </summary>
+    public static string VersionOf(IReadOnlyDictionary<string, Chain> chains, string mod, string path)
+    {
+        if (!chains.TryGetValue(KeyOf(path), out var chain)) return path;
+        var links = chain.Links;
+        for (int i = 0; i < links.Count - 1; i++)
+            if (links[i].Mod == mod && links[i + 1].First is MovedAside above)
+                return above.Stash;
+        return path;
+    }
+
+    /// <summary>
     /// Put the versions of every shared file in <paramref name="order"/> (top first), a pinned mod (<paramref name="pins"/>,
     /// key → mod) on top whatever the order says. A file a mod edited stays as it is. Returns the files whose links moved.
     /// </summary>

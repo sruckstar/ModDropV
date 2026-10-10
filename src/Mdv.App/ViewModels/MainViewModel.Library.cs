@@ -62,6 +62,7 @@ public sealed partial class MainViewModel
         Dictionary<string, (List<string> Others, bool OnTop)> conflicts = [];
         OrderData? order = null;
         ConflictData? shared = null;
+        ProfileData? profiles = null;
         string empty;
         if (IsPlayer && GameFolder.Trim() is { Length: > 0 } chosen && OnlineMode.IsOn(chosen))
         {
@@ -79,10 +80,10 @@ public sealed partial class MainViewModel
             IsReadingLibrary = true;
             try
             {
-                (mods, conflicts, order, shared) = await Task.Run(() =>
+                (mods, conflicts, order, shared, profiles) = await Task.Run(() =>
                 {
                     var list = ModLibrary.List(target);
-                    return (list, Conflicts(game, list), ReadOrder(game), ReadConflicts(game));
+                    return (list, Conflicts(game, list), ReadOrder(game), ReadConflicts(game), ReadProfiles(target, list));
                 });
             }
             catch (Exception ex)
@@ -99,7 +100,8 @@ public sealed partial class MainViewModel
         foreach (var m in mods)
         {
             var c = conflicts.GetValueOrDefault(m.Id);
-            var row = new InstalledModViewModel(m, c.Others, c.Others is null || c.OnTop, RaiseInstalled, OpenVariants, ShowConflictsOf);
+            var row = new InstalledModViewModel(m, c.Others, c.Others is null || c.OnTop, RaiseInstalled, OpenVariants, ShowConflictsOf,
+                                                r => _ = RepairMod(r));
             row.PropertyChanged += OnInstalledRowChanged;
             Installed.Add(row);
         }
@@ -108,8 +110,10 @@ public sealed partial class MainViewModel
         InstalledEmptyText = empty;
         ShowOrder(order, order is { Mods.Count: 0 } ? L.T("Nothing installed into this game by ModDrop V yet — drop a mod on the Install page.") : empty);
         ShowConflicts(shared);
+        ShowProfiles(profiles);
         BuildFilters();
         UpdatePending();
+        ShowHealth(game, recheck: true);
     }
 
     /// <summary>Installed mod → the other installed mods (by name) that change some of the same game files. Reads only.</summary>
