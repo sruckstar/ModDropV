@@ -29,11 +29,15 @@ public sealed record CreatedDir([property: JsonPropertyName("path")] string Path
 /// <summary>
 /// An existing file or folder that was replaced, edited or deleted: its previous state sits
 /// in <paramref name="Stash"/> (under mods/.moddropv/stash or onigiri/.moddropv/stash). Undo: put it back. A stash with
-/// <paramref name="Keep"/> = false only guards the transaction and is dropped on commit.
+/// <paramref name="Keep"/> = false only guards the transaction and is dropped on commit. <paramref name="Edit"/>: the file was
+/// edited in place, not replaced — the new version is built on the stashed one (<see cref="GameFiles"/> won't reorder it).
 /// </summary>
 public sealed record MovedAside([property: JsonPropertyName("path")] string Path,
                                 [property: JsonPropertyName("stash")] string Stash,
-                                [property: JsonPropertyName("keep")] bool Keep) : JournalStep;
+                                [property: JsonPropertyName("keep")] bool Keep,
+                                [property: JsonPropertyName("edit")]
+                                [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+                                bool Edit = false) : JournalStep;
 
 /// <summary>A file or folder moved within the game folder. Undo: move it back.</summary>
 public sealed record Moved([property: JsonPropertyName("from")] string From,
@@ -127,7 +131,8 @@ public sealed class InstallJournal
     public void StagingChanged(string stagingRoot, string gamePackRpf) =>
         Steps.Add(new StagingTouched(Path.GetFullPath(stagingRoot), Rel(gamePackRpf)));
 
-    private string NextStash(string abs)
+    /// <summary>A new place in this transaction's stash for a version of <paramref name="abs"/> (nothing is there yet).</summary>
+    public string NextStash(string abs)
     {
         Directory.CreateDirectory(StashRoot);
         return Path.Combine(StashRoot, $"{++_stashNo:D3}_{Path.GetFileName(Path.TrimEndingDirectorySeparator(abs))}");
@@ -148,7 +153,7 @@ public sealed class InstallJournal
     {
         var stash = NextStash(abs);
         PathUtil.Copy2(abs, stash);
-        Steps.Add(new MovedAside(Rel(abs), Rel(stash), keep));
+        Steps.Add(new MovedAside(Rel(abs), Rel(stash), keep, Edit: true));
     }
 
     // ------------------------------------------------------------ finishing

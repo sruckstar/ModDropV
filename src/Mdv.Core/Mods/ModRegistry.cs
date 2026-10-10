@@ -46,6 +46,8 @@ public sealed class RegisteredMod
     /// <summary>Set while a plan runs: the journal's length when the mod was recorded — the steps after it (another mod
     /// the same plan installs) aren't its.</summary>
     [JsonIgnore] public int? JournalTo { get; set; }
+    /// <summary>Set while a plan runs: <see cref="Journal"/> is final (taken from the plan's steps).</summary>
+    [JsonIgnore] public bool Settled { get; set; }
 
     public string? Get(string key) => Data.TryGetValue(key, out var v) ? v : null;
 }
@@ -81,6 +83,15 @@ public sealed class ModRegistry
     [JsonPropertyName("orderPacks")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool OrderPacks { get; set; }
+
+    /// <summary>
+    /// Files inside the game's archives whose winner the player picked by hand: mods layer key (<see cref="ModsOverlay.KeyFor"/>)
+    /// → mod id. Stronger than the order; a pin of a mod that is gone means nothing (<see cref="FileConflicts"/>).
+    /// </summary>
+    [JsonPropertyName("pins")] public Dictionary<string, string> Pins { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>The same for files of the game folder (<see cref="GameFiles"/>): game-relative path, lower case, '/' → mod id.</summary>
+    [JsonPropertyName("filePins")] public Dictionary<string, string> FilePins { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>Other tools' registries already taken over (file names).</summary>
     [JsonPropertyName("imports")] public List<string> Imports { get; set; } = [];
@@ -181,6 +192,8 @@ public sealed class ModRegistry
     public bool Remove(string id)
     {
         Order.Remove(id);
+        foreach (var pins in new[] { Pins, FilePins })
+            foreach (var key in pins.Where(kv => kv.Value == id).Select(kv => kv.Key).ToList()) pins.Remove(key);
         return Mods.RemoveAll(m => m.Id == id) > 0;
     }
 }

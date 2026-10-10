@@ -162,7 +162,8 @@ public abstract partial class FileModHandler : IModHandler
         foreach (var op in TakeOutOps(m, off, reinstall)) yield return op;
         if (m.Journal.Count > 0)
             yield return new ActionOp(L.T($"Take back what «{m.Name}» copied into the game folder ({Describe(m.Journal)})"),
-                                      ctx => ctx.Journal.RevertInto(InstallExecutor.OwnSteps(m.Journal, ctx.Overlay)));
+                                      ctx => ctx.Journal.RevertInto(GameFiles.HandOver(ctx, m.Id,
+                                                                    InstallExecutor.OwnSteps(ctx.JournalOf(m), ctx.Overlay))));
         if (unregister)
             yield return new ActionOp("", ctx => ctx.Unregistered.Add(m.Id)) { Hidden = true };
     }

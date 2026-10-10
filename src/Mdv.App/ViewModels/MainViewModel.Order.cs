@@ -26,8 +26,13 @@ public sealed partial class MainViewModel
     [ObservableProperty] public partial bool IsOrderView { get; set; }
     public bool IsModsView
     {
-        get => !IsOrderView;
-        set => IsOrderView = !value;
+        get => !IsOrderView && !IsConflictsView;
+        set
+        {
+            if (!value) return;
+            IsOrderView = false;
+            IsConflictsView = false;
+        }
     }
 
     /// <summary>The rows the filter lets through, top first.</summary>
@@ -48,7 +53,11 @@ public sealed partial class MainViewModel
     /// <summary>The mods that share files, as the header says it.</summary>
     [ObservableProperty] public partial string OrderSharedCount { get; set; } = "";
 
-    partial void OnIsOrderViewChanged(bool value) => OnPropertyChanged(nameof(IsModsView));
+    partial void OnIsOrderViewChanged(bool value)
+    {
+        if (value) IsConflictsView = false;
+        OnPropertyChanged(nameof(IsModsView));
+    }
     partial void OnOrderOnlySharedChanged(bool value) => FilterOrder();
     partial void OnOrderPacksChanged(bool value) => UpdateOrderPending();
 

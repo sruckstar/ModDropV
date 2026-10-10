@@ -108,23 +108,26 @@ public static class ModOrder
     }
 
     /// <summary>
-    /// Installed mod → the other mods that change some of the same files in the game's archives, and whether its versions
-    /// are on top in all of them. The shared limits are no mod; add-on packs that raised pools of their own share
+    /// Installed mod → the other mods that change some of the same files in the game's archives or folder, and whether its
+    /// versions are on top in all of them. The shared limits are no mod; add-on packs that raised pools of their own share
     /// gameconfig.xml without clashing — each builds on the one below. Reads only.
     /// </summary>
     public static Dictionary<string, (List<string> Others, bool OnTop)> Conflicts(string gameDir, IEnumerable<string> mods)
     {
         var result = new Dictionary<string, (List<string>, bool)>(StringComparer.Ordinal);
-        if (!File.Exists(ModsOverlay.StatePath(gameDir))) return result;
-        var overlay = ModsOverlay.Load(gameDir);
-        var raisers = ModRegistry.Load(gameDir).Mods.Where(r => r.Get("pools") == "1").Select(r => r.Id).ToHashSet();
+        var reg = ModRegistry.Load(gameDir);
+        var files = GameFiles.Chains(reg.Mods.Select(m => KeyValuePair.Create(m.Id, m.Journal))).Values.Select(c => c.Mods).ToList();
+        var overlay = File.Exists(ModsOverlay.StatePath(gameDir)) ? ModsOverlay.Load(gameDir) : null;
+        if (overlay is null && files.Count == 0) return result;
+        var raisers = reg.Mods.Where(r => r.Get("pools") == "1").Select(r => r.Id).ToHashSet();
         foreach (var id in mods)
         {
-            var shared = overlay.PathsOf(id)
+            var shared = (overlay?.PathsOf(id) ?? [])
                                 .Select(p => p.Equals(GamePools.GameConfig, StringComparison.OrdinalIgnoreCase) && raisers.Contains(id)
-                                    ? [.. overlay.OwnersOf(p).Where(o => o == id || !raisers.Contains(o))]
-                                    : overlay.OwnersOf(p))
+                                    ? [.. overlay!.OwnersOf(p).Where(o => o == id || !raisers.Contains(o))]
+                                    : overlay!.OwnersOf(p))
                                 .Select(o => o.Where(x => x != GamePools.LimitsOwner).ToList())
+                                .Concat(files.Where(f => f.Contains(id)).Select(f => f.ToList()))
                                 .Where(o => o.Count > 1).ToList();
             var others = shared.SelectMany(o => o).Where(o => o != id).Distinct().ToList();
             if (others.Count > 0) result[id] = (others, shared.All(o => o[0] == id));

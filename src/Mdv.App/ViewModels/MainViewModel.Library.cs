@@ -61,6 +61,7 @@ public sealed partial class MainViewModel
         List<InstalledMod> mods = [];
         Dictionary<string, (List<string> Others, bool OnTop)> conflicts = [];
         OrderData? order = null;
+        ConflictData? shared = null;
         string empty;
         if (IsPlayer && GameFolder.Trim() is { Length: > 0 } chosen && OnlineMode.IsOn(chosen))
         {
@@ -78,10 +79,10 @@ public sealed partial class MainViewModel
             IsReadingLibrary = true;
             try
             {
-                (mods, conflicts, order) = await Task.Run(() =>
+                (mods, conflicts, order, shared) = await Task.Run(() =>
                 {
                     var list = ModLibrary.List(target);
-                    return (list, Conflicts(game, list), ReadOrder(game));
+                    return (list, Conflicts(game, list), ReadOrder(game), ReadConflicts(game));
                 });
             }
             catch (Exception ex)
@@ -98,7 +99,7 @@ public sealed partial class MainViewModel
         foreach (var m in mods)
         {
             var c = conflicts.GetValueOrDefault(m.Id);
-            var row = new InstalledModViewModel(m, c.Others, c.Others is null || c.OnTop, RaiseInstalled, OpenVariants);
+            var row = new InstalledModViewModel(m, c.Others, c.Others is null || c.OnTop, RaiseInstalled, OpenVariants, ShowConflictsOf);
             row.PropertyChanged += OnInstalledRowChanged;
             Installed.Add(row);
         }
@@ -106,6 +107,7 @@ public sealed partial class MainViewModel
         InstalledCount = Installed.Count.ToString(CultureInfo.InvariantCulture);
         InstalledEmptyText = empty;
         ShowOrder(order, order is { Mods.Count: 0 } ? L.T("Nothing installed into this game by ModDrop V yet — drop a mod on the Install page.") : empty);
+        ShowConflicts(shared);
         BuildFilters();
         UpdatePending();
     }

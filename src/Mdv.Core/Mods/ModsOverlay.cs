@@ -885,11 +885,12 @@ public sealed class ModsOverlay
     /// Put the mods' versions in <paramref name="order"/> (top first — the first one wins): where it changes who is on top,
     /// the new top's version goes live and the old one is kept aside. Owners the order doesn't name (the shared limits)
     /// keep their places, and so does a file one of the mods edited rather than replaced (<see cref="OverlayLayer.Edit"/>,
-    /// gameconfig.xml): its version is built on the one under it.
+    /// gameconfig.xml): its version is built on the one under it. A file in <paramref name="pins"/> (key → mod) gives the
+    /// pinned mod's version whatever the order says.
     /// </summary>
-    public RestackResult Restack(IReadOnlyList<string> order)
+    public RestackResult Restack(IReadOnlyList<string> order, IReadOnlyDictionary<string, string>? pins = null)
     {
-        var (moves, merged) = PlanRestack(order);
+        var (moves, merged) = PlanRestack(order, pins);
         var live = moves.Where(kv => State.Entries[kv.Key].Layers[^1] != kv.Value[^1]).Select(kv => kv.Key).ToList();
         var taken = ClearFirst(live);                         // the covered version's space takes the new top's
         foreach (var key in live)
@@ -910,12 +911,13 @@ public sealed class ModsOverlay
     }
 
     /// <summary>What <see cref="Restack"/> would do (nothing is written): the files whose live version goes to another mod.</summary>
-    public List<(string Key, string From, string To)> RestackPreview(IReadOnlyList<string> order) =>
-        [.. PlanRestack(order).Moves.Where(kv => State.Entries[kv.Key].Layers[^1] != kv.Value[^1])
+    public List<(string Key, string From, string To)> RestackPreview(IReadOnlyList<string> order, IReadOnlyDictionary<string, string>? pins = null) =>
+        [.. PlanRestack(order, pins).Moves.Where(kv => State.Entries[kv.Key].Layers[^1] != kv.Value[^1])
                                     .Select(kv => (kv.Key, State.Entries[kv.Key].Layers[^1].Mod, kv.Value[^1].Mod))];
 
     /// <summary>The entries whose layers change places for <paramref name="order"/> (their new layers), and the ones left as edited.</summary>
-    private (Dictionary<string, List<OverlayLayer>> Moves, List<string> Merged) PlanRestack(IReadOnlyList<string> order)
+    private (Dictionary<string, List<OverlayLayer>> Moves, List<string> Merged) PlanRestack(IReadOnlyList<string> order,
+                                                                                         IReadOnlyDictionary<string, string>? pins)
     {
         var rank = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int i = 0; i < order.Count; i++) rank.TryAdd(order[i], i);
@@ -936,6 +938,12 @@ public sealed class ModsOverlay
             if (slots.Count < 2) continue;
             // bottom slot first: the lowest in the order goes lowest
             var placed = slots.Select(i => entry.Layers[i]).OrderByDescending(l => rank[l.Mod]).ToList();
+            if (pins is not null && pins.TryGetValue(key, out var pinned) && placed.FindIndex(l => l.Mod == pinned) is >= 0 and var at)
+            {
+                var layer = placed[at];
+                placed.RemoveAt(at);
+                placed.Add(layer);
+            }
             if (slots.Select(i => entry.Layers[i]).SequenceEqual(placed)) continue;
             if (key == config || entry.Layers.Any(l => l.Edit))
             {

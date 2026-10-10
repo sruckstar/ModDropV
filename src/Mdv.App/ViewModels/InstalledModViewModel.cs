@@ -15,14 +15,18 @@ public sealed partial class InstalledModViewModel : ObservableObject
 {
     private readonly Action<InstalledModViewModel>? _raise;
     private readonly Action<InstalledModViewModel>? _variants;
+    private readonly Action<InstalledModViewModel>? _shared;
 
     /// <param name="onTop">its versions of the files it shares with other mods are the ones the game gets</param>
     /// <param name="raise">puts it on top of the others (shows the plan first)</param>
     /// <param name="variants">opens the variants of a ped's components it keeps</param>
+    /// <param name="shared">shows the files it shares with other mods</param>
     public InstalledModViewModel(InstalledMod mod, IReadOnlyList<string>? conflicts = null, bool onTop = true,
-                                 Action<InstalledModViewModel>? raise = null, Action<InstalledModViewModel>? variants = null)
+                                 Action<InstalledModViewModel>? raise = null, Action<InstalledModViewModel>? variants = null,
+                                 Action<InstalledModViewModel>? shared = null)
     {
         _variants = variants;
+        _shared = shared;
         Mod = mod;
         Enabled = mod.Enabled;
         Conflicts = conflicts ?? [];
@@ -78,6 +82,10 @@ public sealed partial class InstalledModViewModel : ObservableObject
 
     [RelayCommand]
     private void Raise() => _raise?.Invoke(this);
+
+    /// <summary>Show the files it shares with other mods (and pick a winner for each).</summary>
+    [RelayCommand]
+    private void ShowShared() => _shared?.Invoke(this);
 
     /// <summary>A ped that keeps variants of its components: they can be switched.</summary>
     public bool CanPickVariants => Mod.HasVariants && _variants is not null && !PendingRemove;

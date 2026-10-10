@@ -351,7 +351,7 @@ public sealed partial class MainViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(BuildCommand), nameof(ReviewInstallCommand), nameof(ApplyInstalledCommand),
                                 nameof(ReviewChangesCommand), nameof(ConfirmPlanCommand), nameof(UpdateCopiesCommand),
                                 nameof(SetLanguageCommand), nameof(ToggleOnlineCommand), nameof(RestartToUpdateCommand),
-                                nameof(ReviewOrderCommand))]
+                                nameof(ReviewOrderCommand), nameof(ReviewPinsCommand))]
     public partial bool IsBuilding { get; set; }
 
     [ObservableProperty] public partial string StageStatus { get; set; } = "";

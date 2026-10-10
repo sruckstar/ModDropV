@@ -71,6 +71,8 @@ internal static class Program
                 "unmod" => Unmod(rest),
                 "raise" => Raise(rest),
                 "order" => Order(rest),
+                "conflicts" => ConflictsCmd(rest),
+                "pin" => PinCmd(rest),
                 "overlay" => Overlay(rest),
                 "refresh" => Refresh(rest),
                 "dlclist" => Dlclist(rest),
@@ -187,6 +189,12 @@ internal static class Program
                   the load order, top (wins) first: list it; set it (the mods named go on top in
                   that order, the rest stay as they were below); move a mod to a place (1 = top);
                   packs on: the mods' add-on packs follow it in dlclist.xml too (a later pack wins)
+              conflicts <game_dir> [mod_id]
+                  the files installed mods share (in the game's archives, the game folder, dlclist.xml
+                  lines): the mod whose version the game gets first, the others, a pinned winner
+              pin <game_dir> <file> <mod_id | order>
+                  give the game that mod's version of one shared file whatever the load order says
+                  (the file as `conflicts` lists it); order: back to the load order
               overlay <game_dir>
                   archive copies in mods (stale after a game update?) and the files mods changed
               limits <game_dir> [--edition legacy|enhanced|auto] [--big] [--reset]
@@ -1603,6 +1611,50 @@ internal static class Program
                 throw new UsageException(ex.Message);
             }
         }
+    }
+
+    private static int ConflictsCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 1, 2, "game_dir");
+        var game = a.Positional[0];
+        var mod = a.Positional.Count > 1 ? a.Positional[1] : null;
+        var reg = ModRegistry.Load(game);
+        if (mod is not null && reg.Find(mod) is null) throw new UsageException($"{mod} is not an installed mod of this game");
+        string Name(string id) => reg.Find(id)?.Name is { Length: > 0 } n ? n : id;
+        var list = FileConflicts.Of(game).Where(c => mod is null || c.Mods.Contains(mod)).ToList();
+        Console.WriteLine($"{game}: {list.Count} shared file(s){(mod is null ? "" : $" of {Name(mod)}")}");
+        foreach (var g in list.GroupBy(c => c.Area))
+        {
+            Console.WriteLine(g.Key switch
+            {
+                ConflictArea.Archive => "in the game's archives:",
+                ConflictArea.GameFolder => "in the game folder:",
+                _ => "dlclist.xml lines (shown only):",
+            });
+            foreach (var c in g)
+            {
+                var how = c.Pinned is not null ? "  [pinned]" : c.Fixed && c.Area != ConflictArea.Dlclist ? "  [edited — stays]" : "";
+                Console.WriteLine($"  {c.Path}{how}");
+                Console.WriteLine($"      {string.Join(" > ", c.Mods.Select(Name))}");
+            }
+        }
+        return 0;
+    }
+
+    private static int PinCmd(string[] argv)
+    {
+        var a = Parse(argv, [], []);
+        NeedPositional(a, 3, 3, "game_dir, file, mod_id");
+        var (game, file, mod) = (a.Positional[0], a.Positional[1], a.Positional[2]);
+        var want = file.Replace('\\', '/').Trim('/');
+        var c = FileConflicts.Of(game).FirstOrDefault(x => x.Area != ConflictArea.Dlclist &&
+                    (x.Key.Equals(want, StringComparison.OrdinalIgnoreCase) || x.Path.Replace('\\', '/').Equals(want, StringComparison.OrdinalIgnoreCase)))
+                ?? throw new UsageException($"{file} is not a file installed mods share (see `mdvctl conflicts`)");
+        if (c.Fixed) throw new UsageException($"{c.Path}: a mod edited the version under it — its winner can't be changed");
+        string? to = mod == "order" ? null : mod;
+        if (to is not null && !c.Mods.Contains(to)) throw new UsageException($"{to} has no version of {c.Path} (it has: {string.Join(", ", c.Mods)})");
+        return RunPlan(new InstallPlan { Title = "Pin a file" }.Add(new PinFileOp(c.Area, c.Key, to)), TargetFor(game, null));
     }
 
     private static int SetOrder(string game, List<string> order) =>

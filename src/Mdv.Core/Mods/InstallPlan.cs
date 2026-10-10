@@ -191,6 +191,62 @@ public sealed class InstallContext(InstallTarget target, InstallJournal journal,
     /// <summary>The load order before the plan's own changes: the one a step set, else the registry's.</summary>
     public List<string> CurrentOrder() => Order ?? ModOrder.Of(ModRegistry.Load(GameDir), Overlay.State);
 
+    /// <summary>The winners picked by hand (<see cref="ModRegistry.Pins"/>), once a step changed them; recorded once the plan is committed.</summary>
+    public Dictionary<string, string>? Pins { get; set; }
+    /// <summary>The same for files of the game folder (<see cref="ModRegistry.FilePins"/>).</summary>
+    public Dictionary<string, string>? FilePins { get; set; }
+
+    /// <summary>The pins as the plan leaves them (a step's changes, else the registry's).</summary>
+    public IReadOnlyDictionary<string, string> CurrentPins(bool files)
+    {
+        if ((files ? FilePins : Pins) is { } changed) return changed;
+        var reg = ModRegistry.Load(GameDir);
+        return files ? reg.FilePins : reg.Pins;
+    }
+
+    /// <summary>Pin <paramref name="key"/> to <paramref name="mod"/> (null: back to the load order).</summary>
+    public void Pin(bool files, string key, string? mod)
+    {
+        var pins = (files ? FilePins : Pins) ?? new Dictionary<string, string>(CurrentPins(files), StringComparer.Ordinal);
+        if (mod is null) pins.Remove(key);
+        else pins[key] = mod;
+        if (files) FilePins = pins;
+        else Pins = pins;
+    }
+
+    private ModRegistry? _registry;
+    private readonly Dictionary<string, List<JournalStep>> _journals = new(StringComparer.Ordinal);
+
+    /// <summary>Journals of other mods a step rewrote (<see cref="GameFiles"/>): written to the registry once the plan is committed.</summary>
+    public IReadOnlyDictionary<string, List<JournalStep>> JournalChanges => _journals;
+
+    /// <summary>
+    /// Every installed mod's journal as the plan leaves it: the registry's (as it was when the plan started), the plan's
+    /// rewrites, the mods it recorded so far — and not the ones it took out.
+    /// </summary>
+    public IEnumerable<KeyValuePair<string, List<JournalStep>>> Journals()
+    {
+        _registry ??= ModRegistry.Load(GameDir);
+        var recorded = Registered.Where(m => m.Settled).ToDictionary(m => m.Id, StringComparer.Ordinal);
+        var gone = Unregistered.ToHashSet(StringComparer.Ordinal);
+        foreach (var m in _registry.Mods)
+            if (!gone.Contains(m.Id) && !recorded.ContainsKey(m.Id))
+                yield return KeyValuePair.Create(m.Id, _journals.GetValueOrDefault(m.Id) ?? m.Journal);
+        foreach (var m in recorded.Values)
+            yield return KeyValuePair.Create(m.Id, _journals.GetValueOrDefault(m.Id) ?? m.Journal);
+    }
+
+    /// <summary>A mod's journal to change: the plan's own copy of it (see <see cref="JournalChanges"/>).</summary>
+    public List<JournalStep> Journals(string id)
+    {
+        if (_journals.TryGetValue(id, out var j)) return j;
+        var now = Journals().FirstOrDefault(kv => kv.Key == id).Value ?? [];
+        return _journals[id] = [.. now];
+    }
+
+    /// <summary>The journal a step should take back for a mod: the plan's rewrite of it, else the recorded one.</summary>
+    public List<JournalStep> JournalOf(RegisteredMod m) => _journals.GetValueOrDefault(m.Id) ?? m.Journal;
+
     public string Abs(string gameRel) => InstallJournal.Abs(GameDir, gameRel);
 
     private ModsOverlay? _overlay;
@@ -486,7 +542,7 @@ public sealed class ModOrderOp(IReadOnlyList<string> order, string? summary = nu
     internal static void Apply(InstallContext ctx, List<string> order)
     {
         ctx.Order = order;
-        var done = ctx.Overlay.Restack(order);
+        var done = ctx.Overlay.Restack(order, ctx.CurrentPins(files: false));
         ctx.Log(L.T($"    Load order: {done.Rewritten} file(s) now get another mod's version, {done.Reordered} reordered in all."));
         foreach (var key in done.Merged.Take(5))
             ctx.Log(L.T($"    [!] {key}: a mod edited the version under it — the order there stays."));
@@ -655,17 +711,17 @@ public static class InstallExecutor
             overlay.Save();
         }
 
-        if (ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0 || ctx.Order is not null || ctx.OrderPacks is not null)
+        if (ctx.Registered.Count > 0 || ctx.Unregistered.Count > 0 || ctx.Switched.Count > 0 || ctx.Order is not null || ctx.OrderPacks is not null
+            || ctx.JournalChanges.Count > 0 || ctx.Pins is not null || ctx.FilePins is not null)
         {
             var reg = ModRegistry.Load(target.GameDir);
             var before = ModOrder.Of(reg, ctx.LoadedOverlay?.State ?? ModOrder.StateOf(target.GameDir));
-            foreach (var m in ctx.Registered)
-            {
-                var upTo = journal.Steps.Take(m.JournalTo ?? journal.Steps.Count);
-                if (m.JournalFrom is int from) m.Journal = OwnSteps(upTo.Skip(from), ctx.LoadedOverlay);
-                else if (m.Journal.Count == 0) m.Journal = [.. upTo.Where(s => s is not (StagingTouched or RpfEntrySet))];
-                reg.Upsert(m);
-            }
+            Settle(ctx);
+            foreach (var m in ctx.Registered) reg.Upsert(m);
+            foreach (var (id, rewritten) in ctx.JournalChanges)
+                if (reg.Find(id) is { } changed) changed.Journal = rewritten;
+            if (ctx.Pins is { } pins) reg.Pins = pins;
+            if (ctx.FilePins is { } filePins) reg.FilePins = filePins;
             foreach (var id in ctx.Unregistered) reg.Remove(id);
             foreach (var (id, on) in ctx.Switched)
                 if (reg.Find(id) is { } m)
@@ -689,14 +745,22 @@ public static class InstallExecutor
     /// </summary>
     private static void FollowOrder(InstallContext ctx)
     {
-        if (ctx.LoadedOverlay is null && ctx.Order is null) return;
-        bool asked = ctx.Order is not null;
+        Settle(ctx);
         var reg = ModRegistry.Load(ctx.GameDir);
-        var order = ctx.Order ??= ModOrder.After(ModOrder.Of(reg, ctx.Overlay.State), ctx.Registered.Select(m => m.Id), ctx.Unregistered);
-        var done = ctx.Overlay.Restack(order);
-        if (done.Rewritten > 0)
-            ctx.Log(L.T($"    Load order kept: {done.Rewritten} file(s) go back to the version of the mod higher in the order."));
-        ctx.Overlay.Commit();
+        bool asked = ctx.Order is not null;
+        var files = GameFiles.Chains(ctx);
+        if (ctx.LoadedOverlay is null && !asked && ctx.Pins is null && files.Count == 0) return;
+        var order = ctx.Order ??= ModOrder.After(ModOrder.Of(reg, ctx.LoadedOverlay?.State ?? ModOrder.StateOf(ctx.GameDir)),
+                                                 ctx.Registered.Select(m => m.Id), ctx.Unregistered);
+        if (ctx.LoadedOverlay is not null || asked || ctx.Pins is not null)
+        {
+            var done = ctx.Overlay.Restack(order, ctx.CurrentPins(files: false));
+            if (done.Rewritten > 0)
+                ctx.Log(L.T($"    Load order kept: {done.Rewritten} file(s) go back to the version of the mod higher in the order."));
+            ctx.Overlay.Commit();
+        }
+        if (files.Count > 0 && GameFiles.Restack(ctx, order, ctx.CurrentPins(files: true)) is > 0 and var moved)
+            ctx.Log(L.T($"    Load order kept in the game folder: {moved} file(s) get the version of the mod higher in the order."));
         if (asked && (ctx.OrderPacks ?? reg.OrderPacks))
         {
             try
@@ -707,6 +771,18 @@ public static class InstallExecutor
             {
                 // no dlclist.xml of the mods yet: nothing to order
             }
+        }
+    }
+
+    /// <summary>The journals of the mods the plan recorded so far are final: the plan's steps from each one's start to its record.</summary>
+    private static void Settle(InstallContext ctx)
+    {
+        foreach (var m in ctx.Registered.Where(m => !m.Settled))
+        {
+            var upTo = ctx.Journal.Steps.Take(m.JournalTo ?? ctx.Journal.Steps.Count);
+            if (m.JournalFrom is int from) m.Journal = OwnSteps(upTo.Skip(from), ctx.LoadedOverlay);
+            else if (m.Journal.Count == 0) m.Journal = [.. upTo.Where(s => s is not (StagingTouched or RpfEntrySet))];
+            m.Settled = true;
         }
     }
 

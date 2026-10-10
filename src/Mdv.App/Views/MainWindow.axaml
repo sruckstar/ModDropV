@@ -602,6 +602,10 @@
                              ToolTip.Tip="{l:Tr 'Which mod wins where mods change the same game files'}">
                   <TextBlock Text="{l:Tr 'Load order'}" />
                 </RadioButton>
+                <RadioButton Classes="filter" GroupName="libview" IsChecked="{Binding IsConflictsView}"
+                             ToolTip.Tip="{l:Tr 'Every file mods share, and whose version the game gets — pick one per file'}">
+                  <TextBlock Text="{l:Tr 'Conflicts'}" />
+                </RadioButton>
               </StackPanel>
               <TextBox Grid.Column="4" Classes="search" Width="230" Text="{Binding LibrarySearch}" PlaceholderText="{l:Tr 'Search'}"
                        >
@@ -662,6 +666,113 @@
                 </CheckBox>
               </StackPanel>
             </Grid>
+
+            <!-- conflicts: what it is, the filters -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,10,0" IsVisible="{Binding IsConflictsView}">
+              <StackPanel Spacing="2" VerticalAlignment="Center">
+                <TextBlock Classes="desc" TextWrapping="Wrap"
+                           Text="{l:Tr 'Files several mods have a version of. The game gets the lit one — click another mod to pin its version to that file, whatever the load order says.'}" />
+                <TextBlock Classes="hint" Text="{Binding ConflictsCount}" IsVisible="{Binding HasSharedFiles}" />
+              </StackPanel>
+              <ComboBox Grid.Column="1" ItemsSource="{Binding ConflictMods}" SelectedItem="{Binding ConflictMod}" MinWidth="160"
+                        MaxWidth="220" VerticalAlignment="Center" IsVisible="{Binding HasSharedFiles}"
+                        ToolTip.Tip="{l:Tr 'Only the files of one mod'}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ConflictModFilter">
+                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBox Grid.Column="2" Classes="search" Width="160" Text="{Binding ConflictSearch}" VerticalAlignment="Center"
+                       PlaceholderText="{l:Tr 'Search files'}" IsVisible="{Binding HasSharedFiles}">
+                <TextBox.InnerLeftContent>
+                  <Path Data="{StaticResource IconSearch}" Stroke="{DynamicResource Text3Brush}" StrokeThickness="1.7"
+                        StrokeLineCap="Round" Stretch="Uniform" Width="12" Height="12" Margin="10,0,0,0" />
+                </TextBox.InnerLeftContent>
+              </TextBox>
+            </Grid>
+
+            <!-- conflicts: the files -->
+            <TextBlock Grid.Row="2" Classes="desc" Margin="0,0,10,0" TextWrapping="Wrap"
+                       Text="{l:Tr 'No two installed mods share a file — nothing to pick.'}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsConflictsView" />
+                  <Binding Path="!HasSharedFiles" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
+            <ScrollViewer Grid.Row="2" Padding="0,0,10,0">
+              <ScrollViewer.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsConflictsView" />
+                  <Binding Path="HasSharedFiles" />
+                </MultiBinding>
+              </ScrollViewer.IsVisible>
+              <StackPanel Spacing="4">
+                <TextBlock Classes="desc" IsVisible="{Binding ConflictsNoMatch}" Text="{l:Tr 'No shared file matches this filter.'}" />
+                <ItemsControl ItemsSource="{Binding ConflictsView}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="4" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ConflictRow">
+                      <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="10,6,6,7"
+                              BorderBrush="{DynamicResource BorderBrushSoft}" BorderThickness="1" Classes.moved="{Binding HasPending}">
+                        <Border.Styles>
+                          <Style Selector="Border.moved">
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                          </Style>
+                        </Border.Styles>
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" RowSpacing="5">
+                          <Border Classes="badge" VerticalAlignment="Center" MinWidth="84" ToolTip.Tip="{Binding AreaTip}">
+                            <TextBlock Text="{Binding AreaName}" HorizontalAlignment="Center" />
+                          </Border>
+                          <TextBlock Grid.Column="1" Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                     TextTrimming="PrefixCharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Path}" />
+                          <Path Grid.Column="2" Data="{StaticResource IconPin}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.8"
+                                StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="12" Height="13" VerticalAlignment="Center"
+                                IsVisible="{Binding IsPinned}" ToolTip.Tip="{Binding PinTip}" />
+                          <Button Grid.Column="3" Classes="ghost small" Padding="7,2" MinHeight="22" VerticalAlignment="Center"
+                                  Command="{Binding UnpinCommand}" IsVisible="{Binding CanUnpin}"
+                                  ToolTip.Tip="{l:Tr 'Let the load order decide this file again'}">
+                            <TextBlock Text="{l:Tr 'unpin'}" FontSize="11" />
+                          </Button>
+                          <Border Grid.Column="3" Classes="badge soon" VerticalAlignment="Center" IsVisible="{Binding Fixed}"
+                                  ToolTip.Tip="{Binding FixedTip}">
+                            <TextBlock Text="{Binding FixedLabel}" />
+                          </Border>
+                          <ItemsControl Grid.Row="1" Grid.ColumnSpan="4" ItemsSource="{Binding Chips}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <WrapPanel ItemSpacing="6" LineSpacing="4" />
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:ConflictChip">
+                                <Button Classes="mchip" Classes.win="{Binding Winner}" Command="{Binding PickCommand}"
+                                        IsEnabled="{Binding CanPick}" ToolTip.Tip="{Binding Tip}" ToolTip.ShowOnDisabled="True">
+                                  <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.2"
+                                          StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" Width="9" Height="9"
+                                          VerticalAlignment="Center" IsVisible="{Binding Winner}" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                  </StackPanel>
+                                </Button>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="hint" Text="{Binding ConflictsMore}"
+                           IsVisible="{Binding ConflictsMore, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+            </ScrollViewer>
 
             <!-- load order: the list -->
             <TextBlock Grid.Row="2" Classes="desc" Margin="0,0,10,0" Text="{Binding OrderEmptyText}">
@@ -793,9 +904,12 @@
                           </StackPanel>
                           <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
                                       IsVisible="{Binding HasConflicts}">
-                            <Border Classes="badge conflict" VerticalAlignment="Center" ToolTip.Tip="{Binding ConflictsTip}">
-                              <TextBlock Text="{l:Tr 'conflict'}" />
-                            </Border>
+                            <Button Classes="bare" VerticalAlignment="Center" Command="{Binding ShowSharedCommand}"
+                                    ToolTip.Tip="{Binding ConflictsTip}">
+                              <Border Classes="badge conflict">
+                                <TextBlock Text="{l:Tr 'conflict'}" />
+                              </Border>
+                            </Button>
                             <Button Classes="ghost small" Padding="7,2" MinHeight="22" VerticalAlignment="Center"
                                     Command="{Binding RaiseCommand}" IsVisible="{Binding CanRaise}"
                                     ToolTip.Tip="{l:Tr 'Put this mod’s files on top of the others’ (shows the plan first)'}">
@@ -850,6 +964,31 @@
             <TextBlock Classes="desc" Margin="0,2,10,0" IsVisible="{Binding !HasPendingChanges}"
                        Text="{l:Tr 'Untick to switch a mod off, the bin removes it — the changes are applied together after a look at the plan.'}"
                        />
+            </Panel>
+            <Panel Grid.Row="3" IsVisible="{Binding IsConflictsView}">
+              <Border Classes="note" Margin="0,2,10,0" IsVisible="{Binding HasPinChanges}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                  <StackPanel VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="{Binding PinSummary}" FontWeight="SemiBold" FontSize="12.5" />
+                    <TextBlock Classes="desc" FontSize="11" Text="{l:Tr 'Nothing changes in the game until you apply.'}" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Classes="ghost small" Content="{l:Tr 'Revert'}" VerticalAlignment="Center"
+                          Command="{Binding RevertPinsCommand}" />
+                  <Button Grid.Column="2" Classes="primary" Padding="16,7" FontSize="12.5" VerticalAlignment="Center"
+                          Command="{Binding ReviewPinsCommand}" ToolTip.Tip="{l:Tr 'See which files change hands, then apply'}">
+                    <TextBlock Text="{l:Tr 'Apply pins…'}" />
+                  </Button>
+                </Grid>
+              </Border>
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,2,10,0" IsVisible="{Binding !HasPinChanges}">
+                <TextBlock Classes="desc" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Text="{l:Tr 'A pinned file keeps its winner through reorders and updates; removing the pinned mod hands it back to the load order.'}" />
+                <Button Grid.Column="1" Classes="ghost small" Padding="9,3" VerticalAlignment="Center"
+                        Command="{Binding GiveAllToModCommand}" IsVisible="{Binding CanGiveAll}"
+                        ToolTip.Tip="{l:Tr 'Mark every file shown to go to the mod picked in the filter'}">
+                  <TextBlock Text="{l:Tr 'All shown to this mod'}" FontSize="11.5" />
+                </Button>
+              </Grid>
             </Panel>
             <Panel Grid.Row="3" IsVisible="{Binding IsOrderView}">
               <Border Classes="note" Margin="0,2,10,0" IsVisible="{Binding HasOrderChanges}">
