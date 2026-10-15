@@ -170,6 +170,17 @@ public sealed class RpfArchive : IDisposable
     /// <summary>Length of the (padded) name table as the header states it.</summary>
     internal int NamesLength => _names.Length;
 
+    /// <summary>
+    /// A raw, unencrypted .rpf entry that really holds an RPF7 archive. Some packs store blobs that only carry the
+    /// name (NaturalVision's scrambled x64/ss.rpf): those are kept as plain files instead of being opened.
+    /// </summary>
+    public bool IsNestedArchive(RpfEntry e)
+    {
+        if (!e.StoredRaw || e.IsEncrypted || !e.Name.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase)) return false;
+        var magic = ReadAt(e.Offset, 4);
+        return magic.Length == 4 && BinaryPrimitives.ReadUInt32LittleEndian(magic) == Rpf7.Magic;
+    }
+
     /// <summary>Open a nested archive entry: in place when stored raw, otherwise inflated to memory.</summary>
     public RpfArchive OpenNested(RpfEntry e)
     {
