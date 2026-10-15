@@ -188,6 +188,20 @@ public sealed class RpfEditor : IDisposable
         }
     }
 
+    /// <summary>
+    /// <paramref name="f"/> is a nested archive: named and stored like one, and it starts with an RPF7 header
+    /// (a pack may store a scrambled blob under an .rpf name — that one is a plain file).
+    /// </summary>
+    private bool IsNested(Arc arc, FNode f)
+    {
+        if (f.Child is not null) return true;
+        if (!f.IsArchive) return false;
+        var magic = new byte[4];
+        _fs.Position = arc.Start + f.Block * Sector;
+        return _fs.ReadAtLeast(magic, 4, throwOnEndOfStream: false) == 4 &&
+               BinaryPrimitives.ReadUInt32LittleEndian(magic) == Rpf7.Magic;
+    }
+
     private Arc ChildOf(Arc arc, FNode f)
     {
         if (f.Child is not null) return f.Child;
@@ -241,7 +255,7 @@ public sealed class RpfEditor : IDisposable
                 case DNode d:
                     dir = d;
                     continue;
-                case FNode { IsArchive: true } f:
+                case FNode f when IsNested(arc, f):
                     arc = ChildOf(arc, f);
                     dir = arc.Root;
                     continue;
@@ -374,7 +388,7 @@ public sealed class RpfEditor : IDisposable
     {
         long used = HeaderNeed(arc);
         foreach (var f in Files(arc.Root))
-            used += f.IsArchive ? Used(ChildOf(arc, f)) : f.Blocks;
+            used += IsNested(arc, f) ? Used(ChildOf(arc, f)) : f.Blocks;
         return used;
     }
 
@@ -522,7 +536,7 @@ public sealed class RpfEditor : IDisposable
     /// <summary>Move an entry out of the way of a growing header.</summary>
     private void Move(Arc arc, FNode f)
     {
-        if (f.IsArchive)
+        if (IsNested(arc, f))
         {
             Relocate(ChildOf(arc, f), Blk(f.Length));
             return;
@@ -720,7 +734,7 @@ public sealed class RpfEditor : IDisposable
 
     private static RpfStreamBuilder.Payload Produce(RpfArchive arc, RpfEntry e, string tempDir, List<string> temps)
     {
-        if (e.StoredRaw && !e.IsEncrypted && e.Name.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase))
+        if (arc.IsNestedArchive(e))
         {
             // holes inside it are won back; free space at its end is slack it grows into — kept
             using var nested = arc.OpenNested(e);

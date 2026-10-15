@@ -294,9 +294,6 @@ public static class RpfRetarget
         return edition is not null && edition != target;
     }
 
-    private static bool IsNestedArchive(RpfEntry e) =>
-        e.StoredRaw && !e.IsEncrypted && e.Name.EndsWith(".rpf", StringComparison.OrdinalIgnoreCase);
-
     /// <summary>Inner paths of the model resources (recursively) built for the other edition.</summary>
     public static List<string> Mismatched(string rpfPath, GameEdition target)
     {
@@ -313,7 +310,7 @@ public static class RpfRetarget
             if (item.IsDir) continue;
             var e = item.Entry;
             if (e.IsResource && Mismatch(e, target)) found.Add(prefix + item.Path);
-            else if (IsNestedArchive(e))
+            else if (arc.IsNestedArchive(e))
             {
                 using var nested = arc.OpenNested(e);
                 Walk(nested, prefix + item.Path + "/", target, found);
@@ -396,7 +393,7 @@ public static class RpfRetarget
                 Kind = RpfEntryKind.Resource, Blob = arc.ReadAt(e.Offset, (int)e.Size), A = e.X8, B = e.XC,
             };
         }
-        if (IsNestedArchive(e))
+        if (arc.IsNestedArchive(e))
         {
             var tmp = Path.Combine(job.TempDir, $"mdv_{Guid.NewGuid():N}.rpf");
             job.Temps.Add(tmp);
